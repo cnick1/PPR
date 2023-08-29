@@ -14,12 +14,13 @@ if nargin < 1
     exportData = false;
 end
 
-[~,~,~,~, f, g, h] = getSystem7();
+[~, ~, ~, ~, f, g, h] = getSystem7();
+q = h2q(h);
+
 % g = g(1);
 fprintf('Running Example 7\n')
 
 options = odeset('Events', @myEvent);
-
 
 %% Define original dynamics and controllers
 F = @(x) kronPolyEval(f, x);
@@ -31,7 +32,7 @@ F = @(x) kronPolyEval(f, x);
 
 % This is the reduced dynamics retaining nonlinear g(x)
 G = @(x) (g{1} + kronPolyEval(g(2:end), x));
-U2 = @(x) [0;0;0]; U3 = [0;0;0];
+U2 = @(x) [0; 0; 0]; U3 = [0; 0; 0];
 
 % This is technically the full non-affine model that Garrard presented
 % G = @(x) (g{1} + kronPolyEval(g(2:end), x));
@@ -43,70 +44,68 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the future energy function
 degree = 8;
-[w] = approxFutureEnergy(f, f{2}, g, h, eta, degree);
+[w] = pqr(f, g, h2q(h), eta, degree);
 
-tspan  = [0, 12];
+tspan = [0, 12];
 
 for alpha0 = [35, 30, 27, 25]
-    X0 = [pi/180*alpha0;0;0];
+    X0 = [pi / 180 * alpha0; 0; 0];
     figure('Position', [415 47 793.3333 347.3333]);
-    subplot(1,2,1); hold on;
-    subplot(1,2,2); hold on;
-    
+    subplot(1, 2, 1); hold on;
+    subplot(1, 2, 2); hold on;
+
     legendEntries = {};
     Ts = {}; X1s = {}; X2s = {}; X3s = {}; Us = {};
     for d = 2:2:degree
-        u = @(x) ( - eta * G(x).' * kronPolyDerivEval(w(1:d), x).'/2);
-        [t, X] = ode45(@(t,x) F(x) + G(x)*u(x) + U2(x)*u(x)^2 + U3*u(x)^3, tspan, X0,options);
-        
-        subplot(1,2,1)
-        plot(t,X(:,1)/(pi/180))
-        legendEntries{end+1} = sprintf('order-%i controller ',d-1);
-        
-        subplot(1,2,2)
+        u = @(x) (- eta * G(x).' * kronPolyDerivEval(w(1:d), x).' / 2);
+        [t, X] = ode45(@(t, x) F(x) + G(x) * u(x) + U2(x) * u(x) ^ 2 + U3 * u(x) ^ 3, tspan, X0, options);
+
+        subplot(1, 2, 1)
+        plot(t, X(:, 1) / (pi / 180))
+        legendEntries{end + 1} = sprintf('order-%i controller ', d - 1);
+
+        subplot(1, 2, 2)
         us = [];
-        for i=1:length(X)
-            us(end+1) = u(X(i,:).');
+        for i = 1:length(X)
+            us(end + 1) = u(X(i, :).');
         end
-        plot(t,us/(pi/180))
-        
-        
-        
-        subplot(1,2,1)
+        plot(t, us / (pi / 180))
+
+        subplot(1, 2, 1)
         legend(legendEntries)
-        ylim([0 alpha0+5])
+        ylim([0 alpha0 + 5])
         xlim(tspan)
-        
-        subplot(1,2,2)
+
+        subplot(1, 2, 2)
         legend(legendEntries)
         ylim([-20 40])
         xlim(tspan)
-        
-        Ts{end+1} = t; X1s{end+1} = X(:,1)/(pi/180); Us{end+1} = us/(pi/180);
-        X2s{end+1} = X(:,2)/(pi/180); X3s{end+1} = X(:,3)/(pi/180);
+
+        Ts{end + 1} = t; X1s{end + 1} = X(:, 1) / (pi / 180); Us{end + 1} = us / (pi / 180);
+        X2s{end + 1} = X(:, 2) / (pi / 180); X3s{end + 1} = X(:, 3) / (pi / 180);
     end
-    
+
     if exportData
         fprintf('Writing data to plots/example7_alpha%i_x1.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_x1.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-a Data\n');
         fprintf(fileID, '# aircraft stall angle, angle of attack data\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts));
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
@@ -133,26 +132,26 @@ for alpha0 = [35, 30, 27, 25]
             end
         end
         % Close the data file
-        fclose(fileID);fprintf('Writing data to plots/example7_alpha%i_x1.dat \n', alpha0)
+        fclose(fileID); fprintf('Writing data to plots/example7_alpha%i_x1.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_x1.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-a Data\n');
         fprintf(fileID, '# aircraft stall angle, angle of attack data\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts));
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
@@ -180,27 +179,27 @@ for alpha0 = [35, 30, 27, 25]
         end
         % Close the data file
         fclose(fileID);
-        
+
         fprintf('Writing data to plots/example7_alpha%i_x2.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_x2.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-ab Data\n');
         fprintf(fileID, '# aircraft stall angle, plane rotation data\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts));
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
@@ -228,27 +227,27 @@ for alpha0 = [35, 30, 27, 25]
         end
         % Close the data file
         fclose(fileID);
-        
+
         fprintf('Writing data to plots/example7_alpha%i_x3.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_x3.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-ac Data\n');
         fprintf(fileID, '# aircraft stall angle, plane rotation rate\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts));
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
@@ -276,29 +275,27 @@ for alpha0 = [35, 30, 27, 25]
         end
         % Close the data file
         fclose(fileID);
-        
-        
-        
+
         fprintf('Writing data to plots/example7_alpha%i_u.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_u.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-b Data\n');
         fprintf(fileID, '# aircraft stall angle, control input data\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts));
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
@@ -326,34 +323,33 @@ for alpha0 = [35, 30, 27, 25]
         end
         % Close the data file
         fclose(fileID);
-        
-        
+
         fprintf('Writing data to plots/example7_alpha%i_du.dat \n', alpha0)
         fileID = fopen(sprintf('plots/example7_alpha%i_du.dat', alpha0), 'w');
         fprintf(fileID, '# Figure X-b Data\n');
         fprintf(fileID, '# aircraft stall angle, control input derivative data\n');
-        
+
         % Calculate the maximum number of points in any line
         max_points = max(cellfun(@numel, Ts)) - 1;
-        
+
         % Determine the number of lines (sets of points)
         num_lines = length(Ts);
-        
+
         % Write the header
         fprintf(fileID, '       t01     &      x01      & ');
-        
+
         % Write the rest of the header
-        for i = 2:num_lines-1
+        for i = 2:num_lines - 1
             fprintf(fileID, '      t%02d     &      x%02d      & ', i, i);
         end
-        fprintf(fileID, '      t%02d     &      x%02d      \n ', i+1, i+1);
-        
+        fprintf(fileID, '      t%02d     &      x%02d      \n ', i + 1, i + 1);
+
         % Iterate over the number of points
         for j = 1:max_points
             % Iterate over each line
             for i = 1:num_lines
                 t_line = Ts{i};
-                x_line = diff(Us{i})./diff(Ts{i}.');
+                x_line = diff(Us{i}) ./ diff(Ts{i}.');
                 if j <= numel(t_line) - 1 % If this line has j or more points
                     fprintf(fileID, '%+1.6e & %+1.6e', t_line(j), x_line(j));
                     % Add '&' delimiter unless it's the last line
@@ -376,14 +372,13 @@ for alpha0 = [35, 30, 27, 25]
         % Close the data file
         fclose(fileID);
     end
-    
-end
 
 end
 
+end
 
 function [value, isterminal, direction] = myEvent(T, Y)
-value      = (abs(Y(1)) > 90*pi/180);
-isterminal = 1;   % Stop the integration
-direction  = 0;
+value = (abs(Y(1)) > 90 * pi / 180);
+isterminal = 1; % Stop the integration
+direction = 0;
 end

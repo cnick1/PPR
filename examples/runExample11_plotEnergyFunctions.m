@@ -30,19 +30,16 @@ if nargin < 4
             end
             nFterms = 7;
         end
-        degree = nFterms+1;
+        degree = nFterms + 1;
     end
     % Compute energy functions
     eta = 1; % values should be between -\infty and 1.
     % eta=1 is HJB/closed-loop balancing, 0 is open loop.
 end
 
-
-
 if nFterms == 1
     nFterms = 2; % Note F2 is zero; this is just to be able to compute a controller and ignore the error if F2 doesn't exist
 end
-
 
 %% Get model and compute energy functions
 scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scaling, hardcoded
@@ -56,7 +53,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
 % [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h2q(h), eta, degree, true);
 
 nX = 301; nY = nX;
 xLim = pi; yLim = 5;
@@ -71,13 +68,12 @@ for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
         eFuture(i, j) = 0.5 * kronPolyEval(w, x, degree);
-        wRES(i,j) = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x);
+        wRES(i, j) = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x);
         if eFuture(i, j) < 0
             eFuture(i, j) = NaN;
         end
     end
 end
-
 
 fig1 = figure;
 % ('Position',[600 50 1000 400])
@@ -87,11 +83,11 @@ xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi,0, pi])
-xticklabels({'-\pi','0','\pi'})
+xticks([-pi, 0, pi])
+xticklabels({'-\pi', '0', '\pi'})
 %     axis equal
 if degree > 2 && nFterms > 2
-%     caxis([0 1e4])
+    %     caxis([0 1e4])
 end
 
 %         set(h, 'ylim', [0 1.5])
@@ -103,24 +99,23 @@ if exportPlotData
     %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy_d%i_polynomial%i.tex',degree,nFterms))
     %     data = [ X(:) Y(:) eFuture(:) ];
     %     save plots/P.dat data -ASCII
-    
-    fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i.pdf\n',degree,nFterms)
-    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf',degree,nFterms), 'ContentType', 'vector');
+
+    fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i.pdf\n', degree, nFterms)
+    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector');
 end
 title('Future Energy Function')
 
-
-fig2=figure;
+fig2 = figure;
 %     subplot(1,2,2)
-    pcolor(X, Y, log10(abs(wRES))); shading interp; colorbar;
+pcolor(X, Y, log10(abs(wRES))); shading interp; colorbar;
 %     pcolor(X, Y, abs(wRES)); shading interp; colorbar;
 % contourf(X, Y, abs(wRES), 50, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex','XTick', -2:9,'XTickLabel',{'1e-2','1e-1','1e0','1e1','1e2','1e3','1e4','1e5','1e6','1e7','1e8','1e9'});
+colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -2:9, 'XTickLabel', {'1e-2', '1e-1', '1e0', '1e1', '1e2', '1e3', '1e4', '1e5', '1e6', '1e7', '1e8', '1e9'});
 set(gca, 'FontSize', 16)
-xticks([-pi,0, pi])
-xticklabels({'-\pi','0','\pi'})
+xticks([-pi, 0, pi])
+xticklabels({'-\pi', '0', '\pi'})
 load('utils\YlGnBuRescaled.mat')
 colormap(flip(YlGnBuRescaled))
 % caxis([0 1e3])
@@ -128,11 +123,11 @@ caxis([-2 9])
 % XTickLabels = cellstr(num2str(round(log10(XTick(:))), '10^%d'));
 
 if exportPlotData
-%     fprintf('Exporting matlab2tikz standalone tex file to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex\n',degree,nFterms)
-%     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex',degree,nFterms))
+    %     fprintf('Exporting matlab2tikz standalone tex file to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex\n',degree,nFterms)
+    %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex',degree,nFterms))
 
-    fprintf('Exporting figure to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf\n',degree,nFterms)
-    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf',degree,nFterms), 'ContentType', 'vector');
+    fprintf('Exporting figure to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
+    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector');
 end
 title('HJB Residual')
 
@@ -153,4 +148,3 @@ res = (0.5 * kronPolyDerivEval(w, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))
 %     + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
 
 end
-

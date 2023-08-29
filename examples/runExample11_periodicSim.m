@@ -54,7 +54,7 @@ tspan = [0 7];
 x0 = [-2];
 y0 = [-4];
 
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h, 1 / eta, degree, true);
 
 % Create a figure and set up subplots
 figure; hold on;
@@ -62,15 +62,15 @@ figure; hold on;
 % Loop over the initial conditions and solve the ODE
 for i = 1:length(y0)
     [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], tspan, [x0(i); y0(i)]);
-    y(:,1) = mod(y(:,1) + pi, 2*pi) - pi;
+    y(:, 1) = mod(y(:, 1) + pi, 2 * pi) - pi;
     [X, Y] = parseTrajectories(y);
     plot(X, Y, 'k', 'LineWidth', 2);
-    [t, y] = ode45(@(t, y) kronPolyEval(f, y), tspan, [x0(i); y0(i)]); 
-    plot(y(:,1),y(:,2),'r');
-%     y(:,1) = mod(y(:,1) + pi, 2*pi) - pi;
-%     [X, Y] = parseTrajectories(y);
+    [t, y] = ode45(@(t, y) kronPolyEval(f, y), tspan, [x0(i); y0(i)]);
+    plot(y(:, 1), y(:, 2), 'r');
+    %     y(:,1) = mod(y(:,1) + pi, 2*pi) - pi;
+    %     [X, Y] = parseTrajectories(y);
     plot(X, Y, 'r-.', 'LineWidth', 2);
-    [t, y] = ode45(@(t, y) kronPolyEvalMod(f, y), tspan, [x0(i); y0(i)]); y(:,1) = mod(y(:,1) + pi, 2*pi) - pi;
+    [t, y] = ode45(@(t, y) kronPolyEvalMod(f, y), tspan, [x0(i); y0(i)]); y(:, 1) = mod(y(:, 1) + pi, 2 * pi) - pi;
     [X, Y] = parseTrajectories(y);
     plot(X, Y, 'g--', 'LineWidth', 2);
 end
@@ -78,46 +78,41 @@ end
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('closed loop pendulum');
 
-
-
 end
 
 function FofY = kronPolyEvalMod(f, y)
-y(1) = mod(y(1) + pi, 2*pi) - pi;
+y(1) = mod(y(1) + pi, 2 * pi) - pi;
 FofY = kronPolyEval(f, y);
 end
 
 function [X, Y] = parseTrajectories(y)
 
 % Find the indices where the trajectory crosses the boundary
-boundary_crossings = find(abs(diff(y(:,1))) > pi);
+boundary_crossings = find(abs(diff(y(:, 1))) > pi);
 
-max_length = length(y(:,1));
-X = NaN(max_length,1); Y = X;
+max_length = length(y(:, 1));
+X = NaN(max_length, 1); Y = X;
 
 % Initialize plot variables
 start_idx = 1;
 
 % Loop through each segment
-for i = 1:length(boundary_crossings)+1
+for i = 1:length(boundary_crossings) + 1
     if i <= length(boundary_crossings)
         end_idx = boundary_crossings(i);
     else
         end_idx = size(y, 1);
     end
-    
+
     % Plot the current segment
     %     plot(y(start_idx:end_idx, 1), y(start_idx:end_idx, 2), 'b-'); % Adjust line style as needed
-    
+
     % Pad the shorter vector with NaNs to match the maximum length
-    X = [X, [y(start_idx:end_idx, 1); NaN(max_length - length(y(start_idx:end_idx, 1)),1)]];
-    Y = [Y, [y(start_idx:end_idx, 2); NaN(max_length - length(y(start_idx:end_idx, 2)),1)]];
-    
+    X = [X, [y(start_idx:end_idx, 1); NaN(max_length - length(y(start_idx:end_idx, 1)), 1)]];
+    Y = [Y, [y(start_idx:end_idx, 2); NaN(max_length - length(y(start_idx:end_idx, 2)), 1)]];
+
     % Update the starting index for the next segment
     start_idx = end_idx + 1;
 end
 
-
 end
-
-

@@ -22,7 +22,6 @@ end
 
 xmax = 1;
 
-
 [A, B, C, N, f, g, h] = getSystem10();
 fprintf('Running Example 10\n')
 
@@ -39,11 +38,10 @@ EPlusAnalytic = EgammaPlusNumerical(x, f, g, h, eta);
 %  Compute the polynomial approximations to the energy functions
 d = 8;
 [v] = approxPastEnergy(f, N, g, h, eta, d);
-[w] = approxFutureEnergy(f, N, g, h, eta, d, true);
+[w] = pqr(f, g, h, 1 / eta, d, true);
 
 v2 = v{2}; v3 = v{3}; v4 = v{4}; v5 = v{5}; v6 = v{6}; v7 = v{7}; v8 = v{8};
 w2 = w{2}; w3 = w{3}; w4 = w{4}; w5 = w{5}; w6 = w{6}; w7 = w{7}; w8 = w{8};
-
 
 Ef2 = 0.5 * w2 * x .^ 2;
 Ef3 = Ef2 + 0.5 * w3 * x .^ 3;
@@ -85,7 +83,7 @@ ylabel('$\mathcal{E}_\gamma^-$', ...
     'fontweight', 'bold')
 
 xlim([-xmax xmax])
-ylim([-.0025 .05])
+ylim([- .0025 .05])
 
 subplot(2, 1, 2)
 plot(x(1:10:end), EPlusAnalytic(1:10:end), '+', ...
@@ -110,7 +108,7 @@ ylabel('$\mathcal{E}_\gamma^+$', ...
     'fontweight', 'bold')
 
 xlim([-xmax xmax])
-ylim([-.01 .1])
+ylim([- .01 .1])
 
 end
 
@@ -118,9 +116,9 @@ function [Ex] = EgammaPlusNumerical(xd, f, g, h, eta)
 
 syms x;
 
-a = -eta/2 * (g{1}) ^ 2;
-b = kronPolyEval(f,x);
-c = 1/2 * kronPolyEval(h,x) ^ 2;
+a = -eta / 2 * (g{1}) ^ 2;
+b = kronPolyEval(f, x);
+c = 1/2 * kronPolyEval(h, x) ^ 2;
 
 dEx2 = (-b - sqrt(b ^ 2 - 4 * a * c)) / (2 * a);
 dEx1 = (-b + sqrt(b ^ 2 - 4 * a * c)) / (2 * a);
@@ -142,8 +140,8 @@ function [Ex] = EgammaMinusNumerical(xd, f, g, h, eta)
 syms x;
 
 a = -1/2 * (g{1}) ^ 2;
-b = -kronPolyEval(f,x);
-c = eta/2 * kronPolyEval(h,x) ^ 2;
+b = -kronPolyEval(f, x);
+c = eta / 2 * kronPolyEval(h, x) ^ 2;
 
 dEx2 = (-b - sqrt(b ^ 2 - 4 * a * c)) / (2 * a);
 dEx1 = (-b + sqrt(b ^ 2 - 4 * a * c)) / (2 * a);

@@ -30,13 +30,12 @@ if nargin < 4
             end
             nFterms = 9;
         end
-        degree = nFterms+1;
+        degree = nFterms + 1;
     end
     % Compute energy functions
     eta = 1; % values should be between -\infty and 1.
     % eta=1 is HJB/closed-loop balancing, 0 is open loop.
 end
-
 
 if nFterms == 1
     nFterms = 2; % Note F2 is zero; this is just to be able to compute a controller and ignore the error if F2 doesn't exist
@@ -54,7 +53,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
 % [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h, 1 / eta, degree, true);
 
 nX = 301; nY = nX;
 xLim = pi; yLim = 5;
@@ -69,13 +68,12 @@ for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
         eFuture(i, j) = 0.5 * kronPolyEval(w, x, degree);
-%         wRES(i,j) = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x);
+        %         wRES(i,j) = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x);
         if eFuture(i, j) < 0
             eFuture(i, j) = NaN;
         end
     end
 end
-
 
 fig1 = figure;
 % ('Position',[600 50 1000 400])
@@ -85,11 +83,11 @@ xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 % colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi,0, pi])
-xticklabels({'-\pi','0','\pi'})
+xticks([-pi, 0, pi])
+xticklabels({'-\pi', '0', '\pi'})
 %     axis equal
 if degree > 2 && nFterms > 2
-%     caxis([0 1e4])
+    %     caxis([0 1e4])
 end
 
 %         set(h, 'ylim', [0 1.5])
@@ -101,13 +99,12 @@ if exportPlotData
     %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy_d%i_polynomial%i.tex',degree,nFterms))
     %     data = [ X(:) Y(:) eFuture(:) ];
     %     save plots/P.dat data -ASCII
-    
-    fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf\n',degree,nFterms)
+
+    fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf\n', degree, nFterms)
     axis off
-    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf',degree,nFterms), 'ContentType', 'vector');
+    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf', degree, nFterms), 'ContentType', 'vector');
 
 end
 title('Future Energy Function')
-
 
 end

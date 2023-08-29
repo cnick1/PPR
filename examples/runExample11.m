@@ -37,19 +37,16 @@ if nargin < 4
     % eta=1 is HJB/closed-loop balancing, 0 is open loop.
 end
 
-
-
-if nFterms == 1 
-   nFterms = 2; % Note F2 is zero, this is just to be able to compute a controller and ignore the error if F2 doesn't exist 
+if nFterms == 1
+    nFterms = 2; % Note F2 is zero, this is just to be able to compute a controller and ignore the error if F2 doesn't exist
 end
-
 
 %% Get model and compute energy functions
 scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scaling, hardcoded
 
 m = 1; L = 10; %56.5962*scale;
 gravity = 9.81;
-[A, ~, C, N, f, g, h] = getSystem11(nFterms, m, L);
+[~, ~, ~, ~, f, g, h] = getSystem11(nFterms, m, L);
 fprintf('Running Example 11\n')
 
 %% Open loop phase portraits
@@ -94,22 +91,22 @@ if exportPlotData
     fileID = fopen('plots/example11_openLoopPhasePortraits_nonlinear.dat', 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum open loop phase portrait trajectory data\n');
-    
+
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-    
+
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-    
+
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-    
+
     % Write the rest of the header
-    for i = 2:num_lines-1
+    for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
-    fprintf(fileID, '      x%02d     &      y%02d      \n ', i+1, i+1);
-    
+    fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
+
     % Iterate over the number of points
     for j = 1:max_points
         % Iterate over each line
@@ -137,29 +134,28 @@ if exportPlotData
     end
     % Close the data file
     fclose(fileID);
-    
-    
+
     xs = xsPoly; ys = ysPoly;
     fprintf('Writing data to plots/example11_openLoopPhasePortraits_polynomial%i.dat \n', nFterms)
     fileID = fopen(sprintf('plots/example11_openLoopPhasePortraits_polynomial%i.dat', nFterms), 'w');
     fprintf(fileID, '# Figure X-b Data\n');
     fprintf(fileID, '# pendulum open loop phase portrait trajectory data, degree %i approximation\n', nFterms);
-    
+
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-    
+
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-    
+
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-    
+
     % Write the rest of the header
-    for i = 2:num_lines-1
+    for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
-    fprintf(fileID, '      x%02d     &      y%02d      \n ', i+1, i+1);
-    
+    fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
+
     % Iterate over the number of points
     for j = 1:max_points
         % Iterate over each line
@@ -188,7 +184,6 @@ if exportPlotData
     % Close the data file
     fclose(fileID);
 end
-
 
 %% Closed loop phase portraits
 % Define the range of initial conditions
@@ -199,7 +194,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
 % [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h2q(h), eta, degree, true);
 
 % Create a figure and set up subplots
 subplot(1, 3, 3); hold on;
@@ -209,15 +204,14 @@ options = odeset('Events', @myEvent);
 xsNL = {}; ysNL = {};
 % Loop over the initial conditions and solve the ODE
 for i = 1:length(y0)
-    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))]- eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), tspan, [x0(i); y0(i)], options);
+    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), tspan, [x0(i); y0(i)], options);
     plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
-    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))]- eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), -tspan, [x0(i); y0(i)], options);
+    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), -tspan, [x0(i); y0(i)], options);
     plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
 end
 
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('closed loop pendulum');
-
 
 if exportPlotData
     xs = xsNL; ys = ysNL;
@@ -225,26 +219,26 @@ if exportPlotData
     fileID = fopen(sprintf('plots/example11_closedLoopPhasePortraits_d%i_polynomial%i.dat', degree, nFterms), 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum closed loop phase portrait trajectory data\n');
-    
+
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-    
+
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-    
+
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-    
+
     % Write the rest of the header
-    for i = 2:num_lines-1
+    for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
-    fprintf(fileID, '      x%02d     &      y%02d      \n ', i+1, i+1);
-    
+    fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
+
     % Iterate over the number of points
     for j = 1:max_points
-        if exist('count','var') == 1 && count == 50 
-            break 
+        if exist('count', 'var') == 1 && count == 50
+            break
         else
             count = 0;
         end
@@ -274,14 +268,13 @@ if exportPlotData
     end
     % Close the data file
     fclose(fileID);
-    
-    
+
 end
 
 end
 
 function [value, isterminal, direction] = myEvent(T, Y)
-    value = max(abs(Y)) > 15; % check if any element of Y is greater than 1e6
-    isterminal = 1; % stop the integration if value is true
-    direction = 0; % direction doesn't matter
+value = max(abs(Y)) > 15; % check if any element of Y is greater than 1e6
+isterminal = 1; % stop the integration if value is true
+direction = 0; % direction doesn't matter
 end

@@ -28,11 +28,10 @@ degree = 8;
 eta = 1; % values should be between -\infty and 1.
 % eta=1 is HJB/closed-loop balancing, 0 is open loop.
 
-
 %% Get model and compute energy functions
 m = 1; L = 10; %56.5962*scale;
 [A, ~, C, N, f, g, h] = getSystem11(9, m, L);
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h, 1 / eta, degree, true);
 
 %% 1D plots
 xrange = pi; nPoints = 100;
@@ -42,32 +41,21 @@ figure;
 % Iterate through each axis and plot
 n = length(A);
 for xi = 1:n
-    xs = zeros(nPoints,n);
-    xs(:,xi) = linspace(-xrange,xrange,nPoints).';
-    
-    energies = zeros(nPoints,1);
-for i=1:nPoints
-    x = xs(i,:).';
-    energies(i) = 0.5*kronPolyEval(w, x, degree);
+    xs = zeros(nPoints, n);
+    xs(:, xi) = linspace(-xrange, xrange, nPoints).';
+
+    energies = zeros(nPoints, 1);
+    for i = 1:nPoints
+        x = xs(i, :).';
+        energies(i) = 0.5 * kronPolyEval(w, x, degree);
+    end
+
+    subplot(1, n, xi)
+    plot(xs(:, 1), energies, 'LineWidth', 2)
+
+    xlabel(sprintf('$x_%i$', xi), 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold'); ylabel('$\mathcal{E}_\gamma^+$', 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold')
+
 end
-
-subplot(1,n,xi)
-plot(xs(:,1), energies,'LineWidth', 2)
-
-xlabel(sprintf('$x_%i$',xi), 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold'); ylabel('$\mathcal{E}_\gamma^+$', 'interpreter', 'latex', 'FontSize', 20,  'fontweight', 'bold')
-    
-end
-
-
-
-
-
-
-
-
-
-
-
 
 %% 2D plots
 nX = 301; nY = nX;
@@ -101,11 +89,10 @@ xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi,0, pi])
-xticklabels({'-\pi','0','\pi'})
+xticks([-pi, 0, pi])
+xticklabels({'-\pi', '0', '\pi'})
 %     axis equal
 
 %         set(h, 'ylim', [0 1.5])
 load(fullfile('utils', 'YlGnBuRescaled.mat'))
 colormap(flip(YlGnBuRescaled))
-

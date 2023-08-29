@@ -51,7 +51,7 @@ load(fullfile('utils', 'YlGnBuRescaled.mat'));
 fprintf('Running Example 5\n')
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
-[w] = approxFutureEnergy(f, N, g, h, eta, degree, true);
+[w] = pqr(f, g, h, 1 / eta, degree, true);
 
 %% 1D plots
 xrange = 1; nPoints = 100;
@@ -61,22 +61,21 @@ figure;
 % Iterate through each axis and plot
 n = length(A);
 for xi = 1:n
-    xs = zeros(nPoints,n);
-    xs(:,xi) = linspace(-xrange,xrange,nPoints).';
-    
-    energies = zeros(nPoints,1);
-    for i=1:nPoints
-        x = xs(i,:).';
-        energies(i) = 0.5*kronPolyEval(w, x, degree);
-    end
-    
-    subplot(1,n,xi)
-    plot(xs(:,xi), energies,'LineWidth', 2)
-    
-    xlabel(sprintf('$x_%i$',xi), 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold'); ylabel('$\mathcal{E}_\gamma^+$', 'interpreter', 'latex', 'FontSize', 20,  'fontweight', 'bold')
-    
-end
+    xs = zeros(nPoints, n);
+    xs(:, xi) = linspace(-xrange, xrange, nPoints).';
 
+    energies = zeros(nPoints, 1);
+    for i = 1:nPoints
+        x = xs(i, :).';
+        energies(i) = 0.5 * kronPolyEval(w, x, degree);
+    end
+
+    subplot(1, n, xi)
+    plot(xs(:, xi), energies, 'LineWidth', 2)
+
+    xlabel(sprintf('$x_%i$', xi), 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold'); ylabel('$\mathcal{E}_\gamma^+$', 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold')
+
+end
 
 %% 2D plots
 xPlot = linspace(-xrange, xrange, nPoints);
@@ -86,23 +85,23 @@ yPlot = linspace(-xrange, xrange, nPoints);
 eFuture = zeros(nPoints, nPoints);
 wRES = zeros(nPoints, nPoints);
 
-insert = @(a, x, n)cat(2,  x(1:n-1).', a, x(n:end).').';
+insert = @(a, x, n)cat(2, x(1:n - 1).', a, x(n:end).').';
 
-figure('Position',[63.6667 1 1644 887.3333]);
+figure('Position', [63.6667 1 1644 887.3333]);
 for xi = 1:n
     for i = 1:nPoints
         for j = 1:nPoints
             x = [X(i, j); Y(i, j)];
-            x = insert(0,x,xi);
+            x = insert(0, x, xi);
             eFuture(i, j) = 0.5 * kronPolyEval(w, x, degree);
             if eFuture(i, j) < 0
                 eFuture(i, j) = NaN;
             end
-            wRES(i,j) = computeResidualFutureHJB_2D_example5(f, g, h, eta, w, degree, x);
+            wRES(i, j) = computeResidualFutureHJB_2D_example5(f, g, h, eta, w, degree, x);
         end
     end
-    
-    subplot(2,n,n-xi+1);
+
+    subplot(2, n, n - xi + 1);
     %     if xi == 1
     %         contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4], 'w');
     %         caxis([0 28])
@@ -115,44 +114,39 @@ for xi = 1:n
     %         caxis([0 28])
     %     end
     if xi == 1
-        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4]./10, 'w');
+        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4] ./ 10, 'w');
         caxis([0 2.8])
         xlabel('$x_2$', 'interpreter', 'latex'); ylabel('$x_3$', 'interpreter', 'latex');
     elseif xi == 2
-        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4]./30, 'w');
+        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4] ./ 30, 'w');
         %         contourf(X, Y, eFuture, 16, 'w','ShowText','on');
         caxis([0 .9])
         xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_3$', 'interpreter', 'latex');
-        
+
     elseif xi == 3
-        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4]./10, 'w');
+        contourf(X, Y, eFuture, [0 1.7 3.5 5.3 7.0 8.7 10.4 12.2 14.0 15.7 17.4 19.2 20.9 22.6 24.4] ./ 10, 'w');
         caxis([0 2.8])
         xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex');
     end
     colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex'); set(gca, 'FontSize', 16)
     %     xticks([-xrange,0, xrange]); % xticklabels({'-\pi','0','\pi'})
     axis equal; colormap(flip(YlGnBuRescaled))
-    
-    
+
     % HJB Residual Plots
-    subplot(2,n,n-xi+n+1);
+    subplot(2, n, n - xi + n + 1);
     %contourf(X, Y, abs(wRES), 16, 'w'); hold on;
     pcolor(X, Y, log10(abs(wRES))); shading interp; colorbar;
     xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex');
     set(gca, 'FontSize', 16)
-    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex','XTick', -2:4,'XTickLabel',{'1e-2','1e-1','1e0','1e1','1e2','1e3','1e4'});
+    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -2:4, 'XTickLabel', {'1e-2', '1e-1', '1e0', '1e1', '1e2', '1e3', '1e4'});
     %     xticks([-xrange,0, xrange]); % xticklabels({'-\pi','0','\pi'})
     %     xlim([-xrange, xrange]);ylim([-xrange, xrange]);
     colormap(flip(YlGnBuRescaled))
     caxis([-2 4])
-    
-end
-
-
-
 
 end
 
+end
 
 function [res] = computeResidualFutureHJB_2D_example5(f, g, h, eta, w, degree, x)
 
@@ -163,8 +157,7 @@ w = w(1:degree);
 
 %         Polynomial input
 res = (0.5 * kronPolyDerivEval(w, x)) * kronPolyEval(f, x) ...
-    - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * ([cos(x(3)),0;sin(x(3)),0;0,1]) * ([cos(x(3)),0;sin(x(3)),0;0,1]).' * kronPolyDerivEval(w, x).' ...
+    - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * ([cos(x(3)), 0; sin(x(3)), 0; 0, 1]) * ([cos(x(3)), 0; sin(x(3)), 0; 0, 1]).' * kronPolyDerivEval(w, x).' ...
     + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
 
 end
-
