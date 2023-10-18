@@ -30,30 +30,29 @@ close all; clear; clc;
 setKroneckerToolsPath
 addpath('examples')
 
-exportData = true;
+exportData = false;
 
 %% Example 10: 1D ODE
 % runExample10_regionOfAccuracy_Lyapunov()
 
 %% Example 11: 2D inverted pendulum
 % runExample11(exportPlotData, nFterms, degree)
-% for degree = 2:2:10
-%     for nFterms = 1:2:9
-%         runExample11(exportData, nFterms, degree)
-%     end
-% end
-
 % runExample11_plotEnergyFunctions(exportPlotData, nFterms, degree, eta)
+
 for degree = 2:2:10
-    for nFterms = 1:2:9
+    nFterms = degree - 1;
+        % Phase portraits
+%         runExample11(exportData, nFterms, degree)
+%         runExample11_computeCost(false, nFterms, degree)
+        % Value Functions
         runExample11_plotEnergyFunctions(exportData, nFterms, degree)
-    end
 end
 
 
 %% Example 7: 3D aircraft stall model
-runExample7(exportData)
+% runExample7(exportData)
 
+%% Example 
 
 %% Other not good examples
 %% Example 5: 3D unicycle, not locally stabilizable for small eps

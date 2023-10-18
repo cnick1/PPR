@@ -28,7 +28,7 @@ if nargin < 4
             if nargin < 1
                 exportPlotData = 0;
             end
-            nFterms = 7;
+            nFterms = 1;
         end
         degree = nFterms + 1;
     end
@@ -81,7 +81,6 @@ fig1 = figure;
 contourf(X, Y, eFuture, 16, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 set(gca, 'FontSize', 16)
 xticks([-pi, 0, pi])
 xticklabels({'-\pi', '0', '\pi'})
@@ -99,37 +98,41 @@ if exportPlotData
     %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy_d%i_polynomial%i.tex',degree,nFterms))
     %     data = [ X(:) Y(:) eFuture(:) ];
     %     save plots/P.dat data -ASCII
-
+    caxis([0 4e4])
+    axis off
     fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector');
+    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector','BackgroundColor','none');
 end
-title('Future Energy Function')
+colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
+
+% title('Future Energy Function')
 
 fig2 = figure;
 %     subplot(1,2,2)
-pcolor(X, Y, log10(abs(wRES))); shading interp; colorbar;
+pcolor(X, Y, log10(abs(wRES))); shading interp; 
 %     pcolor(X, Y, abs(wRES)); shading interp; colorbar;
 % contourf(X, Y, abs(wRES), 50, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -2:9, 'XTickLabel', {'1e-2', '1e-1', '1e0', '1e1', '1e2', '1e3', '1e4', '1e5', '1e6', '1e7', '1e8', '1e9'});
 set(gca, 'FontSize', 16)
 xticks([-pi, 0, pi])
 xticklabels({'-\pi', '0', '\pi'})
 load('utils\YlGnBuRescaled.mat')
 colormap(flip(YlGnBuRescaled))
 % caxis([0 1e3])
-caxis([-2 9])
+caxis([-3 9])
 % XTickLabels = cellstr(num2str(round(log10(XTick(:))), '10^%d'));
 
 if exportPlotData
     %     fprintf('Exporting matlab2tikz standalone tex file to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex\n',degree,nFterms)
     %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.tex',degree,nFterms))
+    axis off
 
     fprintf('Exporting figure to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector');
+    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector','BackgroundColor','none');
 end
-title('HJB Residual')
+colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
+% title('HJB Residual')
 
 end
 

@@ -73,7 +73,11 @@ n = size(A, 1); % A should be n-by-n
 m = size(B, 2); % B should be n-by-m
 
 if iscell(q) % state dependent weighting (polynomial)
-    Q = reshape(q{2},length(A),length(A));
+    if length(q{2}) > 1
+        Q = reshape(q{2},length(A),length(A));
+    else
+        Q = q{2};
+    end
     lq = length(q) - 1;
 else % constant state weighting
     Q = q;
@@ -82,13 +86,11 @@ else % constant state weighting
 end
 
 if length(R) == 1
-    R = R * eye(m);
     Rinv = 1/R * eye(m);
+    R = R * eye(m);
 else
     Rinv = inv(R);
 end
-
-
 
 
 %% k=2 case

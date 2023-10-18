@@ -21,8 +21,8 @@ function [A, B, C, F2, f, g, h] = getSystem10()
 %   Part of the NLbalancing repository.
 %%
 
-A = -1/10;
-F2 = -4;
+A = 1/10;
+F2 = -2;
 F3 = 1;
 B = 1;
 C = 1;

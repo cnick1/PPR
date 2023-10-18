@@ -39,12 +39,12 @@ U2 = @(x) [0; 0; 0]; U3 = [0; 0; 0];
 % U2 = @(x) [.47*x(1);0;46]; U3 = [.63;0;61.4];
 
 %% Plot x1 and control u
-eta = 1; % values should be between -\infty and 1.
-fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
+Q = {0, 0.25,0, 0}; R = 1; % values should be between -\infty and 1.
+fprintf('Simulating for eta=%g (gamma=%g)\n', R, 1 / sqrt(1 - R))
 
 %  Compute the polynomial approximations to the future energy function
 degree = 8;
-[w] = pqr(f, g, h2q(h), eta, degree);
+[w] = pqr(f, g, Q, R, degree);
 
 tspan = [0, 12];
 
@@ -57,7 +57,7 @@ for alpha0 = [35, 30, 27, 25]
     legendEntries = {};
     Ts = {}; X1s = {}; X2s = {}; X3s = {}; Us = {};
     for d = 2:2:degree
-        u = @(x) (- eta * G(x).' * kronPolyDerivEval(w(1:d), x).' / 2);
+        u = @(x) (- R * G(x).' * kronPolyDerivEval(w(1:d), x).' / 2);
         [t, X] = ode45(@(t, x) F(x) + G(x) * u(x) + U2(x) * u(x) ^ 2 + U3 * u(x) ^ 3, tspan, X0, options);
 
         subplot(1, 2, 1)
@@ -65,10 +65,13 @@ for alpha0 = [35, 30, 27, 25]
         legendEntries{end + 1} = sprintf('order-%i controller ', d - 1);
 
         subplot(1, 2, 2)
-        us = [];
+        us = []; Js = [];
         for i = 1:length(X)
             us(end + 1) = u(X(i, :).');
+            Js(end + 1) = 0.25 * X(i, :) * X(i, :).' + u(X(i, :).').^2; 
         end
+        valueFun_true = trapz(t, Js)/2;
+        fprintf('%i  &  %f   \n', d, valueFun_true)
         plot(t, us / (pi / 180))
 
         subplot(1, 2, 1)
@@ -83,6 +86,8 @@ for alpha0 = [35, 30, 27, 25]
 
         Ts{end + 1} = t; X1s{end + 1} = X(:, 1) / (pi / 180); Us{end + 1} = us / (pi / 180);
         X2s{end + 1} = X(:, 2) / (pi / 180); X3s{end + 1} = X(:, 3) / (pi / 180);
+        
+ 
     end
 
     if exportData

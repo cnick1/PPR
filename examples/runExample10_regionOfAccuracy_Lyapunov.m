@@ -14,13 +14,19 @@ function runExample10_regionOfAccuracy_Lyapunov()
 %% 1st Figure: all energy functions, big mess but just for me.
 xmax = 1.5;
 xd = linspace(-xmax, xmax, 250);
-eta = 1; % values should be between -\infty and 1.
+R = 1;
+Q = {0, 1, .4}
 
 [A, B, C, N, f, g, h] = getSystem10();
 
 %  Compute the polynomial approximations to the future energy function
 d = 8;
-[w] = pqr(f, g, h2q(h), eta, d);
+[w] = pqr(f, g, Q, R, d);
+cell2mat(w)./2
+
+cell2mat(w)./2 .* -[2 3 4 5 6 7 8]
+
+w{3}./2 * 3
 
 w2 = w{2}; w3 = w{3}; w4 = w{4}; w5 = w{5}; w6 = w{6}; w7 = w{7}; w8 = w{8};
 
@@ -41,7 +47,7 @@ Ef8 = Ef7 + 0.5 * w8 * x .^ 8;
 
 %  Compute the analytical solution for comparison
 
-EPlusAnalytic = EgammaPlusNumerical(x, f, g, h, eta);
+EPlusAnalytic = EgammaPlusNumerical(x, f, g, h, R);
 
 figure
 plot(x(1:10:end), EPlusAnalytic(1:10:end), '+', ...
@@ -68,10 +74,10 @@ ylabel('$\mathcal{E}_\gamma^+$', ...
 xlim([-xmax xmax])
 ylim([- .05 2])
 
-regn2 = computeRegion(f, g, h, eta, w, 2, xd, Ef2);
-regn4 = computeRegion(f, g, h, eta, w, 4, xd, Ef4);
-regn6 = computeRegion(f, g, h, eta, w, 6, xd, Ef6);
-regn8 = computeRegion(f, g, h, eta, w, 8, xd, Ef8);
+regn2 = computeRegion(f, g, h, R, w, 2, xd, Ef2);
+regn4 = computeRegion(f, g, h, R, w, 4, xd, Ef4);
+regn6 = computeRegion(f, g, h, R, w, 6, xd, Ef6);
+regn8 = computeRegion(f, g, h, R, w, 8, xd, Ef8);
 
 set(gca, 'ColorOrderIndex', 2)
 hold on
@@ -101,7 +107,7 @@ Xs = [- .5:.125:0, 0:.25:1.5];
 Xs = [Xs, - .23494];
 for X0 = Xs
 
-    [t2, X2] = ode23(@(t, x) kronPolyEval(f, x) - eta * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:2), x)), tspan, X0);
+    [t2, X2] = ode23(@(t, x) kronPolyEval(f, x) - R * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:2), x)), tspan, X0);
 
     figure(fig1); hold on; set(gca, 'ColorOrderIndex', 2, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin')
     plot(t2, X2, 'LineWidth', 2)
@@ -113,7 +119,7 @@ end
 Xs = [-1.5:.25:1.5];
 for X0 = Xs
 
-    [t4, X4] = ode23(@(t, x) kronPolyEval(f, x) - eta * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:4), x)), tspan, X0);
+    [t4, X4] = ode23(@(t, x) kronPolyEval(f, x) - R * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:4), x)), tspan, X0);
 
     figure(fig2); hold on; set(gca, 'ColorOrderIndex', 3, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin')
     plot(t4, X4, 'LineWidth', 2)
@@ -126,7 +132,7 @@ Xs = [-1:.25:0, 0:.125:.375];
 Xs = [Xs, - .729];
 for X0 = Xs
 
-    [t6, X6] = ode23(@(t, x) kronPolyEval(f, x) - eta * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:6), x)), tspan, X0);
+    [t6, X6] = ode23(@(t, x) kronPolyEval(f, x) - R * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:6), x)), tspan, X0);
 
     figure(fig3); hold on; set(gca, 'ColorOrderIndex', 4, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin')
     plot(t6, X6, 'LineWidth', 2)
@@ -139,7 +145,7 @@ end
 Xs = [-1.5:.25:1.5];
 for X0 = Xs
 
-    [t8, X8] = ode23(@(t, x) kronPolyEval(f, x) - eta * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:8), x)), tspan, X0);
+    [t8, X8] = ode23(@(t, x) kronPolyEval(f, x) - R * (g{1}) ^ 2 * (0.5 * kronPolyDerivEval(w(1:8), x)), tspan, X0);
 
     figure(fig4); hold on; set(gca, 'ColorOrderIndex', 5, 'XAxisLocation', 'origin', 'YAxisLocation', 'origin')
     plot(t8, X8, 'LineWidth', 2)
