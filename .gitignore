@@ -5,4 +5,5 @@
 *.asv
 development
 testing*
+testing/
 plots/*
