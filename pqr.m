@@ -105,7 +105,7 @@ else
     q = {[], vec(Q)};
 end
 
-% Check if R is positive or negative definite
+% Check if R is positive definite, negative definite, or zero
 if length(R) == 1
     if R > 0
         % disp('R is positive definite.')
@@ -163,99 +163,73 @@ end
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
 
-%% v3, Degree 3 coefficient (k=3 case)
+%% v3-vd, Degree 3 and above coefficients (3<=k<=d cases)
 if (degree > 2)
-    GaWb = cell(2 * lg + 1, degree - 1); % Pre-compute G_a.'*W_b, etc for all the a,b we need
-    GaWb{1, 2} = B.' * V2;
-    % set up the generalized Lyapunov solver
+    % Pre-allocate G_a.'*V_b, etc for all the a,b we need.
+    % They will be computed and stored once as needed
+    % For G_a, we need lg + 1 because lg is indexed from 0 (B = G0);
+    % only need up to degree-1 for V_b because this will be the rhs of the last computed coefficients
+    GaVb = cell(lg + 1, degree - 1);
+    % GaVb = cell(2 * lg + 1, degree - 1); % For G_a, we need 2*lg + 1 why???
+
+    % Compute first one
+    % GaVb{1, 2} = B.' * V2;
+
+    % Set up the generalized Lyapunov solver (LHS coefficient matrix)
     [Acell{1:degree}] = deal((A - (B * Rinv * B.') * V2).');
 
-    b = -LyapProduct(f{2}.', v{2}, 2);
+    % Compute the coefficients
+    for k = 3:degree
+        b = 0;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial drift components %%%%%%%%%%%%%%%%%%%%%%%%%%%
+        if lf > 1 % If we have polynomial dynamics
+            iRange = 2:(k - 1); % Theoretical sum limits
 
-    if lg > 0 % only for polynomial input
-        Im = speye(m);
-        GaWb{2, 2} = g{2}.' * V2;
-        b = b + 2 * kron(speye(n ^ 3), vec(Im).') * vec(kron(GaWb{2, 2}, Rinv.' * GaWb{1, 2}));
-    end
+            % iRange only needs to have at most the lf last i's; for example, if there are only lf=2 and
+            % there are only f{1} and f{2}, iRange = [k-2, k-1] is sufficient (corresponding to p=[1,2]).
+            % Otherwise f{p} doesn't exist and would require a bunch of zero entries in f{p} above lf.
+            iRange = iRange(max(k - lf - 1, 1):end); % Remove i's corresponding to non-existent f{p} entries
 
-    % q(x)
-    if 3 <= lq + 1
-        b = b - q{3};
-    end
-
-    [v{3}] = KroneckerSumSolver(Acell(1:3), b, 3); % Solve Ax=b for k=3
-    [v{3}] = kronMonomialSymmetrize(v{3}, n, 3); % Symmetrize v3
-
-    %% k>3 cases (up to d)
-    for k = 4:degree
-        GaWb{1, k - 1} = B.' * reshape(v{k - 1}, n, n ^ (k - 2));
-
-        b = -LyapProduct(f{2}.', v{k - 1}, k - 1); % Pre-compue all the L(N') terms
-
-        % New for polynomial drift f(x)
-
-        iRange = 2:(k - 2);
-        iRange = iRange(max(k - lf, 1):end); % Need to only do lf last i's; if there are only 2 Ns for example, only need k-2! otherwise f(xi) doesnt exist and would require a bunch of empty f(xi)s
-        %         TODO: may be better to write directly in terms of xi, but then how to get rid of i=k-1...?
-        for i = iRange % would be from 2:k-1 but k-1 was covered in instantiation of b
-            xi = k + 1 - i;
-            b = b - LyapProduct(f{xi}.', v{i}, i);
-        end
-
-        % Now add all the terms from the 'B' sum by looping through the i and j
-        for i = 3:(k + 1) / 2 % i+j=k+2
-            j = k + 2 - i;
-            tmp = GaWb{1, i}.' * Rinv.' * GaWb{1, j};
-            b = b + 0.25 * i * j * (vec(tmp) + vec(tmp.'));
-        end
-
-        if ~mod(k, 2) % k is even
-            i = (k + 2) / 2;
-            j = i;
-            tmp = GaWb{1, i}.' * Rinv.' * GaWb{1, j};
-            b = b + 0.25 * i * j * vec(tmp);
-        end
-
-        % Now add the higher order polynomial terms "G" by iterating through the sums
-        [g{lg + 2:2 * lg + 1}] = deal(0); % Need extra space in g because of GaWb indexing
-
-        for o = 1:2 * lg
-            for idx = 2:k - 1 % Might be repetitive
-                if o + 1 < lg + 2
-                    GaWb{o + 1, idx} = g{o + 1}.' * sparse(reshape(v{idx}, n, n ^ (idx - 1)));
-                else
-                    GaWb{o + 1, idx} = 0;
-                end
+            for i = iRange
+                p = k + 1 - i;
+                b = b - LyapProduct(f{p}.', v{i}, i);
             end
-            for p_idx = max(0, o - lg):min(o, lg)
+        end
 
+        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial input components %%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % First pre-compute GaVb components we need once to re-use without recomputing
+        % Only need k-1 for V because the previous iteration for k handled k-2, etc.
+        for a = 0:lg
+            GaVb{a + 1, k - 1} = g{a + 1}.' * sparse(reshape(v{k - 1}, n, n ^ (k - 2)));
+        end
+
+        % Next add BB.' terms; this must be done separately since some of the o=0 terms need to go on the LHS
+        for i = 3:k - 1 % Note how this is not 2:k; need to remove the V2 and Vk components that go in LHS
+            j = k + 2 - i;
+            b = b + 0.25 * i * j * vec(GaVb{1, i}.' * Rinv.' * GaVb{1, j});
+        end
+
+        % Then add remaining G terms (o = 1 to 2 ell)
+        for o = 1:2 * lg
+            for p_idx = max(0, o - lg):min(o, lg) % These max/mins get around the nonexistent Gs, such as g{2*lg}
                 for i = 2:k - o
                     q_idx = o - p_idx;
                     j = k - o - i + 2;
-                    tmp = kron(speye(n ^ p_idx), vec(Im).') ...
-                        * kron(vec(GaWb{q_idx + 1, j}).', kron(GaWb{p_idx + 1, i}, Rinv)) ...
-                        * kron(speye(n ^ (j - 1)), kron(perfectShuffle(n ^ (i - 1), n ^ q_idx * m), Im)) ...
-                        * kron(speye(n ^ (k - p_idx)), vec(Im));
+                    tmp = kron(speye(n ^ p_idx), vec(speye(m)).') ...
+                        * kron(vec(GaVb{q_idx + 1, j}).', kron(GaVb{p_idx + 1, i}, Rinv)) ...
+                        * kron(speye(n ^ (j - 1)), kron(perfectShuffle(n ^ (i - 1), n ^ q_idx * m), speye(m))) ...
+                        * kron(speye(n ^ (k - p_idx)), vec(speye(m)));
                     b = b + 0.25 * i * j * vec(tmp);
                 end
-
             end
-
         end
 
-        % New for polynomial output h(x)
-        % TODO: use symmetry to cut in half
-        %         for p_idx = (k - lq):lq % would be 1:(k-1) but need to truncate only to h{} terms which exist
-        %             q_idx = k - p_idx;
-        %             b = b - vec(q{p_idx}.' * q{q_idx});
-        %         end
-
-        % q(x)
+        %%%%%%%%%%%%%%%%%%%%%% Add polynomial q(x) weighting components %%%%%%%%%%%%%%%%%%%%%%
         if k <= lq + 1
             b = b - q{k};
         end
 
-        % Done with RHS! Now solve and symmetrize!
+        %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now solve and symmetrize! %%%%%%%%%%%%%%%%%%%%%%
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k);
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
     end
