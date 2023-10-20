@@ -180,7 +180,9 @@ if (degree > 2)
 
     % Compute the coefficients
     for k = 3:degree
-        b = 0;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        b = 0; % Initialize b
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial drift components %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial dynamics
             iRange = 2:(k - 1); % Theoretical sum limits
