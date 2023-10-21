@@ -50,7 +50,6 @@ function [v] = pqr(f, g, q, R, degree, verbose)
 %   Reference: [1] N. A. Corbin and B. Kramer, “The polynomial-polynomial regulator:
 %              computing feedback for polynomially nonlinear systems with polynomial
 %              performance indexes,” 2023.
-
 %
 %  Part of the PQR repository.
 %%
@@ -69,7 +68,7 @@ if iscell(f)
     A = f{1};
     % N = f{2}; % maybe don't do this here? Well if N is missing the code would break anyways
     lf = length(f);
-    
+
     if (nargin < 5)
         degree = lf;
     end
@@ -135,13 +134,13 @@ end
 switch RPosDef
     case 1 % Positive definite R
         [V2] = icare(A, B, Q, R);
-        
+
         if (isempty(V2) && verbose)
             warning('pqr: icare couldn''t find stabilizing solution')
         end
     case 2 % Negative definite R
         [V2] = icare(A, B, Q, R, 'anti');
-        
+
         if (isempty(V2) && verbose)
             warning('pqr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
@@ -172,46 +171,46 @@ if (degree > 2)
     % only need up to degree-1 for V_b because this will be the rhs of the last computed coefficients
     GaVb = cell(lg + 1, degree - 1);
     % GaVb = cell(2 * lg + 1, degree - 1); % For G_a, we need 2*lg + 1 why???
-    
+
     % Compute first one
     % GaVb{1, 2} = B.' * V2;
-    
+
     % Set up the generalized Lyapunov solver (LHS coefficient matrix)
     [Acell{1:degree}] = deal((A - (B * Rinv * B.') * V2).');
-    
+
     % Compute the coefficients
     for k = 3:degree
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         b = 0; % Initialize b
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial drift components %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial dynamics
             iRange = 2:(k - 1); % Theoretical sum limits
-            
+
             % iRange only needs to have at most the lf-1 last i's; for example, if there are only lf=3 and
             % there are only f{2} and f{3} to consider, iRange = [k-2, k-1] is sufficient (corresponding to
             % p=[2,3]). Otherwise f{p} doesn't exist and would require a bunch of zero entries in f{p} above lf.
             iRange = iRange(max(k - lf, 1):end); % Remove i's corresponding to non-existent f{p} entries
-            
+
             for i = iRange
                 p = k + 1 - i;
                 b = b - LyapProduct(f{p}.', v{i}, i);
             end
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial input components %%%%%%%%%%%%%%%%%%%%%%%%%%%
         % First pre-compute GaVb components we need once to re-use without recomputing
         % Only need k-1 for V because the previous iteration for k handled k-2, etc.
         for a = 0:lg
             GaVb{a + 1, k - 1} = g{a + 1}.' * sparse(reshape(v{k - 1}, n, n ^ (k - 2)));
         end
-        
+
         % Next add BB.' terms; this must be done separately since some of the o=0 terms need to go on the LHS
         for i = 3:k - 1 % Note how this is not 2:k; need to remove the V2 and Vk components that go in LHS
             j = k + 2 - i;
             b = b + 0.25 * i * j * vec(GaVb{1, i}.' * Rinv.' * GaVb{1, j});
         end
-        
+
         if R ~= 0
             % Then add remaining G terms (o = 1 to 2 ell)
             for o = 1:2 * lg
@@ -232,12 +231,12 @@ if (degree > 2)
         if k <= lq + 1
             b = b - q{k};
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now solve and symmetrize! %%%%%%%%%%%%%%%%%%%%%%
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k);
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
     end
-    
+
 end
 
 end
