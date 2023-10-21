@@ -26,7 +26,7 @@ if nargin < 4
     if nargin < 3
         if nargin < 2
             if nargin < 1
-                exportPlotData = 0;
+                exportPlotData = false;
             end
             nFterms = 9;
         end
@@ -45,7 +45,7 @@ end
 scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scaling, hardcoded
 
 m = 1; L = 10; gravity = 9.81;
-[A, ~, C, N, f, g, h] = getSystem11(nFterms, m, L);
+[f, g, h] = getSystem11(nFterms, m, L);
 
 %% Closed loop phase portraits
 % Define the range of initial conditions

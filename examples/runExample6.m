@@ -1,4 +1,4 @@
-function [w] = runExample6(numGTermsModel, numGTermsApprox, exportData, x0, varargin)
+function [w] = runExample6(numGTermsModel, numGTermsApprox, exportData, x0)
 %runExample6 Runs the finite element beam example to demonstrate
 %            convergence and scalability.
 %
@@ -18,10 +18,8 @@ function [w] = runExample6(numGTermsModel, numGTermsApprox, exportData, x0, vara
 %
 %   The value of eta is set below.
 %
-%   Reference: Submitted to IEEE TAC.
-%   "Scalable Computation of ℋ∞ Energy Functions for Polynomial
-%    Control-Affine Systems", N. Corbin and B. Kramer
-%    arXiv:
+%   Reference: [1] N. A. Corbin and B. Kramer, “Scalable computation of 𝓗_∞
+%               energy functions for polynomial control-affine systems,” 2023.
 %
 %   Part of the NLbalancing repository.
 %%
@@ -64,12 +62,12 @@ numEls = [1, 2, 4, 8, 16];
 for numEl = numEls
     fprintf(fileID, '%5d       &', numEl);
     fprintf(fileID, '%5d & ', 6 * numEl);
-    [A, B, C, N, f, g, h] = getSystem6(numEl, 2);
-    f{4} = sparse(length(A), length(A) ^ 4);
+    [f, g, h] = getSystem6(numEl, 2);
+    f{4} = sparse(length(f{1}), length(f{1}) ^ 4);
     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
     g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
 
-    tic; for i = 1:nTest, [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree); end, tt = toc / nTest;
+    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
 
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
@@ -100,11 +98,11 @@ if exportData
         numEls = [numEls, numEl];
         fprintf(fileID, '%5d       &', numEl);
         fprintf(fileID, '%5d & ', 6 * numEl);
-        [A, B, C, N, f, g, h] = getSystem6(numEl);
+        [f, g, h] = getSystem6(numEl);
         %     f{4} = sparse(length(A),length(A)^4);
         %     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
         g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-        tic; for i = 1:nTest, [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree); end, tt = toc / nTest;
+        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
 
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
@@ -168,11 +166,11 @@ numEls = [1, 2, 4];
 for numEl = numEls
     fprintf(fileID, '%5d       &', numEl);
     fprintf(fileID, '%5d & ', 6 * numEl);
-    [A, B, C, N, f, g, h] = getSystem6(numEl);
+    [f, g, h] = getSystem6(numEl);
     %     f{4} = sparse(length(A),length(A)^4);
     %     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
     g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-    tic; for i = 1:nTest, [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree); end, tt = toc / nTest;
+    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
 
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
@@ -203,11 +201,11 @@ if exportData
         numEls = [numEls, numEl];
         fprintf(fileID, '%5d       &', numEl);
         fprintf(fileID, '%5d & ', 6 * numEl);
-        [A, B, C, N, f, g, h] = getSystem6(numEl);
-        f{4} = sparse(length(A), length(A) ^ 4);
+        [f, g, h] = getSystem6(numEl);
+        f{4} = sparse(length(f{1}), length(f{1}) ^ 4);
         f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
         g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-        tic; for i = 1:nTest, [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree); end, tt = toc / nTest;
+        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
 
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
@@ -272,8 +270,8 @@ fprintf(fileID, '& CPU-sec-2    & E_d^+(x_0)      \n');
 % compute and print the results
 nTest = 3;
 
-[A, B, C, N, f, g, h] = getSystem6(numEl);
-f{4} = sparse(length(A), length(A) ^ 4);
+[f, g, h] = getSystem6(numEl);
+f{4} = sparse(length(f{1}), length(f{1}) ^ 4);
 f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
 g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
 % Initial condition where the nodes are displaced but have no initial
@@ -294,7 +292,7 @@ for degree = degrees
 
     %     % Past
     %     tic; for i = 1:nTest,
-    %         [v] = approxPastEnergy(A, N, g(1:numGTermsApprox), C, eta, degree);
+    %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta, degree);
     %     end, tt = toc / nTest;
     %
     %     fprintf(fileID, '%8.2e  & ', tt);
@@ -307,7 +305,7 @@ for degree = degrees
 
     % Future
     tic; for i = 1:nTest,
-    [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree);
+    [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree);
     end, tt = toc / nTest;
 
     fprintf(fileID, '%8.2e  & ', tt);
@@ -328,7 +326,7 @@ if exportData
 
         %     % Past
         %     tic; for i = 1:nTest,
-        %         [v] = approxPastEnergy(A, N, g(1:numGTermsApprox), C, eta, degree);
+        %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta, degree);
         %     end, tt = toc / nTest;
         %
         %     fprintf(fileID, '%8.2e  & ', tt);
@@ -341,7 +339,7 @@ if exportData
 
         % Future
         tic; for i = 1:nTest,
-        [w] = pqr(f, g(1:numGTermsApprox), C, eta, degree);
+        [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree);
         end, tt = toc / nTest;
 
         fprintf(fileID, '%8.2e  & ', tt);

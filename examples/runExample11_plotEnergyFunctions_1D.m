@@ -30,7 +30,7 @@ eta = 1; % values should be between -\infty and 1.
 
 %% Get model and compute energy functions
 m = 1; L = 10; %56.5962*scale;
-[A, ~, C, N, f, g, h] = getSystem11(9, m, L);
+[f, g, h] = getSystem11(9, m, L);
 [w] = pqr(f, g, h, 1 / eta, degree, true);
 
 %% 1D plots
@@ -39,7 +39,7 @@ xrange = pi; nPoints = 100;
 figure;
 
 % Iterate through each axis and plot
-n = length(A);
+n = length(f{1});
 for xi = 1:n
     xs = zeros(nPoints, n);
     xs(:, xi) = linspace(-xrange, xrange, nPoints).';

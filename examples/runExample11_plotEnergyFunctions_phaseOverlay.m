@@ -26,7 +26,7 @@ if nargin < 4
     if nargin < 3
         if nargin < 2
             if nargin < 1
-                exportPlotData = 0;
+                exportPlotData = false;
             end
             nFterms = 9;
         end
@@ -46,7 +46,7 @@ scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scali
 
 m = 1; L = 10; %56.5962*scale;
 gravity = 9.81;
-[A, ~, C, N, f, g, h] = getSystem11(nFterms, m, L);
+[f, g, h] = getSystem11(nFterms, m, L);
 fprintf('Running Example 11\n')
 
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
@@ -61,7 +61,6 @@ xPlot = linspace(-xLim, xLim, nX);
 yPlot = linspace(-yLim, yLim, nY);
 [X, Y] = meshgrid(xPlot, yPlot);
 
-eFuture = zeros(nY, nX);
 eFuture = zeros(nY, nX);
 
 for i = 1:nY

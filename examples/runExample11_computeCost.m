@@ -25,7 +25,7 @@ function [v, w] = runExample11_computeCost(exportPlotData, nFterms, degree, vara
 if nargin < 3
     if nargin < 2
         if nargin < 1
-            exportPlotData = 0;
+            exportPlotData = false;
         end
         nFterms = 5;
     end
@@ -44,13 +44,13 @@ scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scali
 
 m = 1; L = 10; %56.5962*scale;
 gravity = 9.81;
-[~, ~, ~, ~, f, g, h] = getSystem11(nFterms, m, L);
+[f, g, h] = getSystem11(nFterms, m, L);
 fprintf('Running Example 11\n')
 
 %% Closed-loop phase portraits
 % Define the range of initial conditions
 
-y0 = [sqrt(6*gravity/L)]; x0 = [-pi];
+y0 = [sqrt(6 * gravity / L)]; x0 = [-pi];
 % y0 = [sqrt(3*gravity/L)]; x0 = [-pi/2];
 % y0 = [sqrt(3*gravity/L*(1-sqrt(2)/2))]; x0 = [-pi/4];
 
@@ -61,31 +61,30 @@ tspan = [0 10];
 [w] = pqr(f, g, Q, R, degree, true);
 
 syms x1 x2
-vpa(-Rinv * g{1}.' *kronPolyDerivEval(w, [x1; x2]).')/2
+vpa(-Rinv * g{1}.' * kronPolyDerivEval(w, [x1; x2]).') / 2
 
 options = odeset('Events', @myEvent);
 
 xsNL = {}; ysNL = {};
 [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - Rinv * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), tspan, [x0; y0], options);
-u = zeros(length(y),1);
-for i=1:length(y)
-    u(i) =  - Rinv * g{1}.' * (0.5 * kronPolyDerivEval(w, y(i,:).').');
+u = zeros(length(y), 1);
+for i = 1:length(y)
+    u(i) =- Rinv * g{1}.' * (0.5 * kronPolyDerivEval(w, y(i, :).').');
 end
 
 % Create a figure and set up subplots
 figure
-subplot(1,2,1); hold on;
+subplot(1, 2, 1); hold on;
 plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
-subplot(1,2,2); hold on;
+subplot(1, 2, 2); hold on;
 plot(t, u, 'b');
 
 l2_norm_valueFun = (0.5 * kronPolyEval(w, [x0; y0]));
-l2_norm_true = trapz(t, u.^2)/2;
+l2_norm_true = trapz(t, u .^ 2) / 2;
 
 fprintf('%i  &  %f  &  %f   \n', degree, l2_norm_valueFun, l2_norm_true)
 
 % compute L2 norm of the control
-
 
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('closed loop pendulum');
@@ -96,22 +95,22 @@ if false %exportPlotData
     fileID = fopen(sprintf('plots/example11_closedLoopPhasePortraits_d%i_polynomial%i.dat', degree, nFterms), 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum closed loop phase portrait trajectory data\n');
-    
+
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-    
+
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-    
+
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-    
+
     % Write the rest of the header
     for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
     fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
-    
+
     % Iterate over the number of points
     for j = 1:max_points
         if exist('count', 'var') == 1 && count == 50
@@ -145,7 +144,7 @@ if false %exportPlotData
     end
     % Close the data file
     fclose(fileID);
-    
+
 end
 
 end

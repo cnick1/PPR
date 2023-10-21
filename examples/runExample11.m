@@ -26,7 +26,7 @@ if nargin < 4
     if nargin < 3
         if nargin < 2
             if nargin < 1
-                exportPlotData = 0;
+                exportPlotData = false;
             end
             nFterms = 5;
         end
@@ -46,7 +46,7 @@ scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scali
 
 m = 1; L = 10; %56.5962*scale;
 gravity = 9.81;
-[~, ~, ~, ~, f, g, h] = getSystem11(nFterms, m, L);
+[f, g, h] = getSystem11(nFterms, m, L);
 fprintf('Running Example 11\n')
 
 %% Open loop phase portraits
@@ -54,7 +54,7 @@ fprintf('Running Example 11\n')
 y0 = [-2, -1.7, -1.5, -1.3, -1.1, - .9, - .8, - .6, - .4, - .2, - .05, - .01, 0., 0.01, 0.05, 0.2, 0.4, 0.6, 0.8, .95, 1.1, 1.3, 1.5, 1.7, 2] * scaling;
 x0 = [zeros(1, 11) + pi, zeros(1, 3), zeros(1, 11) - pi];
 
-y0 = [y0, sqrt(6*gravity/L)];
+y0 = [y0, sqrt(6 * gravity / L)];
 x0 = [x0, -pi];
 
 tspan = [0 7];
@@ -64,17 +64,17 @@ figure('Position', [600 60 860 240]); subplot(1, 3, 1); hold on;
 
 xsNL = {}; ysNL = {};
 % Loop over the initial conditions and solve the ODE
-for i = 1:length(y0)-1
+for i = 1:length(y0) - 1
     [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], tspan, [x0(i); y0(i)]);
     plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
     [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], -tspan, [x0(i); y0(i)]);
     plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
 end
 i = length(y0);
-    [t, y] = ode23(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], tspan, [x0(i); y0(i)]);
-    plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
-    [t, y] = ode23(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], -tspan, [x0(i); y0(i)]);
-    plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
+[t, y] = ode23(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], tspan, [x0(i); y0(i)]);
+plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
+[t, y] = ode23(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))], -tspan, [x0(i); y0(i)]);
+plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
 
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('pendulum');
@@ -92,10 +92,10 @@ for i = 1:length(y0) - 1
 end
 
 i = length(y0);
-    [t, y] = ode45(@(t, x) kronPolyEval(f, x), tspan, [x0(i); y0(i)]);
-    plot(y(:, 1), y(:, 2), 'b'); xsPoly{end + 1} = y(:, 1); ysPoly{end + 1} = y(:, 2);
-    [t, y] = ode45(@(t, x) kronPolyEval(f, x), -tspan, [x0(i); y0(i)]);
-    plot(y(:, 1), y(:, 2), 'b'); xsPoly{end + 1} = y(:, 1); ysPoly{end + 1} = y(:, 2);
+[t, y] = ode45(@(t, x) kronPolyEval(f, x), tspan, [x0(i); y0(i)]);
+plot(y(:, 1), y(:, 2), 'b'); xsPoly{end + 1} = y(:, 1); ysPoly{end + 1} = y(:, 2);
+[t, y] = ode45(@(t, x) kronPolyEval(f, x), -tspan, [x0(i); y0(i)]);
+plot(y(:, 1), y(:, 2), 'b'); xsPoly{end + 1} = y(:, 1); ysPoly{end + 1} = y(:, 2);
 
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('polynomial approx.');
@@ -226,12 +226,11 @@ for i = 1:length(y0)
     plot(y(:, 1), y(:, 2), 'r'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
 end
 
-
 i = length(y0);
-    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), tspan, [x0(i); y0(i)], options);
-    plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
-    [t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), -tspan, [x0(i); y0(i)], options);
-    plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
+[t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), tspan, [x0(i); y0(i)], options);
+plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
+[t, y] = ode45(@(t, y) [y(2); 3 * gravity / (2 * L) * sin(y(1))] - eta * g{1} * g{1}.' * (0.5 * kronPolyDerivEval(w, y).'), -tspan, [x0(i); y0(i)], options);
+plot(y(:, 1), y(:, 2), 'b'); xsNL{end + 1} = y(:, 1); ysNL{end + 1} = y(:, 2);
 
 % Set up the plot
 xlim([-pi pi]); ylim([-2 * scaling 2 * scaling]); xlabel('x'); title('closed loop pendulum');

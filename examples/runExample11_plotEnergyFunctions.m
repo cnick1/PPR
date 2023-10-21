@@ -26,7 +26,7 @@ if nargin < 4
     if nargin < 3
         if nargin < 2
             if nargin < 1
-                exportPlotData = 0;
+                exportPlotData = false;
             end
             nFterms = 1;
         end
@@ -46,7 +46,7 @@ scale = .1767; scaling = 1 / sqrt(scale); % For plot and initial condition scali
 
 m = 1; L = 10; %56.5962*scale;
 gravity = 9.81;
-[A, ~, C, N, f, g, h] = getSystem11(nFterms, m, L);
+[f, g, h] = getSystem11(nFterms, m, L);
 fprintf('Running Example 11\n')
 
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
@@ -101,7 +101,7 @@ if exportPlotData
     caxis([0 4e4])
     axis off
     fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector','BackgroundColor','none');
+    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
 end
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
 
@@ -109,7 +109,7 @@ colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 
 
 fig2 = figure;
 %     subplot(1,2,2)
-pcolor(X, Y, log10(abs(wRES))); shading interp; 
+pcolor(X, Y, log10(abs(wRES))); shading interp;
 %     pcolor(X, Y, abs(wRES)); shading interp; colorbar;
 % contourf(X, Y, abs(wRES), 50, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
@@ -129,7 +129,7 @@ if exportPlotData
     axis off
 
     fprintf('Exporting figure to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector','BackgroundColor','none');
+    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
 end
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
 % title('HJB Residual')

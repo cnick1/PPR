@@ -1,22 +1,23 @@
-function [v, w] = runExample7(exportData, varargin)
+function [v, w] = runExample7()
 %runExample7 Runs 3D aircraft stall model
 %   Usage:  [v, w] = runExample7()
 %
-%   runExample7() runs TODO.
+%   runExample7() runs the aircraft stall stabilization model from
+%   Garrard 1977 [1].
 %
 %   Outputs:
-%       v,w             are coefficients of the past and future energy
-%                       function approximations, respectively.
+%       v,w - coefficients of the past and future energy function
+%             approximations, respectively.
+%
+%   Reference: [1] W. L. Garrard and J. M. Jordan, “Design of nonlinear
+%               automatic flight control systems,” Automatica, vol. 13,
+%               no. 5, pp. 497–505, Sep. 1977,
+%               doi: 10.1016/0005-1098(77)90070-x
 %
 %   Part of the NLbalancing repository.
 %%
-if nargin < 1
-    exportData = false;
-end
 
-[~, ~, ~, ~, f, g, h] = getSystem7();
-q = h2q(h);
-
+[f, g, h] = getSystem7();
 % g = g(1);
 fprintf('Running Example 7\n')
 
@@ -39,7 +40,7 @@ U2 = @(x) [0; 0; 0]; U3 = [0; 0; 0];
 % U2 = @(x) [.47*x(1);0;46]; U3 = [.63;0;61.4];
 
 %% Plot x1 and control u
-Q = {0, 0.25,0, 0}; R = 1; % values should be between -\infty and 1.
+Q = {0, 0.25, 0, 0}; R = 1; % values should be between -\infty and 1.
 fprintf('Simulating for eta=%g (gamma=%g)\n', R, 1 / sqrt(1 - R))
 
 %  Compute the polynomial approximations to the future energy function
@@ -68,9 +69,9 @@ for alpha0 = [35, 30, 27, 25]
         us = []; Js = [];
         for i = 1:length(X)
             us(end + 1) = u(X(i, :).');
-            Js(end + 1) = 0.25 * X(i, :) * X(i, :).' + u(X(i, :).').^2; 
+            Js(end + 1) = 0.25 * X(i, :) * X(i, :).' + u(X(i, :).') .^ 2;
         end
-        valueFun_true = trapz(t, Js)/2;
+        valueFun_true = trapz(t, Js) / 2;
         fprintf('%i  &  %f   \n', d, valueFun_true)
         plot(t, us / (pi / 180))
 
@@ -86,8 +87,7 @@ for alpha0 = [35, 30, 27, 25]
 
         Ts{end + 1} = t; X1s{end + 1} = X(:, 1) / (pi / 180); Us{end + 1} = us / (pi / 180);
         X2s{end + 1} = X(:, 2) / (pi / 180); X3s{end + 1} = X(:, 3) / (pi / 180);
-        
- 
+
     end
 
     if exportData
