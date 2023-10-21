@@ -3,7 +3,11 @@ function [v] = pqr(f, g, q, R, degree, verbose)
 % control-affine dynamical system.
 %
 %   Usage: v = pqr(f, g, q, R, degree, verbose)
-%
+% 
+%       H∞ balancing energy functions can be computed as
+%           [v] = pqr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, verbose);
+%           [w] = pqr(f, g, h2q(h), eta, degree, verbose);
+% 
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
 %                 for the drift and input.
@@ -133,20 +137,19 @@ end
 %% V2, Degree 2 coefficient (k=2 case)
 switch RPosDef
     case 1 % Positive definite R
-        [V2] = icare(A, B, Q, R);
-
-        if (isempty(V2) && verbose)
-            warning('pqr: icare couldn''t find stabilizing solution')
-        end
+        V2 = icare(A, B, Q, R);
     case 2 % Negative definite R
-        [V2] = icare(A, B, Q, R, 'anti');
-
+        if R == -1 && Q == 0 % Computing open-loop controllability energy function; use lyap 
+            V2 = inv(lyap(A,(B*B.')));
+        else
+            V2 = icare(A, B, Q, R, 'anti');
+        end
         if (isempty(V2) && verbose)
             warning('pqr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
     case 3 % Open-loop
-        [V2] = lyap(A.', Q);
+        V2 = lyap(A.', Q);
 end
 
 if (isempty(V2))
