@@ -139,7 +139,7 @@ switch RPosDef
     case 1 % Positive definite R
         V2 = icare(A, B, Q, R);
     case 2 % Negative definite R
-        if R == -1 && Q == 0 % Computing open-loop controllability energy function; use lyap 
+        if R == -1 && isscalar(Q) && Q == 0 % Computing open-loop controllability energy function; use lyap 
             V2 = inv(lyap(A,(B*B.')));
         else
             V2 = icare(A, B, Q, R, 'anti');
