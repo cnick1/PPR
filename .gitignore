@@ -7,3 +7,4 @@ development
 testing*
 testing/
 plots/*
+examples/systemData/
