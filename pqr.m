@@ -17,6 +17,7 @@ function [v] = pqr(f, g, q, R, degree, verbose)
 %                 state-dependent weighting. At minimum q{2} = Q(:) where Q is
 %                 the quadratic weighting, i.e. x.'*Q*x (can optionally pass Q
 %                 matrix directly in this case)
+%       R       - quadratic weighting matrix on the input cost
 %       degree  - desired degree of the computed value function. A degree d
 %                 energy function uses information from f,g,q up-to degree d-1.
 %                 The default choice of d is lf+1, where lf is the degree of
@@ -41,6 +42,11 @@ function [v] = pqr(f, g, q, R, degree, verbose)
 %
 %   and the remaining v{i} solve linear systems arising from the
 %   Hamilton-Jacobi-Bellman Partial Differential Equation. Details are in [1].
+%
+%   TODO: 
+%    - Add documentation on how to use this to return an optimal control
+%    - Add documentation about the cost function that is being minimized
+%   
 %
 %   Requires the following functions from the KroneckerTools repository:
 %      KroneckerSumSolver
@@ -74,10 +80,10 @@ if iscell(f)
     lf = length(f);
 
     if (nargin < 5)
-        degree = lf;
+        degree = lf+1;
     end
 else
-    error("Must pass in at least quadratic dynamics")
+    error("pqr: Must pass in at least quadratic dynamics")
 end
 
 if iscell(g)
@@ -124,7 +130,8 @@ if length(R) == 1
         Rinv = 0;
     end
 else
-    try chol(R)
+    try 
+        chol(R);
         % disp('R is positive definite.')
         RPosDef = 1; % Case 1
     catch
@@ -159,7 +166,7 @@ end
 %  Check the residual of the Riccati/Lyapunov equation
 if (verbose)
     RES = A' * V2 + V2 * A - (V2 * B) * Rinv * (B' * V2) + Q;
-    fprintf('The residual of the Riccati equation is %g\n', norm(RES, 'inf'));
+    fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf'));
     clear RES
 end
 

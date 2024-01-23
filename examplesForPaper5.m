@@ -39,20 +39,21 @@ exportData = false;
 % runExample11(exportPlotData, nFterms, degree)
 % runExample11_plotEnergyFunctions(exportPlotData, nFterms, degree, eta)
 
-for degree = 2:2:10
-    nFterms = degree - 1;
+% for degree = 2:2:10
+    % nFterms = degree - 1;
         % Phase portraits
 %         runExample11(exportData, nFterms, degree)
 %         runExample11_computeCost(false, nFterms, degree)
         % Value Functions
-        runExample11_plotEnergyFunctions(exportData, nFterms, degree)
-end
+        % runExample11_plotEnergyFunctions(exportData, nFterms, degree)
+% end
 
 
 %% Example 7: 3D aircraft stall model
 % runExample7(exportData)
 
-%% Example 
+%% Example 9: Allen-Cahn equation
+runExample9()
 
 %% Other not good examples
 %% Example 5: 3D unicycle, not locally stabilizable for small eps
