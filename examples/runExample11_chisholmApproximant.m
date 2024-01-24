@@ -1,4 +1,4 @@
-function runExample11_chisholmApproximant()
+function runExample11_chisholmApproximant(ell,M,N)
 %runExample11_chisholmApproximant Runs the 2D example to plot energy functions as contour plots
 %
 %   Usage:  runExample11_chisholmApproximant()
@@ -8,6 +8,9 @@ function runExample11_chisholmApproximant()
 %   Part of the NLbalancing repository.
 exportPlotData = false; 
 % close all; 
+if nargin < 3 
+    ell = 3; M = 3; N = 2;
+end
 
 % Add Chisholm approximant matlab code to path
 addpath('utils')
@@ -15,12 +18,12 @@ addpath('utils')
 %% Get model and compute polynomial energy function
 m = 1; L = 10; 
 gravity = 9.81;
-ell = 5; degree = ell+1; 
+degree = ell+1; 
 [f, g, h] = getSystem11(ell, m, L);
 fprintf('Running Example 11: Chisholm approximant \n')
 
 eta = 1;
-[w] = pqr(f, g, h2q(h), eta, degree, true);
+[w] = pqr(f, g, 0, eta, degree, true);
 
 nX = 301; nY = nX;
 xLim = pi; yLim = 5;
@@ -35,54 +38,43 @@ for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
         eFuture(i, j) = 0.5 * kronPolyEval(w, x, degree);
-        wRES(i, j) = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x);
+        wRES(i, j) = computeResidualFutureHJB_2D_example11(gravity, L, g, {0}, eta, w, degree, x);
         if eFuture(i, j) < 0
             eFuture(i, j) = NaN;
         end
     end
 end
 
-fig1 = figure;
-contourf(X, Y, eFuture, 16, 'w'); hold on;
-xlabel('$x_1$', 'interpreter', 'latex');
-ylabel('$x_2$', 'interpreter', 'latex');
-set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
-xticklabels({'-\pi', '0', '\pi'})
 load(fullfile('utils', 'YlGnBuRescaled.mat'))
-colormap(flip(YlGnBuRescaled))
-clim([0 4e4])
+if false
+    fig1 = figure;
+    contourf(X, Y, eFuture, 16, 'w'); hold on;
+    xlabel('$x_1$', 'interpreter', 'latex');
+    ylabel('$x_2$', 'interpreter', 'latex');
+    set(gca, 'FontSize', 16)
+    xticks([-pi, 0, pi])
+    xticklabels({'-\pi', '0', '\pi'})
+    colormap(flip(YlGnBuRescaled))
+    clim([0 4e4])
 
-fig2 = figure;
-pcolor(X, Y, log10(abs(wRES))); shading interp;
-xlabel('$x_1$', 'interpreter', 'latex');
-ylabel('$x_2$', 'interpreter', 'latex');
-set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
-xticklabels({'-\pi', '0', '\pi'})
-colormap(flip(YlGnBuRescaled))
-clim([-3 9])
+    fig2 = figure;
+    pcolor(X, Y, log10(abs(wRES))); shading interp;
+    xlabel('$x_1$', 'interpreter', 'latex');
+    ylabel('$x_2$', 'interpreter', 'latex');
+    set(gca, 'FontSize', 16)
+    xticks([-pi, 0, pi])
+    xticklabels({'-\pi', '0', '\pi'})
+    colormap(flip(YlGnBuRescaled))
+    clim([-3 9])
 
-if exportPlotData
-    error("Need to update the file names")
-    figure(fig1)
-    axis off
-    fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
-    
     figure(fig2)
-    axis off
-    fprintf('Exporting figure to: \n     plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
-    exportgraphics(fig2, sprintf('plots/example11_futureEnergy-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
+    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
+    title(sprintf('Degree %i HJB Residual',degree))
+
+    figure(fig1)
+    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
+    title(sprintf('Degree %i Future Energy Function',degree))
 end
-
-figure(fig2)
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
-title(sprintf('Degree %i HJB Residual',degree))
-
-figure(fig1)
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
-title(sprintf('Degree %i Future Energy Function',degree))
 
 %% Compute a Chisholm approximant (rational approximant)
 % Arrange energy function coefficients from w into C matrix for ACRS code
@@ -91,7 +83,7 @@ C = zeros(15,15); % Just allocate plenty of space for C so that the code doesn't
 
 n=2;
 
-for k=[2,4]%,6]
+for k=2:2:degree
     % Construct matrix idx where each row is the multi-index for one element of X
     idx = tt_ind2sub(ones(1, k) * n, (1:n ^ k)');
 
@@ -104,7 +96,7 @@ end
 
 
 % Pick M and N and compute rational approximant w/ acrs fortran/matlab code
-M = 3; N = 2; 
+% M = 3; N = 2; 
 [A, B] = acrs_sod(C, M, N);
 
 % Display results
@@ -144,14 +136,9 @@ title(sprintf('Rearranged Degree %i Future Energy Function; should reproduce fig
 Axy = evaluate2dPoly(A,X,Y);
 Bxy = evaluate2dPoly(B,X,Y);
 Rxy = 1/2.* Axy./Bxy;
-Rxy(Rxy<0) = NaN;
+% Rxy(Rxy<0) = NaN;
 % Rxy(Rxy>1e5) = NaN;
 
-% figure
-% % contourf(X,Y,Bxy,16)
-% % surf(X,Y,Rxy,'edgecolor','none')
-% contourf(X,Y,Rxy,16)
-% colorbar
 
 fig4 = figure;
 contourf(X, Y, Rxy, levels, 'w'); hold on;
@@ -163,8 +150,48 @@ xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 clim([0 4e4])
 
+if exportPlotData
+    figure(fig4)
+    axis off
+    fprintf('Exporting figure to: \n     plots/example11_Chisholm_futureEnergy_m%i_n%i.pdf\n', M, N)
+    exportgraphics(fig4, sprintf('plots/example11_Chisholm_futureEnergy_m%i_n%i.pdf', M, N), 'ContentType', 'vector', 'BackgroundColor', 'none');
+end
+
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
-title(sprintf('[%i,%i] Rational Future Energy Function',M,N))
+title(sprintf('ℓ=%i, [%i,%i] Rational Future Energy Function',ell,M,N))
+drawnow 
+
+%% Compute feedback laws 
+% Standard polynomial feedback
+syms x1 x2
+vpa((-g{1}.' * 0.5 * kronPolyDerivEval(w,[x1 ;x2]).'),2)
+
+% Now compute it according to C(i,j) 
+C_dy = repmat(1:size(C,2)-1,size(C,2),1).*C(:,2:end);
+U = -g{1}(2)*.5*C_dy(1:6,1:6);
+
+u=evaluate2dPoly(U,x1,x2);
+
+vpa(u,2)
+
+% Rational feedback: R' = BA'-AB'/B^2
+    % Compute A' derivative wrt x2
+A_dx2 = repmat(1:size(A,2)-1,size(A,2),1).*A(:,2:end);
+
+    % Compute B' derivative wrt x2
+B_dx2 = repmat(1:size(B,2)-1,size(B,2),1).*B(:,2:end);
+
+a=evaluate2dPoly(A,x1,x2);
+b=evaluate2dPoly(B,x1,x2);
+da=evaluate2dPoly(A_dx2,x1,x2);
+db=evaluate2dPoly(B_dx2,x1,x2);
+
+% ur = -g{1}(2)*.5* (b*da-a*db)/(b^2);
+% vpa(expand(-g{1}(2)*.5*(b*da-a*db)),2)
+% vpa(expand(b^2),2)
+
+vpa(expand(-g{1}(2)*.5*(b*da-a*db))/expand(b^2))
+
 
 
 end
@@ -190,49 +217,8 @@ w = w(1:degree);
 %         constant B input
 res = (0.5 * kronPolyDerivEval(w, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))] ...
     - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * g{1} * g{1}.' * kronPolyDerivEval(w, x).' ...
-    + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
+        + 0;
+% + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
 
-%         Polynomial input
-% res = (0.5 * kronPolyDerivEval(w, x)) * kronPolyEval(f, x) ...
-%     - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * (g{1} + kronPolyEval(g(2:end), x)) * (g{1} + kronPolyEval(g(2:end), x)).' * kronPolyDerivEval(w, x).' ...
-%     + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
 
 end
-
-function [N] = equivalenceClassIndices(n, k)
-%equivalenceClassIndices - For a k-way tensor of dimension n (n^k entries), compute the matrix N which combines the equivalence class entries. This matrix essentially goes from Kronecker product form to the unique monomial form.
-%
-% Usage: [N] = equivalenceClassIndices(n,k)
-%
-
-
-%% Compute equivalence class index sets
-% We will compute a vector like [1 5 5 7 5 7 7 8]; the number in the vector
-% corresponds to the reference element for the equivalence class, and all
-% of the entries with the same number are in the same equivalence class.
-% For an n-dimensional k-order tensor (n^k entries), there are
-% nchoosek(n+k-1,k) unique entries (distinct equivalence classes, i.e.
-% monomials)
-
-% Construct matrix ind where each row is the multi-index for one element of X
-idx = tt_ind2sub(ones(1, k) * n, (1:n ^ k)');
-
-% Find reference index for every element in the tensor - this is to its
-% index in the symmetrized tensor. This puts every element into a 'class'
-% of entries that will be the same under symmetry.
-classidx = sort(idx, 2); % Normalize to one permutation, i.e. reference element
-mult = [1 cumprod(ones(1, k - 1) * n)]; % Form shifts
-linclassidx = (classidx - 1) * mult' + 1; % Form vector that maps to the reference elements
-
-%% Form input-normal equations
-% Get unique values from the input vector
-
-diagIdxs = linspace(1, n ^ k, n); offdiagIdxs = setdiff(1:n ^ k, diagIdxs);
-linclassidx(diagIdxs) = [];
-[~, ~, uidx] = unique(linclassidx, 'stable');
-Nhat = sparse(uidx, offdiagIdxs, 1, nchoosek(n + k - 1, k) - n, n ^ k);
-N = [sparse(1:n, linspace(1, n ^ k, n), 1); Nhat];
-
-end
-
-
