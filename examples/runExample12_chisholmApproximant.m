@@ -1,7 +1,7 @@
-function runExample11_chisholmApproximant(ell,M,N)
-%runExample11_chisholmApproximant Runs the 2D example to plot energy functions as contour plots
+function runExample12_chisholmApproximant(ell,M,N)
+%runExample12_chisholmApproximant Runs the 2D example to plot energy functions as contour plots
 %
-%   Usage:  runExample11_chisholmApproximant()
+%   Usage:  runExample12_chisholmApproximant()
 %
 %   References: [1]
 %
@@ -16,29 +16,28 @@ end
 addpath('utils')
 
 %% Get model and compute polynomial energy function
-m = 1; L = 10;
-gravity = 9.81;
+% gravity = 9.81;
 degree = ell+1;
-[f, g, h] = getSystem11(ell, m, L);
-fprintf('Running Example 11: Chisholm approximant \n')
+[f, g, h] = getSystem12(ell);
+fprintf('Running Example 12: Chisholm approximant \n')
 
-eta = 1;
-[w] = pqr(f, g, 0, eta, degree, true);
+% Compute open-loop OBSV energy
+w = pqr(f, g, h2q(h), 0, degree, true);
 
 nX = 301; nY = nX;
-xLim = pi; yLim = 5;
+xLim = 1; yLim = 1;
 xPlot = linspace(-xLim, xLim, nX);
 yPlot = linspace(-yLim, yLim, nY);
 [X, Y] = meshgrid(xPlot, yPlot);
 
 eFuture = zeros(nY, nX);
-wRES = zeros(nY, nX);
+% wRES = zeros(nY, nX);
 
 for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
         eFuture(i, j) = 0.5 * kronPolyEval(w, x, degree);
-        wRES(i, j) = computeResidualFutureHJB_2D_example11_new(g, eta, 0.5 * kronPolyDerivEval(w, x), x);
+        % wRES(i, j) = computeResidualFutureHJB_2D_example12(gravity, L, g, h2q(h), 0, w, degree, x);
         if eFuture(i, j) < 0
             eFuture(i, j) = NaN;
         end
@@ -46,33 +45,33 @@ for i = 1:nY
 end
 
 load(fullfile('utils', 'YlGnBuRescaled.mat'))
-if true
+if false
     fig1 = figure;
     contourf(X, Y, eFuture, 16, 'w'); hold on;
     xlabel('$x_1$', 'interpreter', 'latex');
     ylabel('$x_2$', 'interpreter', 'latex');
     set(gca, 'FontSize', 16)
-    xticks([-pi, 0, pi])
-    xticklabels({'-\pi', '0', '\pi'})
+    % xticks([-1, 0, 1])
+    xticklabels({'1', '0', '1'})
     colormap(flip(YlGnBuRescaled))
-    clim([0 4e4])
+    % clim([0 1.5])
     
-    fig2 = figure;
-    pcolor(X, Y, log10(abs(wRES))); shading interp;
-    xlabel('$x_1$', 'interpreter', 'latex');
-    ylabel('$x_2$', 'interpreter', 'latex');
-    set(gca, 'FontSize', 16)
-    xticks([-pi, 0, pi])
-    xticklabels({'-\pi', '0', '\pi'})
-    colormap(flip(YlGnBuRescaled))
-    clim([-3 9])
-    
-    figure(fig2)
-    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
-    title(sprintf('Degree %i HJB Residual',degree))
+    % fig2 = figure;
+    % pcolor(X, Y, log10(abs(wRES))); shading interp;
+    % xlabel('$x_1$', 'interpreter', 'latex');
+    % ylabel('$x_2$', 'interpreter', 'latex');
+    % set(gca, 'FontSize', 16)
+    xticks([-1, 0, 1])
+    xticklabels({'-1', '0', '1'})
+    % colormap(flip(YlGnBuRescaled))
+    % clim([-3 9])
+    %
+    % figure(fig2)
+    % colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
+    % title(sprintf('Degree %i HJB Residual',degree))
     
     figure(fig1)
-    colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
+    % colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
     title(sprintf('Degree %i Future Energy Function',degree))
 end
 
@@ -83,7 +82,7 @@ C = zeros(15,15); % Just allocate plenty of space for C so that the code doesn't
 
 n=2;
 
-for k=2:2:degree
+for k=2:degree
     % Construct matrix idx where each row is the multi-index for one element of X
     idx = tt_ind2sub(ones(1, k) * n, (1:n ^ k)');
     
@@ -122,12 +121,12 @@ levels = levels.LevelList;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
-xticklabels({'-\pi', '0', '\pi'})
+% xticks([-1, 0, 1])
+% xticklabels({'-1', '0', '1'})
 colormap(flip(YlGnBuRescaled))
-clim([0 4e4])
+% clim([0 1.5])
 
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
+% colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
 title(sprintf('Rearranged Degree %i Future Energy Function; should reproduce fig1',degree))
 
 
@@ -145,19 +144,19 @@ contourf(X, Y, Rxy, levels, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
-xticklabels({'-\pi', '0', '\pi'})
+% xticks([-1, 0, 1])
+% xticklabels({'-1', '0', '1'})
 colormap(flip(YlGnBuRescaled))
-clim([0 4e4])
+% clim([0 1.5])
 
 if exportPlotData
     figure(fig4)
     axis off
-    fprintf('Exporting figure to: \n     plots/example11_Chisholm_futureEnergy_m%i_n%i.pdf\n', M, N)
-    exportgraphics(fig4, sprintf('plots/example11_Chisholm_futureEnergy_m%i_n%i.pdf', M, N), 'ContentType', 'vector', 'BackgroundColor', 'none');
+    fprintf('Exporting figure to: \n     plots/example12_Chisholm_futureEnergy_m%i_n%i.pdf\n', M, N)
+    exportgraphics(fig4, sprintf('plots/example12_Chisholm_futureEnergy_m%i_n%i.pdf', M, N), 'ContentType', 'vector', 'BackgroundColor', 'none');
 end
 
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
+% colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
 title(sprintf('ℓ=%i, [%i,%i] Rational Future Energy Function',ell,M,N))
 drawnow
 
@@ -193,14 +192,6 @@ db=evaluate2dPoly(B_dx2,x1,x2);
 vpa(expand(-g{1}(2)*.5*(b*da-a*db))/expand(b^2))
 
 
-% Compute HJB errors
-for i = 1:nY
-    for j = 1:nX
-        x = [X(i, j); Y(i, j)];
-        poly_RES(i, j) = computeResidualFutureHJB_2D_example11_new(g, eta, 0.5 * kronPolyDerivEval(w, x), x);
-    end
-end
-
 
 end
 
@@ -218,31 +209,15 @@ end
 
 end
 
-function [res] = computeResidualFutureHJB_2D_example11_new(g, R, dVdx, x)
-
-m = 1; L = 10;
-gravity = 9.81;
-
-fx = [x(2); 3 * gravity / (2 * L) * sin(x(1))];
-
-
-%         constant B input
-res = dVdx * fx - 1/2*R * dVdx * g{1} * g{1}.' * dVdx.' + 0;
-
-
-end
-
-
-
-function [res] = computeResidualFutureHJB_2D_example11(gravity, L, g, h, eta, w, degree, x)
-
-w = w(1:degree);
-
-%         constant B input
-res = (0.5 * kronPolyDerivEval(w, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))] ...
-    - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * g{1} * g{1}.' * kronPolyDerivEval(w, x).' ...
-    + 0;
-% + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
-
-
-end
+% function [res] = computeResidualFutureHJB_2D_example12(gravity, L, g, h, eta, w, degree, x)
+%
+% w = w(1:degree);
+%
+% %         constant B input
+% res = (0.5 * kronPolyDerivEval(w, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))] ...
+%     - eta / 2 * 0.25 * kronPolyDerivEval(w, x) * g{1} * g{1}.' * kronPolyDerivEval(w, x).' ...
+%     + 0;
+% % + 0.5 * kronPolyEval(h, x).' * kronPolyEval(h, x);
+%
+%
+% end
