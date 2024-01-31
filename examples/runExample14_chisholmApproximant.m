@@ -22,7 +22,8 @@ degree = ell+1;
 fprintf('Running Example 14: Chisholm approximant \n')
 
 % Compute open-loop OBSV energy
-w = pqr(f, g, h2q(h), 0, degree, true);
+q = h2q(h); R = 0;
+w = pqr(f, g, q, R, degree, true);
 
 %% Compute a Chisholm approximant (rational approximant)
 % Arrange energy function coefficients from w into C matrix for ACRS code
@@ -57,13 +58,13 @@ for i = 1:nY
         x = [X(i, j); Y(i, j)];
 
         poly_value(i, j) = 0.5 * kronPolyEval(w, x);
-        poly_RES(i, j) = computeResidualFutureHJB_2D_example14(f, h, 0.5*kronPolyDerivEval(w, x), x);
+        poly_RES(i, j) = computeResidualFutureHJB_2D_example14(q, R, 0.5*kronPolyDerivEval(w, x), x);
 
         a = kronPolyEval(a_coeff, x); b = 1+kronPolyEval(b_coeff, x);
         da = kronPolyDerivEval(a_coeff, x); db = kronPolyDerivEval(b_coeff, x);
 
         rat_value(i, j) = 0.5 * a/b;
-        rat_RES(i, j) = computeResidualFutureHJB_2D_example14(f, h, 0.5*(b*da-a*db)/b^2, x);
+        rat_RES(i, j) = computeResidualFutureHJB_2D_example14(q, R, 0.5*(b*da-a*db)/b^2, x);
     end
 end
 
@@ -149,10 +150,17 @@ vpa(u_rat,2)
 
 end
 
-function [res] = computeResidualFutureHJB_2D_example14(f, h, dVdx, x)
-fx = kronPolyEval(f,x);
-hx = kronPolyEval(h,x);
+function [res] = computeResidualFutureHJB_2D_example14(q, R, dVdx, x)
+fx = [(10*sin(x(2) + x(1))*(cos(x(2)) + 1))/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3) - (10*sin(x(2) + x(1)) + 20*sin(x(1)))/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3);
+    ((cos(x(2)) + 1)*(10*sin(x(2) + x(1)) + 20*sin(x(1))))/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3) - (10*sin(x(2) + x(1))*(2*cos(x(2)) + 3))/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3)];
+gx = [1/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3);
+    -(cos(x(2)) + 1)/(2*cos(x(2)) - (cos(x(2)) + 1)^2 + 3)];
+qx = kronPolyEval(q,x);
 
-res = dVdx * fx + 1/2*(hx.'*hx);
+if R == 0
+    res = dVdx * fx + 1/2*qx;
+else
+    res = dVdx * fx - 1/2 * dVdx * gx * (R \ gx.' * dVdx.') + 1/2*qx;
+end
 end
 

@@ -22,8 +22,8 @@ degree = ell+1;
 [f, g, h] = getSystem11(ell, m, L);
 fprintf('Running Example 11: Chisholm approximant \n')
 
-eta = 1;
-w = pqr(f, g, 0, eta, degree, true);
+q = {zeros(2,1),zeros(4,1)}; R = 1;
+w = pqr(f, g, q, R, degree, true);
 
 %% Compute a Chisholm approximant (rational approximant)
 % Arrange energy function coefficients from w into C matrix for ACRS code
@@ -58,13 +58,13 @@ for i = 1:nY
         x = [X(i, j); Y(i, j)];
 
         poly_value(i, j) = 0.5 * kronPolyEval(w, x);
-        poly_RES(i, j) = computeResidualFutureHJB_2D_example11(g, eta, 0.5 * kronPolyDerivEval(w, x), x);
+        poly_RES(i, j) = computeResidualFutureHJB_2D_example11(q, R, 0.5 * kronPolyDerivEval(w, x), x);
 
         a = kronPolyEval(a_coeff, x); b = 1+kronPolyEval(b_coeff, x);
         da = kronPolyDerivEval(a_coeff, x); db = kronPolyDerivEval(b_coeff, x);
 
         rat_value(i, j) = 0.5 * a/b;
-        rat_RES(i, j) = computeResidualFutureHJB_2D_example11(g, eta, 0.5*(b*da-a*db)/b^2, x);
+        rat_RES(i, j) = computeResidualFutureHJB_2D_example11(q, R, 0.5*(b*da-a*db)/b^2, x);
     end
 end
 
@@ -158,9 +158,15 @@ vpa(u_rat,2)
 
 end
 
-function [res] = computeResidualFutureHJB_2D_example11(g, R, dVdx, x)
+function [res] = computeResidualFutureHJB_2D_example11(q, R, dVdx, x)
 m = 1; L = 10; gravity = 9.81;
 fx = [x(2); 3 * gravity / (2 * L) * sin(x(1))];
+gx = [0; 3/(m*L^2)];
+qx = kronPolyEval(q,x);
 
-res = dVdx * fx - 1/2*R * dVdx * g{1} * g{1}.' * dVdx.' + 0;
+if R == 0
+    res = dVdx * fx + 1/2*qx;
+else
+    res = dVdx * fx - 1/2 * dVdx * gx * (R \ gx.' * dVdx.') + 1/2*qx;
+end
 end

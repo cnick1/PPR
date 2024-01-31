@@ -4,14 +4,14 @@ function [f, g, h] = getSystem2(kawanoModel)
 %
 %   Usage:  [f,g,h] = getSystem2()
 %
-%        \dot{x1} = -x1 + x2 - x2^2 + u1 + 2 x2 u1 - 0.05 x1 x2 u1
-%        \dot{x2} =     - x2        + u1           - 0.05 x2^2 u1
+%        \dot{x1} = -x1 + x2 - x2^2 + u1 + 2 x2 u1 
+%        \dot{x2} =     - x2        + u1          
 %              y1 =  x1 + x2
 %
 %        or, if kawanoModel is set to 1 or true,
 %
-%        \dot{x1} = -x1 + x2 - x2^2 + u1 + 2 x2 u1 - 0.05 x1 x2 u1
-%        \dot{x2} =     - x2        + u1           - 0.05 x2^2 u1
+%        \dot{x1} = -x1 + x2 - x2^2 + u1 + 2 x2 u1 
+%        \dot{x2} =     - x2        + u1           
 %              y1 =  x1
 %
 %   Excluding the higher order g terms gives the same system as in [1]. If
