@@ -11,7 +11,7 @@ n=2;
 degree = length(v);
 
 % Arrange energy function coefficients from v into C matrix
-Csize = 2*degree;
+Csize = degree+1;
 C = zeros(Csize,Csize); % Just allocate plenty of space for C so that the code doesn't try to call and go outside of C
 
 

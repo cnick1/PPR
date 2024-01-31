@@ -11,6 +11,8 @@ function [A, B] = acrs_sod(C, M, N)
 %             9, no. 1, pp. 46–50, Jan. 1975, 
 %             doi: 10.1016/0010-4655(75)90055-7
 
+% Pad C with extra zeros 
+C(end+1:2*end,end+1:2*end)=0;
 
 % Definitions and initialization
 MN1 = M + N + 1; MN2 = MN1 + 1;

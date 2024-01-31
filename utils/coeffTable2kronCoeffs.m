@@ -8,7 +8,7 @@ function [v] = coeffTable2kronCoeffs(C)
 %   Output: C - matrix/table of polynomial coefficients
 
 n=2; 
-degree = length(C)/2; 
+degree = (length(C)-1)*2; 
 v = cell(1,degree); 
 
 % Arrange energy function coefficients from C into v
@@ -22,7 +22,9 @@ for k=2:degree
         alpha = sum(idx(i,:) == 1);
         beta = sum(idx(i,:) == 2);
 
-        v{k}(i) = C(alpha+1, beta+1);
+        if alpha+1 <= size(C,1) && beta+1 <= size(C,2)
+            v{k}(i) = C(alpha+1, beta+1);
+        end
     end
 
     v{k} = kronMonomialSymmetrize(v{k},n,k);
