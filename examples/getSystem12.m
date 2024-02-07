@@ -52,7 +52,7 @@ if transformedModel % Use the model in the transformed coordinates (21) in Examp
             0, sqrt(18 + 2 * x1 ^ 4 + 4 * x1 ^ 2 * x2 ^ 2 + 2 * x2 ^ 4)];
     hsym = [(6 * x1 - 2 * x1 ^ 5 - 4 * x1 ^ 3 * x2 ^ 2 - 2 * x1 * x2 ^ 4) * sqrt(18 + 2 * x1 ^ 4 + 4 * x1 ^ 2 * x2 ^ 2 + 2 * x2 ^ 4) / (1 + x1 ^ 4 + 2 * x1 ^ 2 * x2 ^ 2 + x2 ^ 4);
             (3 * x2 - x1 ^ 4 * x2 - 2 * x1 ^ 2 * x2 ^ 3 -  x2 ^ 5) * sqrt(18 + 2 * x1 ^ 4 + 4 * x1 ^ 2 * x2 ^ 2 + 2 * x2 ^ 4) / (1 + x1 ^ 4 + 2 * x1 ^ 2 * x2 ^ 2 + x2 ^ 4)];
-else % Use the model in the transformed coordinates (Example 1) in Fujimoto 2001
+else % Use the model in the original coordinates (Example 1) in Fujimoto 2001
     fsym = [-9 * x1 + 6 * x1 ^ 2 * x2 + 6 * x2 ^ 3 - x1 ^ 5 - 2 * x1 ^ 3 * x2 ^ 2 - x1 * x2 ^ 4;
             -9 * x2 - 6 * x1 ^ 3 - 6 * x1 * x2 ^ 2 - x1 ^ 4 * x2 - 2 * x1 ^ 2 * x2 ^ 3 - x2 ^ 5];
     gsym = [3 * sqrt(2) * (9 - 6 * x1 * x2 + x1 ^ 4 - x2 ^ 4) / (9 + x1 ^ 4 + 2 * x1 ^ 2 * x2 ^ 2 + x2 ^ 4), sqrt(2) * (-9 * x1 ^ 2 - 27 * x2 ^ 2 + 6 * x1 ^ 3 * x2 + 6 * x1 * x2 ^ 3 - (x1 ^ 2 + x2 ^ 2) ^ 3) / (9 + x1 ^ 4 + 2 * x1 ^ 2 * x2 ^ 2 + x2 ^ 4);

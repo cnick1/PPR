@@ -45,7 +45,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', R, 1 / sqrt(1 - R))
 
 %  Compute the polynomial approximations to the future energy function
 degree = 8;
-[w] = pqr(f, g, Q, R, degree);
+[w] = ppr(f, g, Q, R, degree);
 
 tspan = [0, 12];
 

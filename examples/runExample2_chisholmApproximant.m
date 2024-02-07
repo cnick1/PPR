@@ -23,7 +23,8 @@ fprintf('Running Example 2: Chisholm approximant \n')
 
 % Compute open-loop OBSV energy
 q = h2q(h); R = 0;
-w = pqr(f, g, q, R, degree, true);
+w = ppr(f, g, q, R, degree, true);
+W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 
 %% Compute a Chisholm approximant (rational approximant)
 % Arrange energy function coefficients from w into C matrix for ACRS code
@@ -56,13 +57,13 @@ poly_RES = zeros(nY, nX); rat_RES = zeros(nY, nX);
 for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
-
+        
         poly_value(i, j) = 0.5 * kronPolyEval(w, x);
         poly_RES(i, j) = computeResidualFutureHJB_2D_example2(q, R, 0.5*kronPolyDerivEval(w, x), x);
-
+        
         a = kronPolyEval(a_coeff, x); b = 1+kronPolyEval(b_coeff, x);
         da = kronPolyDerivEval(a_coeff, x); db = kronPolyDerivEval(b_coeff, x);
-
+        
         rat_value(i, j) = 0.5 * a/b;
         rat_RES(i, j) = computeResidualFutureHJB_2D_example2(q, R, 0.5*(b*da-a*db)/b^2, x);
     end
@@ -80,7 +81,6 @@ set(gca, 'FontSize', 16)
 colormap(flip(YlGnBuRescaled))
 % clim([0 4e4])
 
-W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 quiver(0,0,V(1,1),V(2,1))
 
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
@@ -113,7 +113,7 @@ xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
 colormap(flip(YlGnBuRescaled))
-% clim([-3 9])
+% clim([-15 15])
 quiver(0,0,V(1,1),V(2,1))
 
 figure(fig3)
@@ -126,7 +126,7 @@ xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
 colormap(flip(YlGnBuRescaled))
-% clim([-3 9])
+% clim([-15 15])
 quiver(0,0,V(1,1),V(2,1))
 
 figure(fig4)
@@ -143,7 +143,7 @@ u_poly = -g{1}.'*0.5*kronPolyDerivEval(w,[x1 ;x2]).';
 a = kronPolyEval(a_coeff, [x1 ;x2]); b = 1+kronPolyEval(b_coeff, [x1 ;x2]);
 da = kronPolyDerivEval(a_coeff, [x1 ;x2]).'; db = kronPolyDerivEval(b_coeff, [x1 ;x2]).';
 
-u_rat = -g{1}.'*.5*expand(b*da-a*db)/expand(b^2); 
+u_rat = -g{1}.'*.5*expand(b*da-a*db)/expand(b^2);
 
 vpa(u_poly,2)
 vpa(u_rat,2)

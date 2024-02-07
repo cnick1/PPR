@@ -39,7 +39,7 @@ q = {[],Q2,Q3,Q4};
 R = 1;
 
 
-[ValueFun] = pqr(f, B, q, R);
+[ValueFun] = ppr(f, B, q, R);
 uOpenLoop = @(z) zeros(m,1);
 uLinear = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:2), z).' / 2);
 uCubic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:4), z).' / 2);
@@ -78,7 +78,7 @@ for idx = 1:3
     end
     figure, subplot('position',[.1 .4 .8 .5])
     mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1 1]),
-    view(-60,55), colormap([0 0 0]); xlabel x, ylabel t, zlabel u
+    view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel v
     drawnow
 
     % Compute performance Index (cost)

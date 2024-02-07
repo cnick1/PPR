@@ -54,7 +54,7 @@ tspan = [0 7];
 x0 = [-2];
 y0 = [-4];
 
-[w] = pqr(f, g, h, 1 / eta, degree, true);
+[w] = ppr(f, g, h, 1 / eta, degree, true);
 
 % Create a figure and set up subplots
 figure; hold on;

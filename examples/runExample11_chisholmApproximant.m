@@ -23,7 +23,8 @@ degree = ell+1;
 fprintf('Running Example 11: Chisholm approximant \n')
 
 q = {zeros(2,1),zeros(4,1)}; R = 1;
-w = pqr(f, g, q, R, degree, true);
+w = ppr(f, g, q, R, degree, true);
+W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 
 %% Compute a Chisholm approximant (rational approximant)
 % Arrange energy function coefficients from w into C matrix for ACRS code
@@ -56,13 +57,13 @@ poly_RES = zeros(nY, nX); rat_RES = zeros(nY, nX);
 for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
-
+        
         poly_value(i, j) = 0.5 * kronPolyEval(w, x);
         poly_RES(i, j) = computeResidualFutureHJB_2D_example11(q, R, 0.5 * kronPolyDerivEval(w, x), x);
-
+        
         a = kronPolyEval(a_coeff, x); b = 1+kronPolyEval(b_coeff, x);
         da = kronPolyDerivEval(a_coeff, x); db = kronPolyDerivEval(b_coeff, x);
-
+        
         rat_value(i, j) = 0.5 * a/b;
         rat_RES(i, j) = computeResidualFutureHJB_2D_example11(q, R, 0.5*(b*da-a*db)/b^2, x);
     end
@@ -77,12 +78,11 @@ levels = levels.LevelList;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
+xticks([-xlim, 0, xlim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
-clim([0 4e4])
+% clim([0 4e4])
 
-W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 quiver(0,0,V(1,1),V(2,1))
 
 colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', 0:10000:4e4, 'XTickLabel', {'0', '1e4', '2e4', '3e4', '4e4'});
@@ -93,10 +93,10 @@ contourf(X, Y, rat_value, levels, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
+xticks([-xlim, 0, xlim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
-clim([0 4e4])
+% clim([0 4e4])
 
 if exportPlotData
     figure(fig2)
@@ -116,14 +116,14 @@ pcolor(X, Y, log10(abs(poly_RES))); shading interp; hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
+xticks([-xlim, 0, xlim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 clim([-3 9])
 quiver(0,0,V(1,1),V(2,1))
 
 figure(fig3)
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
+colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 title(sprintf('Degree %i HJB Residual',degree))
 
 fig4 = figure;
@@ -131,14 +131,14 @@ pcolor(X, Y, log10(abs(rat_RES))); shading interp; hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-pi, 0, pi])
+xticks([-xlim, 0, xlim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 clim([-3 9])
 quiver(0,0,V(1,1),V(2,1))
 
 figure(fig4)
-colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex', 'XTick', -3:3:9, 'XTickLabel', {'1e-3', '1e0', '1e3', '1e6', '1e9'});
+colorbar('FontSize', 16, 'TickLabelInterpreter', 'latex');
 title(sprintf('R[%i,%i] HJB Residual',M,N))
 
 %% Compute feedback laws
@@ -151,7 +151,7 @@ u_poly = -g{1}.'*0.5*kronPolyDerivEval(w,[x1 ;x2]).';
 a = kronPolyEval(a_coeff, [x1 ;x2]); b = 1+kronPolyEval(b_coeff, [x1 ;x2]);
 da = kronPolyDerivEval(a_coeff, [x1 ;x2]).'; db = kronPolyDerivEval(b_coeff, [x1 ;x2]).';
 
-u_rat = -g{1}.'*.5*expand(b*da-a*db)/expand(b^2); 
+u_rat = -g{1}.'*.5*expand(b*da-a*db)/expand(b^2);
 
 vpa(u_poly,2)
 vpa(u_rat,2)

@@ -31,7 +31,7 @@ eta = 1; % values should be between -\infty and 1.
 %% Get model and compute energy functions
 m = 1; L = 10; %56.5962*scale;
 [f, g, h] = getSystem11(9, m, L);
-[w] = pqr(f, g, h, 1 / eta, degree, true);
+[w] = ppr(f, g, h, 1 / eta, degree, true);
 
 %% 1D plots
 xrange = pi; nPoints = 100;

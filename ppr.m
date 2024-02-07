@@ -1,12 +1,12 @@
-function [v] = pqr(f, g, q, R, degree, verbose)
-%pqr  Compute a polynomial approximation to the value function for a polynomial
+function [v] = ppr(f, g, q, R, degree, verbose)
+%ppr  Compute a polynomial approximation to the value function for a polynomial
 % control-affine dynamical system.
 %
-%   Usage: v = pqr(f, g, q, R, degree, verbose)
+%   Usage: v = ppr(f, g, q, R, degree, verbose)
 % 
 %       H∞ balancing energy functions can be computed as
-%           [v] = pqr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, verbose);
-%           [w] = pqr(f, g, h2q(h), eta, degree, verbose);
+%           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, verbose);
+%           [w] = ppr(f, g, h2q(h), eta, degree, verbose);
 % 
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
@@ -61,7 +61,7 @@ function [v] = pqr(f, g, q, R, degree, verbose)
 %              computing feedback for polynomially nonlinear systems with polynomial
 %              performance indexes,” 2023.
 %
-%  Part of the PQR repository.
+%  Part of the PPR repository.
 %%
 
 % Create a vec function for readability
@@ -83,7 +83,7 @@ if iscell(f)
         degree = lf+1;
     end
 else
-    error("pqr: Must pass in at least quadratic dynamics")
+    error("ppr: Must pass in at least quadratic dynamics")
 end
 
 if iscell(g)
@@ -152,7 +152,7 @@ switch RPosDef
             V2 = icare(A, B, Q, R, 'anti');
         end
         if (isempty(V2) && verbose)
-            warning('pqr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
+            warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
     case 3 % Open-loop
@@ -160,7 +160,7 @@ switch RPosDef
 end
 
 if (isempty(V2))
-    error('pqr: Linear system is not stabilizable')
+    error('ppr: Linear system is not stabilizable')
 end
 
 %  Check the residual of the Riccati/Lyapunov equation

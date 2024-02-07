@@ -30,7 +30,7 @@ close all; clear; clc;
 setKroneckerToolsPath
 addpath('examples')
 
-exportData = false;
+exportData = true;
 
 %% Example 10: 1D ODE
 % runExample10_regionOfAccuracy_Lyapunov()

@@ -161,7 +161,7 @@ for IP = 0:N - 1 % last prong computed separately
         end
     end
 
-    %% Solve CC y = RH(Ax=b)
+    %% Solve CC y = RH      (Ax=b)
     % Label 17
     % INVERSION OF CC-MATRIX
     NEQ = 2 * LP + 1;
@@ -170,7 +170,12 @@ for IP = 0:N - 1 % last prong computed separately
     end
 
     % Call SOLVE function
-    y = acrs_solve(CC, RH, NEQ);
+    try
+        y = acrs_solve(CC, RH, NEQ);
+    catch
+        warning('SOD solver failed')
+        y = CC(1:NEQ,1:NEQ)\RH(1:NEQ);
+    end
 
     % Process results and reshape as B matrix
     % SOLUTION TO PRONG COEFFICIENTS (B-MATRIX)
