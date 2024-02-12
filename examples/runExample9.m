@@ -38,15 +38,19 @@ Q2 = .1; Q3 = sparse((N+1)^3,1) ; Q4 = sparse(linspace(1,(N+1)^4,N+1),1,4);
 q = {[],Q2,Q3,Q4};
 R = 1;
 
+fprintf("Computing ppr() solution... \n")
+ValueFun = ppr(f, B, q, R, 6, true);
+fprintf("completed.\n")
 
-[ValueFun] = ppr(f, B, q, R);
 uOpenLoop = @(z) zeros(m,1);
 uLinear = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:2), z).' / 2);
 uCubic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:4), z).' / 2);
+uQuartic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:5), z).' / 2);
+uQuintic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:6), z).' / 2);
 
-controllers = {uOpenLoop, uLinear, uCubic};
+controllers = {uOpenLoop, uLinear, uCubic, uQuartic, uQuintic};
 
-for idx = 1:3
+for idx = 1:4
     u = controllers{idx};
     Lagrangian = zeros(100001,1);
 
@@ -90,6 +94,10 @@ end
 
 
 
+exportgraphics(gcf,'plots/example9_quintic.pdf', 'ContentType', 'vector')
+close
+exportgraphics(gcf,'plots/example9_quartic.pdf', 'ContentType', 'vector')
+close
 exportgraphics(gcf,'plots/example9_cubic.pdf', 'ContentType', 'vector')
 close
 exportgraphics(gcf,'plots/example9_linear.pdf', 'ContentType', 'vector')

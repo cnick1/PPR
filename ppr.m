@@ -6,7 +6,7 @@ function [v] = ppr(f, g, q, R, degree, verbose)
 % 
 %       H∞ balancing energy functions can be computed as
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, verbose);
-%           [w] = ppr(f, g, h2q(h), eta, degree, verbose);
+%           [w] = ppr(f, g, h2q(h), 1/eta, degree, verbose);
 % 
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
