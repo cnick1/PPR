@@ -50,7 +50,7 @@ uQuintic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:6), z).' / 2);
 
 controllers = {uOpenLoop, uLinear, uCubic, uQuartic, uQuintic};
 
-for idx = 1:4
+for idx = 1:5
     u = controllers{idx};
     Lagrangian = zeros(100001,1);
 
@@ -82,7 +82,7 @@ for idx = 1:4
     end
     figure, subplot('position',[.1 .4 .8 .5])
     mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1 1]),
-    view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel v
+    view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
     drawnow
 
     % Compute performance Index (cost)
@@ -90,8 +90,6 @@ for idx = 1:4
     fprintf("\n\n   The performance index is %f\n\n",performanceIndex)
 
 end
-
-
 
 
 exportgraphics(gcf,'plots/example9_quintic.pdf', 'ContentType', 'vector')
