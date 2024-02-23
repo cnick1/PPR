@@ -30,7 +30,7 @@ function [f, g, h, D, y] = getSystem9(eps, N, y0)
 %
 %%
 if nargin < 3
-    y0 = [];
+    y0 = 0.5;
     if nargin < 2
         N = 20;
         if nargin < 1
@@ -47,12 +47,12 @@ D2([1 N+1],:) = zeros(2,N+1);
 n = N+1;
 
 % Shift reference equilibrium to the origin
-% vref = tanh((y-y0)/sqrt(2*eps));
-if isempty(y0)
-    vref= 0;
-else
-    load(fullfile('examples', 'systemData','system9_equilibrum.mat'), 'vref')
-end
+vref = tanh((y-y0)/sqrt(2*eps));
+% if isempty(y0)
+%     vref= 0;
+% else
+%     load(fullfile('examples', 'systemData','system9_equilibrum.mat'), 'vref')
+% end
 
 f{1} = eps*D2 + eye(n) - 3*diag(vref.^2);
 f{2} = sparse(1:n,linspace(1,n^2,n),-3*vref);

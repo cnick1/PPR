@@ -1,10 +1,10 @@
-function [] = runExample9()
+function [] = runExample9(n, degree)
 %runExample9 Runs the Allen-Cahn example.
 %
 %   Usage:  [v,w] = runExample9()
 %
-%   Inputs:
-%
+%   Inputs: n      - desired state dimension
+%           degree - desired polynomial degree of value function to compute
 %   Outputs:
 %
 %   Background: Based on p34.m from [1].
@@ -15,48 +15,52 @@ function [] = runExample9()
 %
 %   Part of the NLbalancing repository.
 %%
+if nargin < 2 
+    degree = 4;
+    if nargin < 1
+        n = 32;
+    end
+end
 
+N = n-1;
 fprintf('Running Example 9\n')
 
 %% Construct controller
 % Get system
 y0 = .5; % Desired interface location
 
-eps = 0.01; N = 32;
-[f, B, ~, D, y] = getSystem9(eps, N, y0);
-fprintf("Maximum eigenvalue of A is %f; should be zero I think.\n",max(eigs(full(f{1}),N+1)))
+eps = 0.01;
+[f, B, ~, D, y] = getSystem9(eps, n-1, y0);
+fprintf("Maximum eigenvalue of A is %f; should be zero I think.\n",max(eigs(full(f{1}),n)))
 
 % Reference configuration (@ origin) -> v = v+vref
 if isempty(y0)
-    vref=zeros(N+1,1);
+    vref=zeros(n,1);
 else
     vref = tanh((y-y0)/sqrt(2*eps));
 end
 
-B = B(:,linspace(1,N+1,5)); B(:,[1 5]) = []; m = size(B,2);
-Q2 = .1; Q3 = sparse((N+1)^3,1) ; Q4 = sparse(linspace(1,(N+1)^4,N+1),1,4);
+B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
+Q2 = .1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,4);
 q = {[],Q2,Q3,Q4};
 R = 1;
 
-fprintf("Computing ppr() solution... \n")
-ValueFun = ppr(f, B, q, R, 6, true);
+fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree)
+ValueFun = ppr(f, B, q, R, degree, true);
 fprintf("completed.\n")
 
 uOpenLoop = @(z) zeros(m,1);
-uLinear = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:2), z).' / 2);
-uCubic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:4), z).' / 2);
-uQuartic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:5), z).' / 2);
-uQuintic = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun(1:6), z).' / 2);
+uPPR = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun, z).' / 2);
 
-controllers = {uOpenLoop, uLinear, uCubic, uQuartic, uQuintic};
+controllers = {uOpenLoop, uPPR};
 
-for idx = 1:5
+for idx = 1:2
     u = controllers{idx};
     Lagrangian = zeros(100001,1);
 
     %% Solve PDE by Euler formula and plot results:
     % Construct originial system dynamics
-    D2 = D^2; D2([1 N+1],:) = zeros(2,N+1); % For boundary conditions
+    D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
 
     % Initial condition
     v0 = .53*y + .47*sin(-1.5*pi*y);
@@ -71,10 +75,10 @@ for idx = 1:5
     plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
     for i = 1:nplots
         fprintf('%i',i)
-        for n = 1:plotgap
+        for nn = 1:plotgap
             xbar = v-vref;
             Ux = u(xbar);
-            Lagrangian(n+(i-1)*plotgap) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
+            Lagrangian(nn+(i-1)*plotgap) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
             t = t+dt; v = v + dt*(eps*D2*v + v - v.^3 + B*Ux);    % Euler
         end
         vv = polyval(polyfit(y,v,N),xx);
@@ -91,28 +95,10 @@ for idx = 1:5
 
 end
 
-
-exportgraphics(gcf,'plots/example9_quintic.pdf', 'ContentType', 'vector')
+exportgraphics(gcf,sprintf('plots/example9_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
 close
-exportgraphics(gcf,'plots/example9_quartic.pdf', 'ContentType', 'vector')
-close
-exportgraphics(gcf,'plots/example9_cubic.pdf', 'ContentType', 'vector')
-close
-exportgraphics(gcf,'plots/example9_linear.pdf', 'ContentType', 'vector')
-close
-exportgraphics(gcf,'plots/example9_openloop.pdf', 'ContentType', 'vector')
+exportgraphics(gcf,sprintf('plots/example9_openloop_n%i.pdf',n), 'ContentType', 'vector')
 close
 
-
-
-    function [D,x] = cheb(N)
-        if N==0, D=0; x=1; return, end
-        x = cos(pi*(0:N)/N)';
-        c = [2; ones(N-1,1); 2].*(-1).^(0:N)';
-        X = repmat(x,1,N+1);
-        dX = X-X';
-        D  = (c*(1./c)')./(dX+(eye(N+1)));      % off-diagonal entries
-        D  = D - diag(sum(D'));                 % diagonal entries
-    end
 
 end

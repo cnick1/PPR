@@ -55,6 +55,13 @@ exportData = true;
 %% Example 9: Allen-Cahn equation
 runExample9()
 
+runExample9(45,2)
+runExample9(45,4)
+
+runExample9(33,2)
+runExample9(33,4)
+runExample9(33,6)
+
 %% Other not good examples
 %% Example 5: 3D unicycle, not locally stabilizable for small eps
 % for degree = 2:2:10
