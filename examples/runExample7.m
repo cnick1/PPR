@@ -16,6 +16,7 @@ function [v, w] = runExample7()
 %
 %   Part of the NLbalancing repository.
 %%
+exportData = false;
 
 [f, g, h] = getSystem7();
 % g = g(1);
@@ -45,7 +46,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', R, 1 / sqrt(1 - R))
 
 %  Compute the polynomial approximations to the future energy function
 degree = 8;
-[w] = ppr(f, g, Q, R, degree);
+[w,Gains] = ppr(f, g, Q, R, degree);
 
 tspan = [0, 12];
 
@@ -58,7 +59,8 @@ for alpha0 = [35, 30, 27, 25]
     legendEntries = {};
     Ts = {}; X1s = {}; X2s = {}; X3s = {}; Us = {};
     for d = 2:2:degree
-        u = @(x) (- R * G(x).' * kronPolyDerivEval(w(1:d), x).' / 2);
+        % u = @(x) (- R * G(x).' * kronPolyDerivEval(w(1:d), x).' / 2);
+        u = @(x) (kronPolyEval(Gains(1:d-1), x));
         [t, X] = ode45(@(t, x) F(x) + G(x) * u(x) + U2(x) * u(x) ^ 2 + U3 * u(x) ^ 3, tspan, X0, options);
 
         subplot(1, 2, 1)
