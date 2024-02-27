@@ -60,7 +60,6 @@ runExample9(45,4)
 
 runExample9(33,2)
 runExample9(33,4)
-runExample9(33,6)
 
 %%
 runExample9(129,2)

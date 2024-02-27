@@ -56,7 +56,6 @@ controllers = {uOpenLoop, uPPR};
 
 for idx = 1:2
     u = controllers{idx};
-    Lagrangian = zeros(10000001,1);
 
     %% Solve PDE by Euler formula and plot results:
     % Construct originial system dynamics
@@ -73,6 +72,9 @@ for idx = 1:2
     plotgap = round(tplot/dt); dt = tplot/plotgap;
     xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
     plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
+        
+    Lagrangian = zeros(length(0:dt:tmax),1);
+
     for i = 1:nplots
         fprintf('%i',i)
         for nn = 1:plotgap
