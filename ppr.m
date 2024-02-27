@@ -1,8 +1,8 @@
-function [v,K] = ppr(f, g, q, R, degree, verbose)
+function [v,K] = ppr(f, g, q, R, degree, skipGains, verbose)
 %ppr  Compute a polynomial approximation to the value function for a polynomial
 % control-affine dynamical system.
 %
-%   Usage: v = ppr(f, g, q, R, degree, verbose)
+%   Usage: v = ppr(f, g, q, R, degree, skipGains, verbose)
 % 
 %       H∞ balancing energy functions can be computed as
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, verbose);
@@ -22,6 +22,8 @@ function [v,K] = ppr(f, g, q, R, degree, verbose)
 %                 energy function uses information from f,g,q up-to degree d-1.
 %                 The default choice of d is lf+1, where lf is the degree of
 %                 the drift.
+%       skipGains - option to skip computing the feedback gain coefficients
+%                   (defaults to false)
 %       verbose - optional argument to print runtime information
 %
 %   Output:
@@ -69,7 +71,10 @@ function [v,K] = ppr(f, g, q, R, degree, verbose)
 vec = @(X) X(:);
 
 %% Process inputs
-if (nargin < 6)
+if (nargin < 7)
+    if nargin < 6
+        skipGains = false;
+    end
     verbose = false;
 end
 
@@ -249,32 +254,36 @@ if (degree > 2)
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
 
     end
+    
+    if ~skipGains
+        %% Now compute the gain coefficient
+        for k=2:degree-2
+            K{k} = zeros(m,n^k);
+            % for i=2:k % in terms of i; issues because of nonexistent Gp coefficients
+            %     K{k-1} = K{k-1} - i/2*reshape(GaVb{k-i+1,i},m,n^(k-1))/R;
+            % end
+            % for p_idx = max(0, k-1 - lg):min(k-1, lg)
+            for p_idx = 0:lg
+                i = k-p_idx+1;
+                if i<2; break; end;
+                K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'/R);
+            end
+        end
 
-    %% Now compute the gain coefficient
-    for k=2:degree-2
-        K{k} = zeros(m,n^k); 
+        % Compute last degree; GaVb for this hasn't been computed yet
+        k = degree - 1;
+        K{k} = zeros(m,n^k);
         % for i=2:k % in terms of i; issues because of nonexistent Gp coefficients
         %     K{k-1} = K{k-1} - i/2*reshape(GaVb{k-i+1,i},m,n^(k-1))/R;
         % end
         % for p_idx = max(0, k-1 - lg):min(k-1, lg)
         for p_idx = 0:lg
-            i = k-p_idx+1; 
+            i = k-p_idx+1;
             if i<2; break; end;
-            K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'/R);
+            K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).'/R);
         end
-    end
-
-    % Compute last degree; GaVb for this hasn't been computed yet
-    k = degree - 1; 
-    K{k} = zeros(m,n^k); 
-    % for i=2:k % in terms of i; issues because of nonexistent Gp coefficients
-    %     K{k-1} = K{k-1} - i/2*reshape(GaVb{k-i+1,i},m,n^(k-1))/R;
-    % end
-    % for p_idx = max(0, k-1 - lg):min(k-1, lg)
-    for p_idx = 0:lg
-        i = k-p_idx+1;
-        if i<2; break; end;
-        K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).'/R);
+    else 
+        K = [];
     end
 end
 
