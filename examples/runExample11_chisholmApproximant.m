@@ -23,7 +23,7 @@ degree = ell+1;
 fprintf('Running Example 11: Chisholm approximant \n')
 
 q = {zeros(2,1),zeros(4,1)}; R = 1;
-w = ppr(f, g, q, R, degree, true);
+w = ppr(f, g, q, R, degree, true, true);
 W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 
 %% Compute a Chisholm approximant (rational approximant)

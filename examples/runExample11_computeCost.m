@@ -58,7 +58,7 @@ tspan = [0 10];
 
 %  Compute the polynomial approximations to the past future energy function
 % [w] = ppr(f, g, h2q(h), eta, degree, true);
-[w] = ppr(f, g, Q, R, degree, true);
+[w] = ppr(f, g, Q, R, degree, true, true);
 
 syms x1 x2
 vpa(-Rinv * g{1}.' * kronPolyDerivEval(w, [x1; x2]).') / 2
@@ -95,22 +95,22 @@ if false %exportPlotData
     fileID = fopen(sprintf('plots/example11_closedLoopPhasePortraits_d%i_polynomial%i.dat', degree, nFterms), 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum closed loop phase portrait trajectory data\n');
-
+    
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-
+    
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-
+    
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-
+    
     % Write the rest of the header
     for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
     fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
-
+    
     % Iterate over the number of points
     for j = 1:max_points
         if exist('count', 'var') == 1 && count == 50
@@ -144,7 +144,7 @@ if false %exportPlotData
     end
     % Close the data file
     fclose(fileID);
-
+    
 end
 
 end

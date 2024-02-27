@@ -53,7 +53,7 @@ fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
 % [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-[w] = ppr(f, g, h, 1 / eta, degree, true);
+[w] = ppr(f, g, h, 1 / eta, degree, true, true);
 
 nX = 301; nY = nX;
 xLim = pi; yLim = 5;
@@ -98,11 +98,11 @@ if exportPlotData
     %     matlab2tikz('showInfo', false,'standalone',true,sprintf('plots/example11_futureEnergy_d%i_polynomial%i.tex',degree,nFterms))
     %     data = [ X(:) Y(:) eFuture(:) ];
     %     save plots/P.dat data -ASCII
-
+    
     fprintf('Exporting figure to: \n     plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf\n', degree, nFterms)
     axis off
     exportgraphics(fig1, sprintf('plots/example11_futureEnergy_d%i_polynomial%i_noAxes.pdf', degree, nFterms), 'ContentType', 'vector');
-
+    
 end
 title('Future Energy Function')
 

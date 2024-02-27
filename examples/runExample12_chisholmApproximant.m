@@ -23,7 +23,7 @@ fprintf('Running Example 12: Chisholm approximant \n')
 
 % Compute open-loop OBSV energy
 q = h2q(h); R = 0;
-w = ppr(f, g, q, R, degree, true);
+w = ppr(f, g, q, R, degree, true, true);
 W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 
 %% Compute a Chisholm approximant (rational approximant)
@@ -64,7 +64,7 @@ for i = 1:nY
         EanalyticGradient = [(9*x(2)^3 + 36*x(1) + 9*x(1)*x(2)^4 + 27*x(1)^2*x(2) + 12*x(1)^3*x(2)^2 + 3*x(1)^5)/(1 + x(2)^4 + 2*x(1)^2*x(2)^2 + x(1)^4) - ((4*x(1)*x(2)^2 + 4*x(1)^3)*((9*x(2)^2)/2 + 2*x(2)^6 + 9*x(1)*x(2)^3 + 18*x(1)^2 + (9*x(1)^2*x(2)^4)/2 + 9*x(1)^3*x(2) + 3*x(1)^4*x(2)^2 + x(1)^6/2))/(2*x(1)^2*x(2)^2 + x(1)^4 + x(2)^4 + 1)^2;
             (9*x(2) + 12*x(2)^5 + 27*x(1)*x(2)^2 + 18*x(1)^2*x(2)^3 + 9*x(1)^3 + 6*x(1)^4*x(2))/(1 + x(2)^4 + 2*x(1)^2*x(2)^2 + x(1)^4) - ((4*x(2)^3 + 4*x(1)^2*x(2))*((9*x(2)^2)/2 + 2*x(2)^6 + 9*x(1)*x(2)^3 + 18*x(1)^2 + (9*x(1)^2*x(2)^4)/2 + 9*x(1)^3*x(2) + 3*x(1)^4*x(2)^2 + x(1)^6/2))/(2*x(1)^2*x(2)^2 + x(1)^4 + x(2)^4 + 1)^2];
         an_RES(i, j) = computeResidualFutureHJB_2D_example12(q, R, EanalyticGradient.', x);
-
+        
         poly_value(i, j) = 0.5 * kronPolyEval(w, x);
         poly_RES(i, j) = computeResidualFutureHJB_2D_example12(q, R, 0.5 * kronPolyDerivEval(w, x), x);
         
@@ -175,15 +175,15 @@ figure(fig2)
 %% Compute feedback laws
 % Standard polynomial feedback
 % syms x1 x2
-% 
+%
 % u_poly = -g{1}.'*0.5*kronPolyDerivEval(w,[x1 ;x2]).';
-% 
+%
 % % Rational feedback: R' = BA'-AB'/B^2
 % a = kronPolyEval(a_coeff, [x1 ;x2]); b = 1+kronPolyEval(b_coeff, [x1 ;x2]);
 % da = kronPolyDerivEval(a_coeff, [x1 ;x2]).'; db = kronPolyDerivEval(b_coeff, [x1 ;x2]).';
-% 
+%
 % u_rat = -g{1}.'*.5*expand(b*da-a*db)/expand(b^2);
-% 
+%
 % vpa(u_poly,2)
 % vpa(u_rat,2)
 
@@ -196,7 +196,7 @@ gx = [3 * sqrt(2) * (9 - 6 * x(1) * x(2) + x(1) ^ 4 - x(2) ^ 4) / (9 + x(1) ^ 4 
     sqrt(2) * (27 * x(1) ^ 2 + 9 * x(2) ^ 2 + 6 * x(1) ^ 3 * x(2) + 6 * x(1) * x(2) ^ 3 + (x(1) ^ 2 + x(2) ^ 2) ^ 3) / (9 + x(1) ^ 4 + 2 * x(1) ^ 2 * x(2) ^ 2 + x(2) ^ 4), 3 * sqrt(2) * (9 + 6 * x(1) * x(2) - x(1) ^ 4 + x(2) ^ 4) / (9 + x(1) ^ 4 + 2 * x(1) ^ 2 * x(2) ^ 2 + x(2) ^ 4)];
 % qx = kronPolyEval(q,x);
 hx = [2 * sqrt(2) * (3 * x(1) + x(1) ^ 2 * x(2) + x(2) ^ 3) * (3 - x(1) ^ 4 - 2 * x(1) ^ 2 * x(2) ^ 2 - x(2) ^ 4) / (1 + x(1) ^ 4 + 2 * x(1) ^ 2 * x(2) ^ 2 + x(2) ^ 4);
-            sqrt(2) * (3 * x(2) - x(1) ^ 3 - x(1) * x(2) ^ 2) * (3 - x(1) ^ 4 - 2 * x(1) ^ 2 * x(2) ^ 2 - x(2) ^ 4) / (1 + x(1) ^ 4 + 2 * x(1) ^ 2 * x(2) ^ 2 + x(2) ^ 4)];
+    sqrt(2) * (3 * x(2) - x(1) ^ 3 - x(1) * x(2) ^ 2) * (3 - x(1) ^ 4 - 2 * x(1) ^ 2 * x(2) ^ 2 - x(2) ^ 4) / (1 + x(1) ^ 4 + 2 * x(1) ^ 2 * x(2) ^ 2 + x(2) ^ 4)];
 qx = hx.'*hx;
 
 if R == 0

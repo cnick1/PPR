@@ -23,7 +23,7 @@ fprintf('Running Example 14: Chisholm approximant \n')
 
 % Compute open-loop OBSV energy
 q = h2q(h); R = 0;
-w = ppr(f, g, q, R, degree, true);
+w = ppr(f, g, q, R, degree, true, true);
 W2 = reshape(w{2},2,2); [V, D] = eig(W2);
 
 %% Compute a Chisholm approximant (rational approximant)

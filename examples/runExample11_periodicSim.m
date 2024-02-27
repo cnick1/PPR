@@ -54,7 +54,7 @@ tspan = [0 7];
 x0 = [-2];
 y0 = [-4];
 
-[w] = ppr(f, g, h, 1 / eta, degree, true);
+[w] = ppr(f, g, h, 1 / eta, degree, true, true);
 
 % Create a figure and set up subplots
 figure; hold on;
@@ -103,14 +103,14 @@ for i = 1:length(boundary_crossings) + 1
     else
         end_idx = size(y, 1);
     end
-
+    
     % Plot the current segment
     %     plot(y(start_idx:end_idx, 1), y(start_idx:end_idx, 2), 'b-'); % Adjust line style as needed
-
+    
     % Pad the shorter vector with NaNs to match the maximum length
     X = [X, [y(start_idx:end_idx, 1); NaN(max_length - length(y(start_idx:end_idx, 1)), 1)]];
     Y = [Y, [y(start_idx:end_idx, 2); NaN(max_length - length(y(start_idx:end_idx, 2)), 1)]];
-
+    
     % Update the starting index for the next segment
     start_idx = end_idx + 1;
 end

@@ -15,7 +15,7 @@ function [] = runExample9(n, degree)
 %
 %   Part of the NLbalancing repository.
 %%
-if nargin < 2 
+if nargin < 2
     degree = 4;
     if nargin < 1
         n = 32;
@@ -46,7 +46,7 @@ q = {[],Q2,Q3,Q4};
 R = 1;
 
 fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree)
-[ValueFun, Gains] = ppr(f, B, q, R, degree, true);
+[ValueFun, Gains] = ppr(f, B, q, R, degree, false, true);
 fprintf("completed.\n")
 
 uOpenLoop = @(z) zeros(m,1);
@@ -56,25 +56,25 @@ controllers = {uOpenLoop, uPPR};
 
 for idx = 1:2
     u = controllers{idx};
-
+    
     %% Solve PDE by Euler formula and plot results:
     % Construct originial system dynamics
     D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
-
+    
     % Initial condition
     v0 = .53*y + .47*sin(-1.5*pi*y);
     % v0 = tanh((y-(-0.125))/sqrt(2*eps*10));
     v = v0;
-
+    
     % Time-stepping
     dt = min([.00001,50*N^(-4)/eps]); t = 0;
     tmax = 100; tplot = 2; nplots = round(tmax/tplot);
     plotgap = round(tplot/dt); dt = tplot/plotgap;
     xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
     plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
-        
+    
     Lagrangian = zeros(length(0:dt:tmax),1);
-
+    
     for i = 1:nplots
         fprintf('%i',i)
         for nn = 1:plotgap
@@ -90,11 +90,11 @@ for idx = 1:2
     mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
     view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
     drawnow
-
+    
     % Compute performance Index (cost)
     performanceIndex = trapz((0:dt:tmax), Lagrangian);
     fprintf("\n\n   The performance index is %f\n\n",performanceIndex)
-
+    
 end
 
 exportgraphics(figure(2),sprintf('plots/example9_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')

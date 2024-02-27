@@ -31,7 +31,7 @@ eta = 1; % values should be between -\infty and 1.
 %% Get model and compute energy functions
 m = 1; L = 10; %56.5962*scale;
 [f, g, h] = getSystem11(9, m, L);
-[w] = ppr(f, g, h, 1 / eta, degree, true);
+[w] = ppr(f, g, h, 1 / eta, degree, true, true);
 
 %% 1D plots
 xrange = pi; nPoints = 100;
@@ -43,18 +43,18 @@ n = length(f{1});
 for xi = 1:n
     xs = zeros(nPoints, n);
     xs(:, xi) = linspace(-xrange, xrange, nPoints).';
-
+    
     energies = zeros(nPoints, 1);
     for i = 1:nPoints
         x = xs(i, :).';
         energies(i) = 0.5 * kronPolyEval(w, x, degree);
     end
-
+    
     subplot(1, n, xi)
     plot(xs(:, 1), energies, 'LineWidth', 2)
-
+    
     xlabel(sprintf('$x_%i$', xi), 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold'); ylabel('$\mathcal{E}_\gamma^+$', 'interpreter', 'latex', 'FontSize', 20, 'fontweight', 'bold')
-
+    
 end
 
 %% 2D plots
