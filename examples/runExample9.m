@@ -46,17 +46,17 @@ q = {[],Q2,Q3,Q4};
 R = 1;
 
 fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree)
-ValueFun = ppr(f, B, q, R, degree, true);
+[ValueFun, Gains] = ppr(f, B, q, R, degree, true);
 fprintf("completed.\n")
 
 uOpenLoop = @(z) zeros(m,1);
-uPPR = @(z) (- R \ B.' * kronPolyDerivEval(ValueFun, z).' / 2);
+uPPR = @(z) (kronPolyEval(Gains, z));
 
 controllers = {uOpenLoop, uPPR};
 
 for idx = 1:2
     u = controllers{idx};
-    Lagrangian = zeros(100001,1);
+    Lagrangian = zeros(10000001,1);
 
     %% Solve PDE by Euler formula and plot results:
     % Construct originial system dynamics
@@ -68,10 +68,10 @@ for idx = 1:2
     v = v0;
 
     % Time-stepping
-    dt = min([.001,50*N^(-4)/eps]); t = 0;
+    dt = min([.00001,50*N^(-4)/eps]); t = 0;
     tmax = 100; tplot = 2; nplots = round(tmax/tplot);
     plotgap = round(tplot/dt); dt = tplot/plotgap;
-    xx = -1:.025:1; vv = polyval(polyfit(y,v,N),xx);
+    xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
     plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
     for i = 1:nplots
         fprintf('%i',i)
@@ -81,7 +81,7 @@ for idx = 1:2
             Lagrangian(nn+(i-1)*plotgap) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
             t = t+dt; v = v + dt*(eps*D2*v + v - v.^3 + B*Ux);    % Euler
         end
-        vv = polyval(polyfit(y,v,N),xx);
+        vv = polyval(polyfit(y,v,20),xx);
         plotdata(i+1,:) = vv; tdata = [tdata; t];
     end
     figure, subplot('position',[.1 .4 .8 .5])
