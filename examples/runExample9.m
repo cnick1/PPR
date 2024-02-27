@@ -87,7 +87,7 @@ for idx = 1:2
         plotdata(i+1,:) = vv; tdata = [tdata; t];
     end
     figure, subplot('position',[.1 .4 .8 .5])
-    mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1 1]),
+    mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
     view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
     drawnow
 
@@ -97,10 +97,8 @@ for idx = 1:2
 
 end
 
-exportgraphics(gcf,sprintf('plots/example9_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
-close
-exportgraphics(gcf,sprintf('plots/example9_openloop_n%i.pdf',n), 'ContentType', 'vector')
-close
+exportgraphics(figure(2),sprintf('plots/example9_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
+exportgraphics(figure(1),sprintf('plots/example9_openloop_n%i.pdf',n), 'ContentType', 'vector')
 
 
 end
