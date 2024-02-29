@@ -52,8 +52,8 @@ fprintf('Running Example 11\n')
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
-% [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-[w] = ppr(f, g, h2q(h), eta, degree, true, true);
+options.verbose = true; options.skipGains = true;
+[w] = ppr(f, g, h2q(h), eta, degree, options);
 
 nX = 301; nY = nX;
 xLim = pi; yLim = 5;

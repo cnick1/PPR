@@ -46,7 +46,8 @@ q = {[],Q2,Q3,Q4};
 R = 1;
 
 fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree)
-[ValueFun, Gains] = ppr(f, B, q, R, degree, false, true);
+options.verbose = true; options.skipGains = false;
+[ValueFun, Gains] = ppr(f, B, q, R, degree, options);
 fprintf("completed.\n")
 
 uOpenLoop = @(z) zeros(m,1);

@@ -1,12 +1,12 @@
-function [v,K] = ppr(f, g, q, R, degree, skipGains, verbose)
+function [v,K,options] = ppr(f, g, q, R, degree, options)
 %ppr  Compute a polynomial approximation to the value function for a polynomial
 % control-affine dynamical system.
 %
-%   Usage: v = ppr(f, g, q, R, degree, skipGains, verbose)
+%   Usage: v = ppr(f, g, q, R, degree)
 %
 %       H∞ balancing energy functions can be computed as
-%           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree, true, verbose);
-%           [w] = ppr(f, g, h2q(h), 1/eta, degree, true, verbose);
+%           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree);
+%           [w] = ppr(f, g, h2q(h), 1/eta, degree);
 %
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
@@ -22,13 +22,27 @@ function [v,K] = ppr(f, g, q, R, degree, skipGains, verbose)
 %                 energy function uses information from f,g,q up-to degree d-1.
 %                 The default choice of d is lf+1, where lf is the degree of
 %                 the drift.
-%       skipGains - option to skip computing the feedback gain coefficients
-%                   (defaults to false)
-%       verbose - optional argument to print runtime information
+%       options - struct containing additional options:
+%           - verbose: print runtime information
+%           - skipGains: skip computing the feedback gain coefficients
+%                       (defaults to false)
+%         * The next set of options are used for accelerating the computations.
+%           We can use linear balanced truncation to compute a reduced-order model
+%           of dimension r, and then use the reduced dynamics to compute the energy
+%           functions in r dimensions rather than n; this can present a huge
+%           computational speedup.
+%           - r: dimension "r" of reduced order model. (Defaults to n)
+%           - fr,gr,hr,qr: reduced dynamics; if for example the past energy
+%             function has already been computed, instead of recomputing the
+%             reduced dynamics, they can be passed in directly.
+%           - eta: H-infinity balancing parameter. Defaults to open-loop balacing
+%                 (eta = 0).
+%
 %
 %   Output:
 %       v       - cell array containing the polynomial value function coefficients
-%       k       - cell array containing the polynomial (sub)optimal gain coefficients
+%       K       - cell array containing the polynomial (sub)optimal gain coefficients
+%       options - struct with additional outputs, e.g. reduced-order dynamics if they are computed
 %
 %   Background: Computes a degree d polynomial approximation to the value function
 %
@@ -71,12 +85,71 @@ function [v,K] = ppr(f, g, q, R, degree, skipGains, verbose)
 vec = @(X) X(:);
 
 %% Process inputs
-if (nargin < 7)
-    if nargin < 6
-        skipGains = false;
-    end
-    verbose = false;
+if nargin < 6
+    options = struct([]);
 end
+
+if ~isfield(options,'skipGains'); options.skipGains = false; end
+if ~isfield(options,'verbose'); options.verbose = false; end
+
+if isfield(options,'fr')
+    useReducedOrderModel = true;
+    nFOM = size(f{1}, 1); % Stash original FOM n for use later
+    if ~isfield(options,'r')
+        options.r = size(options.fr{1}, 1);
+    end
+    
+    % Now replace f,g,q,R with fr,gr,qr,Rr
+    f = options.fr; g = options.gr;
+    q = options.qr; R = options.Rr;
+    
+elseif isfield(options,'r')
+    if ~isfield(options,'eta'); options.eta = 0; end
+    
+    %% Compute reduced dynamics
+    % First compute just the quadratic components
+    v = approxPastEnergy(f, g, h, options.eta, 2);
+    w = approxFutureEnergy(f, g, h, options.eta, 2);
+    
+    % Compute reduced (linear) balancing transformation and transform the dynamics
+    nFOM = size(f{1}, 1); % Stash original FOM n for use later
+    V2 = reshape(v{2}, nFOM, nFOM); W2 = reshape(w{2}, nFOM, nFOM);
+    
+    Rchol = chol(V2, 'lower'); Lchol = chol(W2, 'lower'); % V2 = R*R.', W2 = L*L.'
+    
+    [U, Xi, V] = svd(Lchol.' / Rchol.'); % from Theorem 2
+    
+    % Truncate transformation to degree r
+    Xi = Xi(1:r,1:r);
+    V = V(:,1:r);
+    U = U(:,1:r);
+    
+    % Define balancing transformation (internally balanced)
+    Tib = R.' \ V * diag(diag(Xi).^(-1/2));
+    TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
+    
+    
+    % Transform dynamics using the linear (reduced) transformation Tin
+    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, h, Tib);
+    
+    clear v w V2 W2 Rchol Lchol U Xi V
+    % Now replace f,g,q with fr,gr,qr
+    f = options.fr; g = options.gr; q = options.qr;
+    
+else
+    useReducedOrderModel = false;
+end
+if ~isfield(options,'r')
+    options.r = size(f{1}, 1);
+end
+
+%           - r: dimension "r" of reduced order model. (Defaults to n)
+%           - fr,gr,qr,Rr: reduced dynamics; if for example the past energy
+%             function has already been computed, instead of recomputing the
+%             reduced dynamics, they can be passed in directly.
+%           - eta: H-infinity balancing parameter. Defaults to open-loop balacing
+%                 (eta = 0).
+
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f)
@@ -157,7 +230,7 @@ switch RPosDef
         else
             V2 = icare(A, B, Q, R, 'anti');
         end
-        if (isempty(V2) && verbose)
+        if (isempty(V2) && options.verbose)
             warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
@@ -170,7 +243,7 @@ if (isempty(V2))
 end
 
 %  Check the residual of the Riccati/Lyapunov equation
-if (verbose)
+if (options.verbose)
     RES = A' * V2 + V2 * A - (V2 * B) * Rinv * (B' * V2) + Q;
     fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf'));
     clear RES
@@ -255,7 +328,7 @@ if (degree > 2)
         
     end
     
-    if ~skipGains
+    if ~options.skipGains
         %% Now compute the gain coefficient
         for k=2:degree-2
             K{k} = zeros(m,n^k);
@@ -265,7 +338,7 @@ if (degree > 2)
             % for p_idx = max(0, k-1 - lg):min(k-1, lg)
             for p_idx = 0:lg
                 i = k-p_idx+1;
-                if i<2; break; end;
+                if i<2; break; end
                 K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'/R);
             end
         end
@@ -279,12 +352,69 @@ if (degree > 2)
         % for p_idx = max(0, k-1 - lg):min(k-1, lg)
         for p_idx = 0:lg
             i = k-p_idx+1;
-            if i<2; break; end;
+            if i<2; break; end
             K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).'/R);
         end
     else
         K = [];
     end
 end
+
+if useReducedOrderModel
+    % Convert energy functions and gain matrices back to full state dimension
+    for k = 2:degree
+        v{k} = calTTv({TibInv}, k, k, v{k});
+        K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1});
+    end
+end
+
+end
+
+
+function [ft, gt, ht] = linearTransformDynamics(f, g, h, T)
+%transformDynamics Transforms the dynamics f, g, h by T.
+%
+%   Usage: [ft, gt, ht] = transformDynamics(f, g, h, T)
+%
+%   Inputs:
+%       f,g,h - cell arrays containing the polynomial coefficients for
+%               the drift, input, and output in the original coordinates.
+%       T     - linear reduced transformation
+%
+%   Output:
+%       ft,gt,ht - cell arrays containing the polynomial coefficients
+%                  for the transformed drift, input, and output.
+%
+%   Background: Given a transformation T, compute the transformed dynamics.
+%   TODO: Add more details here.
+%
+%   Authors: Nick Corbin, UCSD
+%
+[n, r] = size(T);
+[~,m] = size(g{1});
+[p,~] = size(h{1});
+
+ft = cell(size(f)); gt = cell(size(g)); ht = cell(size(h));
+
+for k = 1:length(f)
+    ft{k} = zeros(n,r^k);
+    for j = 1:n
+        ft{k}(j,:) = ft{k}(j,:) + calTTv({T}, k, k, f{k}(j,:).').';
+    end
+    ft{k} = T\ft{k};
+end
+
+gt{1} = T\g{1};
+for k = 2:length(g)
+    error("Only implemented linear inputs so far!")
+end
+
+for k = 1:length(h)
+    ht{k} = zeros(p,r^k);
+    for j = 1:p
+        ht{k}(j,:) = ht{k}(j,:) + calTTv({T}, k, k, h{k}(j,:).').';
+    end
+end
+
 
 end

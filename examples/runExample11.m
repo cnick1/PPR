@@ -106,22 +106,22 @@ if exportPlotData
     fileID = fopen('plots/example11_openLoopPhasePortraits_nonlinear.dat', 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum open loop phase portrait trajectory data\n');
-
+    
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-
+    
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-
+    
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-
+    
     % Write the rest of the header
     for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
     fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
-
+    
     % Iterate over the number of points
     for j = 1:max_points
         % Iterate over each line
@@ -149,28 +149,28 @@ if exportPlotData
     end
     % Close the data file
     fclose(fileID);
-
+    
     xs = xsPoly; ys = ysPoly;
     fprintf('Writing data to plots/example11_openLoopPhasePortraits_polynomial%i.dat \n', nFterms)
     fileID = fopen(sprintf('plots/example11_openLoopPhasePortraits_polynomial%i.dat', nFterms), 'w');
     fprintf(fileID, '# Figure X-b Data\n');
     fprintf(fileID, '# pendulum open loop phase portrait trajectory data, degree %i approximation\n', nFterms);
-
+    
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-
+    
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-
+    
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-
+    
     % Write the rest of the header
     for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
     fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
-
+    
     % Iterate over the number of points
     for j = 1:max_points
         % Iterate over each line
@@ -208,9 +208,8 @@ end
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
-% [v] = approxPastEnergy(f, N, g, h, eta, degree, true);
-% [w] = ppr(f, g, h2q(h), eta, degree, true);
-[w] = ppr(f, g, 0, eta, degree, true);
+options.verbose = true; options.skipGains = true;
+[w] = ppr(f, g, 0, eta, degree, options);
 
 % Create a figure and set up subplots
 subplot(1, 3, 3); hold on;
@@ -241,22 +240,22 @@ if exportPlotData
     fileID = fopen(sprintf('plots/example11_closedLoopPhasePortraits_d%i_polynomial%i.dat', degree, nFterms), 'w');
     fprintf(fileID, '# Figure X-a Data\n');
     fprintf(fileID, '# pendulum closed loop phase portrait trajectory data\n');
-
+    
     % Calculate the maximum number of points in any line
     max_points = max(cellfun(@numel, xs));
-
+    
     % Determine the number of lines (sets of points)
     num_lines = length(xs);
-
+    
     % Write the header
     fprintf(fileID, '       x01     &      y01      & ');
-
+    
     % Write the rest of the header
     for i = 2:num_lines - 1
         fprintf(fileID, '      x%02d     &      y%02d      & ', i, i);
     end
     fprintf(fileID, '      x%02d     &      y%02d      \n ', i + 1, i + 1);
-
+    
     % Iterate over the number of points
     for j = 1:max_points
         if exist('count', 'var') == 1 && count == 50
@@ -290,7 +289,7 @@ if exportPlotData
     end
     % Close the data file
     fclose(fileID);
-
+    
 end
 
 end
