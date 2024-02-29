@@ -86,7 +86,7 @@ vec = @(X) X(:);
 
 %% Process inputs
 if nargin < 6
-    options = struct([]);
+    options = struct();
 end
 
 if ~isfield(options,'skipGains'); options.skipGains = false; end
@@ -234,7 +234,7 @@ switch RPosDef
             warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
-    case 3 % Open-loop
+    case 3  % Computing open-loop observability energy function; use lyap
         V2 = lyap(A.', Q);
 end
 

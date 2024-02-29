@@ -18,7 +18,7 @@ function [] = runExample9(n, degree)
 if nargin < 2
     degree = 4;
     if nargin < 1
-        n = 32;
+        n = 33;
     end
 end
 

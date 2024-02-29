@@ -50,7 +50,7 @@ exportData = true;
 
 
 %% Example 7: 3D aircraft stall model
-% runExample7(exportData)
+runExample7()
 
 %% Example 9: Allen-Cahn equation
 runExample9()
