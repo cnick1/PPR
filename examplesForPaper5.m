@@ -13,18 +13,8 @@
 %       Example 7: 3D aircraft stall model for testing stabilization. From
 %       Garrard 1977, also studied in Almubarak 2019 ACC paper and others.
 %
-%
-%       Pendulum/acrobat, etc. ?
-%       Example 5: a unicycle quadratic-bilinear system.
-%
-%       Example 6: a nonlinear (von Karman) Euler-Bernoulli beam with cable
-%       actuation that provides state dependent inputs. The drift and input
-%       dynamics are up-to cubic. The model can be made arbitrarily large.
-%
-%       Example 8: a nonlinear heat equation. The dynamics are cubic. The
-%       model can be made arbitrarily large. According to Embree 2019,
-%       etc., the open-loop linearization should be STABLE, but due to
-%       non-normal A matrix the nonlinear system is actually UNSTABLE. 
+%       Example 9: Chebychev discretization of Allen-Cahn equation
+% 
 %
 close all; clear; clc;
 setKroneckerToolsPath

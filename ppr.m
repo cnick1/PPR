@@ -103,26 +103,52 @@ if isfield(options,'fr')
     f = options.fr; g = options.gr;
     q = options.qr; R = options.Rr;
     
-elseif isfield(options,'r')
+elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
+    useReducedOrderModel = true;
     if ~isfield(options,'eta'); options.eta = 0; end
-    
+    fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
+
     %% Compute reduced dynamics
-    % First compute just the quadratic components
-    v = approxPastEnergy(f, g, h, options.eta, 2);
-    w = approxFutureEnergy(f, g, h, options.eta, 2);
-    
-    % Compute reduced (linear) balancing transformation and transform the dynamics
-    nFOM = size(f{1}, 1); % Stash original FOM n for use later
-    V2 = reshape(v{2}, nFOM, nFOM); W2 = reshape(w{2}, nFOM, nFOM);
-    
-    Rchol = chol(V2, 'lower'); Lchol = chol(W2, 'lower'); % V2 = R*R.', W2 = L*L.'
-    
-    [U, Xi, V] = svd(Lchol.' / Rchol.'); % from Theorem 2
-    
+    method = 2; 
+    switch method
+        case 1 % Use ppr recursively; requires some un-needed inversions that cause trouble sometimes (for non-minimal models)
+            % First compute just the quadratic components
+            v = approxPastEnergy(f, g, options.h, options.eta, 2, options.verbose);
+            w = approxFutureEnergy(f, g, options.h, options.eta, 2, options.verbose);
+
+            % Compute reduced (linear) balancing transformation and transform the dynamics
+            nFOM = size(f{1}, 1); % Stash original FOM n for use later
+            V2 = reshape(v{2}, nFOM, nFOM); W2 = reshape(w{2}, nFOM, nFOM);
+
+            try
+                Rchol = chol(V2, 'lower'); Lchol = chol(W2, 'lower'); % V2 = R*R.', W2 = L*L.'
+            catch
+                warning("ppr: Gramians not positive definite, trying sqrtm()")
+                Rchol = sqrtm(V2); Lchol = sqrtm(W2); % V2 = R*R.', W2 = L*L.'
+            end
+
+            [U, Xi, V] = svd(Lchol.' / Rchol.'); % from Theorem 2
+        case 2
+            Pi = icare(f{1}.', options.h.', g*g.', 1/options.eta);
+            P = icare(f{1}, g, options.h.'*options.h, 1/options.eta);
+            try
+                Rchol = chol(Pi, 'lower'); Lchol = chol(P, 'lower'); % V2 = R*R.', W2 = L*L.'
+            catch
+                warning("ppr: Gramians not positive definite, trying sqrtm()")
+                Rchol = sqrtm(Pi); Lchol = sqrtm(P); % V2 = R*R.', W2 = L*L.'
+            end
+            [U, Xi, V] = svd(Lchol.' * Rchol); % from Theorem 2
+    end
+
+    if options.verbose 
+        figure; semilogy(diag(Xi))
+        hold on; xline(options.r)
+        drawnow
+    end
     % Truncate transformation to degree r
-    Xi = Xi(1:r,1:r);
-    V = V(:,1:r);
-    U = U(:,1:r);
+    Xi = Xi(1:options.r,1:options.r);
+    V = V(:,1:options.r);
+    U = U(:,1:options.r);
     
     % Define balancing transformation (internally balanced)
     Tib = R.' \ V * diag(diag(Xi).^(-1/2));
@@ -130,8 +156,16 @@ elseif isfield(options,'r')
     
     
     % Transform dynamics using the linear (reduced) transformation Tin
-    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, h, Tib);
-    
+    if ~iscell(g); g = {g}; end; if ~iscell(options.h); options.h = {options.h}; end
+    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, options.h, Tib);
+    for k = 2:length(q)
+        if length(q{k}) == 1
+            options.qr{k} = q{k};
+        else 
+            options.qr{k} = calTTv({Tib}, k, k, q{k});
+        end
+    end
+
     clear v w V2 W2 Rchol Lchol U Xi V
     % Now replace f,g,q with fr,gr,qr
     f = options.fr; g = options.gr; q = options.qr;
@@ -142,14 +176,6 @@ end
 if ~isfield(options,'r')
     options.r = size(f{1}, 1);
 end
-
-%           - r: dimension "r" of reduced order model. (Defaults to n)
-%           - fr,gr,qr,Rr: reduced dynamics; if for example the past energy
-%             function has already been computed, instead of recomputing the
-%             reduced dynamics, they can be passed in directly.
-%           - eta: H-infinity balancing parameter. Defaults to open-loop balacing
-%                 (eta = 0).
-
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f)
@@ -227,8 +253,8 @@ switch RPosDef
     case 2 % Negative definite R
         if R == -1 && isscalar(Q) && Q == 0 % Computing open-loop controllability energy function; use lyap
             V2 = inv(lyap(A,(B*B.')));
-        else
-            V2 = icare(A, B, Q, R, 'anti');
+        else % at least one case is when computing past energy function
+            V2 = -icare(A, B, Q, R, 'anti'); % alternatively icare(-A, -B, Q, R);
         end
         if (isempty(V2) && options.verbose)
             warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
@@ -364,7 +390,7 @@ if useReducedOrderModel
     % Convert energy functions and gain matrices back to full state dimension
     for k = 2:degree
         v{k} = calTTv({TibInv}, k, k, v{k});
-        K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1});
+        K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1}.').';
     end
 end
 
