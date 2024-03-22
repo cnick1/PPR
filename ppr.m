@@ -92,91 +92,6 @@ end
 if ~isfield(options,'skipGains'); options.skipGains = false; end
 if ~isfield(options,'verbose'); options.verbose = false; end
 
-if isfield(options,'fr')
-    useReducedOrderModel = true;
-    nFOM = size(f{1}, 1); % Stash original FOM n for use later
-    if ~isfield(options,'r')
-        options.r = size(options.fr{1}, 1);
-    end
-    
-    % Now replace f,g,q,R with fr,gr,qr,Rr
-    f = options.fr; g = options.gr;
-    q = options.qr; R = options.Rr;
-    
-elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
-    useReducedOrderModel = true;
-    if ~isfield(options,'eta'); options.eta = 0; end
-    fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
-
-    %% Compute reduced dynamics
-    method = 2; 
-    switch method
-        case 1 % Use ppr recursively; requires some un-needed inversions that cause trouble sometimes (for non-minimal models)
-            % First compute just the quadratic components
-            v = approxPastEnergy(f, g, options.h, options.eta, 2, options.verbose);
-            w = approxFutureEnergy(f, g, options.h, options.eta, 2, options.verbose);
-
-            % Compute reduced (linear) balancing transformation and transform the dynamics
-            nFOM = size(f{1}, 1); % Stash original FOM n for use later
-            V2 = reshape(v{2}, nFOM, nFOM); W2 = reshape(w{2}, nFOM, nFOM);
-
-            try
-                Rchol = chol(V2, 'lower'); Lchol = chol(W2, 'lower'); % V2 = R*R.', W2 = L*L.'
-            catch
-                warning("ppr: Gramians not positive definite, trying sqrtm()")
-                Rchol = sqrtm(V2); Lchol = sqrtm(W2); % V2 = R*R.', W2 = L*L.'
-            end
-
-            [U, Xi, V] = svd(Lchol.' / Rchol.'); % from Theorem 2
-        case 2
-            Pi = icare(f{1}.', options.h.', g*g.', 1/options.eta);
-            P = icare(f{1}, g, options.h.'*options.h, 1/options.eta);
-            try
-                Rchol = chol(Pi, 'lower'); Lchol = chol(P, 'lower'); % V2 = R*R.', W2 = L*L.'
-            catch
-                warning("ppr: Gramians not positive definite, trying sqrtm()")
-                Rchol = sqrtm(Pi); Lchol = sqrtm(P); % V2 = R*R.', W2 = L*L.'
-            end
-            [U, Xi, V] = svd(Lchol.' * Rchol); % from Theorem 2
-    end
-
-    if options.verbose 
-        figure; semilogy(diag(Xi))
-        hold on; xline(options.r)
-        drawnow
-    end
-    % Truncate transformation to degree r
-    Xi = Xi(1:options.r,1:options.r);
-    V = V(:,1:options.r);
-    U = U(:,1:options.r);
-    
-    % Define balancing transformation (internally balanced)
-    Tib = R.' \ V * diag(diag(Xi).^(-1/2));
-    TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
-    
-    
-    % Transform dynamics using the linear (reduced) transformation Tin
-    if ~iscell(g); g = {g}; end; if ~iscell(options.h); options.h = {options.h}; end
-    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, options.h, Tib);
-    for k = 2:length(q)
-        if length(q{k}) == 1
-            options.qr{k} = q{k};
-        else 
-            options.qr{k} = calTTv({Tib}, k, k, q{k});
-        end
-    end
-
-    clear v w V2 W2 Rchol Lchol U Xi V
-    % Now replace f,g,q with fr,gr,qr
-    f = options.fr; g = options.gr; q = options.qr;
-    
-else
-    useReducedOrderModel = false;
-end
-if ~isfield(options,'r')
-    options.r = size(f{1}, 1);
-end
-
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f)
     % polynomial drift
@@ -278,6 +193,75 @@ end
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
 K{1} = -R\B.'*V2;
+
+if isfield(options,'fr')
+    useReducedOrderModel = true;
+    nFOM = size(f{1}, 1); % Stash original FOM n for use later
+    if ~isfield(options,'r')
+        options.r = size(options.fr{1}, 1);
+    end
+    
+    % Now replace f,g,q,R with fr,gr,qr,Rr
+    f = options.fr; g = options.gr;
+    q = options.qr; R = options.Rr;
+    
+elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
+    useReducedOrderModel = true;
+    if ~isfield(options,'eta'); options.eta = 0; end
+    fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
+    
+    %% Compute reduced dynamics
+    try
+        Lchol = chol(V2, 'lower'); % V2 = R*R.', W2 = L*L.'
+    catch
+        warning("ppr: Gramian not positive definite, trying sqrtm()")
+        Lchol = sqrtm(V2); % V2 = R*R.', W2 = L*L.'
+    end
+    [U, Xi, V] = svd(Lchol.'); % from Theorem 2
+    
+    if options.verbose
+        figure; semilogy(diag(Xi))
+        hold on; xline(options.r)
+        drawnow
+    end
+    % Truncate transformation to degree r
+    Xi = Xi(1:options.r,1:options.r);
+    V = V(:,1:options.r);
+    U = U(:,1:options.r);
+    
+    % Define balancing transformation (internally balanced)
+    Tib = V * diag(diag(Xi).^(-1/2));
+    TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
+    
+    
+    % Transform dynamics using the linear (reduced) transformation Tin
+    if ~iscell(g); g = {g}; end; if ~iscell(options.h); options.h = {options.h}; end
+    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, options.h, Tib);
+    for k = 2:length(q)
+        if length(q{k}) == 1
+            options.qr{k} = q{k};
+        else
+            options.qr{k} = calTTv({Tib}, k, k, q{k});
+        end
+    end
+    
+    % Now replace f,g,q with fr,gr,qr
+    f = options.fr; g = options.gr; q = options.qr;
+    A = f{1}; B = g{1};
+    
+    V2f = V2;
+    V2 = Xi; %Tib.'*V2*Tib;
+    v{2} = vec(V2);
+    fprintf("complete. \n")
+    n = options.r;
+    
+    clear Rchol Lchol U Xi V
+else
+    useReducedOrderModel = false;
+end
+if ~isfield(options,'r')
+    options.r = size(f{1}, 1);
+end
 
 %% v3-vd, Degree 3 and above coefficients (3<=k<=d cases)
 if (degree > 2)
@@ -388,9 +372,12 @@ end
 
 if useReducedOrderModel
     % Convert energy functions and gain matrices back to full state dimension
-    for k = 2:degree
+    v{2} = vec(V2f);
+    for k = 3:degree
         v{k} = calTTv({TibInv}, k, k, v{k});
-        K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1}.').';
+        if ~options.skipGains
+            K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1}.').';
+        end
     end
 end
 
