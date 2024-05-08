@@ -169,7 +169,7 @@ switch RPosDef
         if R == -1 && isscalar(Q) && Q == 0 % Computing open-loop controllability energy function; use lyap
             V2 = inv(lyap(A,(B*B.')));
         else % at least one case is when computing past energy function
-            V2 = -icare(A, B, Q, R, 'anti'); % alternatively icare(-A, -B, Q, R);
+            V2 = icare(A, B, Q, R, 'anti'); % alternatively -icare(-A, -B, Q, R);
         end
         if (isempty(V2) && options.verbose)
             warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
