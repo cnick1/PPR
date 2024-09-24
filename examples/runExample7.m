@@ -30,7 +30,7 @@ Q = 0.25; R = 1;
 %% Plot x1 and control u
 %  Compute the polynomial approximations to the future energy function
 degree = 8;
-[~,Gains] = ppr2(f, g, Q, R, degree);
+[~,Gains] = ppr(f, g, Q, R, degree);
 
 tspan = [0, 12];
 

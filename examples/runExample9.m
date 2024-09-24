@@ -1,7 +1,7 @@
-function [] = runExample9(n, degree)
+function runExample9(n, degree)
 %runExample9 Runs the Allen-Cahn example.
 %
-%   Usage:  [v,w] = runExample9()
+%   Usage:  runExample9
 %
 %   Inputs: n      - desired state dimension
 %           degree - desired polynomial degree of value function to compute
@@ -15,93 +15,79 @@ function [] = runExample9(n, degree)
 %
 %   Part of the NLbalancing repository.
 %%
+
 if nargin < 2
     degree = 4;
+    % degree = 2;
     if nargin < 1
+        % n = 129;
         n = 33;
     end
 end
 
-N = n-1;
 fprintf('Running Example 9\n')
 
 %% Construct controller
-% Get system
 y0 = .5; % Desired interface location
 
-eps = 0.01;
-[f, B, ~, D, y] = getSystem9(eps, n-1, y0);
-fprintf("Maximum eigenvalue of A is %f; should be zero I think.\n",max(eigs(full(f{1}),n)))
+for eps = [0.01 0.0075 0.005]
+    % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
+    [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
 
-% Reference configuration (@ origin) -> v = v+vref
-if isempty(y0)
-    vref=zeros(n,1);
-else
-    vref = tanh((y-y0)/sqrt(2*eps));
-end
+    B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
+    Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,4);
+    q = {[],Q2,Q3,Q4}; R = 1;
 
-B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
-Q2 = .1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,4);
-q = {[],Q2,Q3,Q4};
-R = 1;
+    % Compute PPR solution (LQR is just the first term)
+    fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree)
+    options.verbose = false; options.skipGains = false;
+    [~, GainsPPR] = ppr(f, B, q, R, degree, options);
+    fprintf("completed.\n")
 
-fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree)
-options.verbose = true; options.skipGains = false;
-[ValueFun, Gains] = ppr(f, B, q, R, degree, options);
-fprintf("completed.\n")
+    uOpenLoop = @(z) zeros(m,1);
+    uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+    uPPR_quad = @(z) (kronPolyEval(GainsPPR, z, 2));
+    uPPR = @(z) (kronPolyEval(GainsPPR, z));
+    controllers = {uOpenLoop, uLQR, uPPR_quad, uPPR};
 
-uOpenLoop = @(z) zeros(m,1);
-uPPR = @(z) (kronPolyEval(Gains, z));
-
-controllers = {uOpenLoop, uPPR};
-
-for idx = 1:2
-    u = controllers{idx};
-    
-    %% Solve PDE by Euler formula and plot results:
-    % Construct originial system dynamics
+    %% Simulate closed-loop systems
+    % Construct original system dynamics
     D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
-    
-    % Initial condition
-    v0 = .53*y + .47*sin(-1.5*pi*y); % Initial condition from Trefethen 
-    % v0 = y+.74*sin(2*pi*y); % Initial condition I cooked up (without knowing how the results would look); after testing it, it appears LQR fails for this IC but PPR succeeds
-    % v0 = tanh((y-(-0.125))/sqrt(2*eps*10));
-    v = v0;
-    
-    % Time-stepping
-    % dt = min([.00001,50*N^(-4)/eps]); t = 0; % Use this for n=129
-    dt = min([.001,50*N^(-4)/eps]); t = 0;
-    tmax = 100; tplot = 2; nplots = round(tmax/tplot);
-    plotgap = round(tplot/dt); dt = tplot/plotgap;
-    xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
-    plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
-    
-    Lagrangian = zeros(length(0:dt:tmax),1);
-    
-    for i = 1:nplots
-        fprintf('%i',i)
-        for nn = 1:plotgap
-            xbar = v-vref;
-            Ux = u(xbar);
-            Lagrangian(nn+(i-1)*plotgap) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
-            t = t+dt; v = v + dt*(eps*D2*v + v - v.^3 + B*Ux);    % Euler
+    FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
+
+    % Initial condition from Trefethen
+    v0 = .53*y + .47*sin(-1.5*pi*y);
+
+    tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
+
+    fprintf("  Controller & Cost (eps=%2.4f)    ",eps)
+    for idx = 1:4
+        u = controllers{idx};
+
+        % Simulate using ode solver (more efficient than forward euler)
+        [t, X] = ode23s(@(t, v) FofXU(v,u(v-vref)),t, v0);
+
+        % Compute performance index (cost)
+        Lagrangian = zeros(size(t));
+        for i=1:length(t)
+            xbar = X(i,:).' - vref; Ux = u(xbar);
+            Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
         end
-        vv = polyval(polyfit(y,v,20),xx);
-        plotdata(i+1,:) = vv; tdata = [tdata; t];
+        performanceIndex = trapz(t, Lagrangian);
+        fprintf("\n        %i    & %3.3f         ",idx-1,performanceIndex)
+
+        % Plots just for checking results, not for the paper
+        plotT = t(1:100:end); X = X(1:100:end,:); nplots = length(plotT);
+        xx = -1:.025:1; plotdata = [zeros(nplots,length(xx))];
+        for i=1:length(plotT)
+            plotdata(i,:) = polyval(polyfit(y,X(i,:),20),xx);
+        end
+        figure, subplot('position',[.1 .4 .8 .5])
+        mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
+        view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+        title(sprintf("Controller %i  (eps=%2.4f)",idx-1,eps)); drawnow
     end
-    figure, subplot('position',[.1 .4 .8 .5])
-    mesh(xx,tdata,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
-    view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-    drawnow
-    
-    % Compute performance Index (cost)
-    performanceIndex = trapz((0:dt:tmax), Lagrangian);
-    fprintf("\n\n   The performance index is %f\n\n",performanceIndex)
-    
+    fprintf('\n')
 end
-
-exportgraphics(figure(2),sprintf('plots/example9_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
-exportgraphics(figure(1),sprintf('plots/example9_openloop_n%i.pdf',n), 'ContentType', 'vector')
-
 
 end
