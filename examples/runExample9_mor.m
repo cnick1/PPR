@@ -55,17 +55,17 @@ Q2 = .1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,4);
 q = {[],Q2,Q3,Q4};
 R = 1;
 
-fprintf("Computing ppr() solution, n=%i, d=%i ... \n",n,degree); tic
+fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
 options.verbose = true; options.r = r; options.eta = 1; options.h = C;
 [ValueFun, Gains, options] = ppr(f, B, q, R, degree, options);
-fprintf("completed in %2.2f seconds. \n", toc)
+fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
 uOpenLoop = @(z) zeros(m,1);
 uPPR = @(z) (kronPolyEval(Gains, z));
 
 controllers = {uOpenLoop, uPPR};
 
-for idx = 1:2
+for idx = 2%1:2
     u = controllers{idx};
     
     %% Solve PDE by Euler formula and plot results:
@@ -78,8 +78,8 @@ for idx = 1:2
     v = v0;
     
     % Time-stepping
-    dt = min([.001,50*N^(-4)/eps]); t = 0;
-    tmax = 100; tplot = 2; nplots = round(tmax/tplot);
+    dt = min([.00001,50*N^(-4)/eps]); t = 0;
+    tmax = 20; tplot = 2; nplots = round(tmax/tplot);
     plotgap = round(tplot/dt); dt = tplot/plotgap;
     xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
     plotdata = [vv; zeros(nplots,length(xx))]; tdata = t;
@@ -108,6 +108,7 @@ for idx = 1:2
     
 end
 
+% exportgraphics(figure(6),sprintf('plots/example9_mor_n%i_r%i_d%i.pdf',n,r,degree), 'ContentType', 'vector')
 % exportgraphics(figure(2),sprintf('plots/example9_mor_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
 % exportgraphics(figure(1),sprintf('plots/example9_mor_openloop_n%i.pdf',n), 'ContentType', 'vector')
 

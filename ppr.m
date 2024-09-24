@@ -235,7 +235,7 @@ elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
     
     
     % Transform dynamics using the linear (reduced) transformation Tin
-    if ~iscell(g); g = {g}; end; if ~iscell(options.h); options.h = {options.h}; end
+    if ~iscell(options.h); options.h = {options.h}; end
     [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, options.h, Tib);
     for k = 2:length(q)
         if length(q{k}) == 1
@@ -349,8 +349,10 @@ if (degree > 2)
             for p_idx = 0:lg
                 i = k-p_idx+1;
                 if i<2; break; end
-                K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'/R);
+                K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'); 
             end
+            % Now multiply by R^{-1}
+            K{k} = R\K{k};
         end
         
         % Compute last degree; GaVb for this hasn't been computed yet
@@ -363,8 +365,9 @@ if (degree > 2)
         for p_idx = 0:lg
             i = k-p_idx+1;
             if i<2; break; end
-            K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).'/R);
+            K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).');
         end
+        K{k} = R\K{k};
     else
         K = [];
     end

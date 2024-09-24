@@ -18,3 +18,12 @@ runExample9(129,2)
 close all
 runExample9(129,4)
 close all
+
+runExample9(33,2)
+% close all
+runExample9(33,4)
+% close all
+
+for x0 = -.75:.25:.75
+    runExample9_differentICs(33, 4, x0)
+end

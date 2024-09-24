@@ -79,7 +79,7 @@ levels = levels.LevelList;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-xlim, 0, xlim])
+xticks([-xLim, 0, xLim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 % clim([0 4e4])
@@ -94,7 +94,7 @@ contourf(X, Y, rat_value, levels, 'w'); hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-xlim, 0, xlim])
+xticks([-xLim, 0, xLim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 % clim([0 4e4])
@@ -117,7 +117,7 @@ pcolor(X, Y, log10(abs(poly_RES))); shading interp; hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-xlim, 0, xlim])
+xticks([-xLim, 0, xLim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 clim([-3 9])
@@ -132,7 +132,7 @@ pcolor(X, Y, log10(abs(rat_RES))); shading interp; hold on;
 xlabel('$x_1$', 'interpreter', 'latex');
 ylabel('$x_2$', 'interpreter', 'latex');
 set(gca, 'FontSize', 16)
-xticks([-xlim, 0, xlim])
+xticks([-xLim, 0, xLim])
 xticklabels({'-\pi', '0', '\pi'})
 colormap(flip(YlGnBuRescaled))
 clim([-3 9])

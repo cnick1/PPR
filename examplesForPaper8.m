@@ -25,13 +25,32 @@ addpath('../NLbalancing')
 exportData = true;
 
 %% Example 9: Allen-Cahn equation
-runExample9_mor(33,33,2)
+% close all
+% runExample9_mor(45,45,2)
+% runExample9_mor(45,10,2)
+% 
+runExample9_mor(45,45,4)
+runExample9_mor(45,10,4)
 
-close all
-runExample9_mor(45,10,2)
+runExample9_mor_u(129,10,2)
+runExample9_mor_u(129,10,4)
+runExample9_mor_u(129,10,6)
 
+%% Example 11: Inverted Pendulum 
+runExample11_mor(false, 7, 6,2)
+runExample11_mor(false, 7, 6,1)
 
-close all
-runExample9_mor(45,4)
+runExample11_mor_plotEnergyFunctions(exportData, 2, 2,2)
+runExample11_mor_plotEnergyFunctions(exportData, 11, 10,2)
+runExample11_mor_plotEnergyFunctions(exportData, 11, 10,1)
 
+%% Example 11: Inverted Pendulum, Radial Basis Functions
+for epsilon = 1:0.25:10
+    runExample11_plotEnergyFunctions_RBF(epsilon)
+end
 
+%%
+epsilons = [0.0001 0.01 0.05 0.1 0.25 0.5 1 2 5 10 100];
+for epsilon = epsilons
+    runExample11_plotEnergyFunctions_RBF_sigmoids(epsilon)
+end

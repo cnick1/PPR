@@ -63,12 +63,14 @@ for idx = 1:2
     D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
     
     % Initial condition
-    v0 = .53*y + .47*sin(-1.5*pi*y);
+    v0 = .53*y + .47*sin(-1.5*pi*y); % Initial condition from Trefethen 
+    % v0 = y+.74*sin(2*pi*y); % Initial condition I cooked up (without knowing how the results would look); after testing it, it appears LQR fails for this IC but PPR succeeds
     % v0 = tanh((y-(-0.125))/sqrt(2*eps*10));
     v = v0;
     
     % Time-stepping
-    dt = min([.00001,50*N^(-4)/eps]); t = 0;
+    % dt = min([.00001,50*N^(-4)/eps]); t = 0; % Use this for n=129
+    dt = min([.001,50*N^(-4)/eps]); t = 0;
     tmax = 100; tplot = 2; nplots = round(tmax/tplot);
     plotgap = round(tplot/dt); dt = tplot/plotgap;
     xx = -1:.025:1; vv = polyval(polyfit(y,v,20),xx);
