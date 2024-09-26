@@ -1,4 +1,4 @@
-function [v,K,options] = ppr(f, g, q, R, degree, options)
+function [v,K,options] = ppr(f, g, q, r, degree, options)
 %ppr  Compute a polynomial approximation to the value function for a polynomial
 % control-affine dynamical system.
 %
@@ -24,8 +24,6 @@ function [v,K,options] = ppr(f, g, q, R, degree, options)
 %                 the drift.
 %       options - struct containing additional options:
 %           - verbose: print runtime information
-%           - skipGains: skip computing the feedback gain coefficients
-%                       (defaults to false)
 %         * The next set of options are used for accelerating the computations.
 %           We can use linear balanced truncation to compute a reduced-order model
 %           of dimension r, and then use the reduced dynamics to compute the energy
@@ -82,7 +80,7 @@ function [v,K,options] = ppr(f, g, q, R, degree, options)
 %%
 
 % Create a vec function for readability
-vec = @(X) X(:);
+vec = @(X) X(:); v = cell(1,degree);
 
 %% Process inputs
 if nargin < 6
@@ -93,21 +91,20 @@ if ~isfield(options,'skipGains'); options.skipGains = false; end
 if ~isfield(options,'verbose'); options.verbose = false; end
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
-if iscell(f)
-    % polynomial drift
+if iscell(f) % polynomial drift
     A = f{1};
-    % N = f{2}; % maybe don't do this here? Well if N is missing the code would break anyways
     lf = length(f);
-    
+
     if (nargin < 5)
         degree = lf+1;
     end
 else
-    error("ppr: Must pass in at least quadratic dynamics")
+    % Need to test and debug this option
+    A = f; lf = 1; % probably still need to define degree variable
+    % error("ppr: Must pass in at least quadratic dynamics")
 end
 
-if iscell(g)
-    % polynomial input
+if iscell(g) % polynomial input
     B = g{1};
     lg = length(g) - 1;
 else
@@ -116,22 +113,37 @@ else
     g = {B};
 end
 
-n = size(A, 1); % A should be n-by-n
-m = size(B, 2); % B should be n-by-m
+[n, m] = size(B); % B is n-by-m
 
-if iscell(q)
-    % State dependent weighting (polynomial)
+if iscell(q) % Polynomial state penalty
     if length(q{2}) > 1
-        Q = reshape(q{2}, length(A), length(A));
+        Q = reshape(q{2}, n, n);
     else
         Q = q{2};
     end
     lq = length(q) - 1;
 else
-    % constant state weighting
+    % quadratic state penalty with weighting matrix Q
     Q = q;
     lq = 1;
     q = {[], vec(Q)};
+end
+
+if iscell(r) % Polynomial control penalty
+    if length(r{1}) > 1
+        R = reshape(r{1}, m, m);
+    else
+        R = r{1};
+    end
+    lr = length(r);
+else
+    % quadratic control penalty with weighting matrix R
+    if length(r) == 1
+        r = r*eye(m);
+    end
+    R = r;
+    lr = 1;
+    r = {vec(R)};
 end
 
 % Check if R is positive definite, negative definite, or zero
@@ -192,7 +204,8 @@ end
 
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
-K{1} = -R\B.'*V2;
+K1 = -R\B.'*V2;
+K{1} = K1; 
 
 if isfield(options,'fr')
     useReducedOrderModel = true;
@@ -200,16 +213,23 @@ if isfield(options,'fr')
     if ~isfield(options,'r')
         options.r = size(options.fr{1}, 1);
     end
-    
-    % Now replace f,g,q,R with fr,gr,qr,Rr
+
+    % Now replace f,g,q,R with fr,gr,qr
     f = options.fr; g = options.gr;
-    q = options.qr; R = options.Rr;
-    
+    A = f{1}; B = g{1};
+    q = options.qr; Tib = options.Tib; TibInv = pinv(Tib); % yikes
+
+    V2f = V2; K1f = K{1};
+    V2 = Tib.'*V2*Tib;
+    v{2} = vec(V2);
+    K{1} = K1f*Tib;
+    n = options.r;
+
 elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
     useReducedOrderModel = true;
     if ~isfield(options,'eta'); options.eta = 0; end
     fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
-    
+
     %% Compute reduced dynamics
     try
         Lchol = chol(V2, 'lower'); % V2 = R*R.', W2 = L*L.'
@@ -218,7 +238,7 @@ elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
         Lchol = sqrtm(V2); % V2 = R*R.', W2 = L*L.'
     end
     [U, Xi, V] = svd(Lchol.'); % from Theorem 2
-    
+
     if options.verbose
         figure; semilogy(diag(Xi))
         hold on; xline(options.r)
@@ -228,11 +248,14 @@ elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
     Xi = Xi(1:options.r,1:options.r);
     V = V(:,1:options.r);
     U = U(:,1:options.r);
-    
+
     % Define balancing transformation (internally balanced)
-    Tib = V * diag(diag(Xi).^(-1/2));
-    TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
-    
+    % Tib = V * diag(diag(Xi).^(-1/2));
+    % TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
+
+    Tib = U(:,1:options.r);
+    TibInv = Tib.';
+    options.Tib = Tib; options.TibInv = TibInv;
     
     % Transform dynamics using the linear (reduced) transformation Tin
     if ~iscell(options.h); options.h = {options.h}; end
@@ -244,17 +267,18 @@ elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
             options.qr{k} = calTTv({Tib}, k, k, q{k});
         end
     end
-    
+
     % Now replace f,g,q with fr,gr,qr
     f = options.fr; g = options.gr; q = options.qr;
     A = f{1}; B = g{1};
-    
-    V2f = V2;
+
+    V2f = V2; K1f = K{1};
     V2 = Xi; %Tib.'*V2*Tib;
     v{2} = vec(V2);
+    K{1} = K1f*Tib;
     fprintf("complete. \n")
     n = options.r;
-    
+
     clear Rchol Lchol U Xi V
 else
     useReducedOrderModel = false;
@@ -265,117 +289,82 @@ end
 
 %% v3-vd, Degree 3 and above coefficients (3<=k<=d cases)
 if (degree > 2)
-    % Pre-allocate G_a.'*V_b, etc for all the a,b we need.
-    % They will be computed and stored once as needed
-    % For G_a, we need lg + 1 because lg is indexed from 0 (B = G0);
-    % only need up to degree-1 for V_b because this will be the rhs of the last computed coefficients
-    GaVb = cell(lg + 1, degree - 1);
-    % GaVb = cell(2 * lg + 1, degree - 1); % For G_a, we need 2*lg + 1 why???
-    
-    % Compute first one
-    % GaVb{1, 2} = B.' * V2;
-    
     % Set up the generalized Lyapunov solver (LHS coefficient matrix)
-    [Acell{1:degree}] = deal((A - (B * Rinv * B.') * V2).');
-    
-    % Compute the coefficients
+    [Acell{1:degree}] = deal((A + B * K{1}).');
+    GaVb = memoize(@(a, b, v) g{a + 1}.' * sparse(reshape(v{b}, n, n^(b-1)))); % Memoize evaluation of GaVb
+
+    % Compute the value function coefficients
     for k = 3:degree
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         b = 0; % Initialize b
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial drift components %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial dynamics
             iRange = 2:(k - 1); % Theoretical sum limits
-            
+
             % iRange only needs to have at most the lf-1 last i's; for example, if there are only lf=3 and
             % there are only f{2} and f{3} to consider, iRange = [k-2, k-1] is sufficient (corresponding to
             % p=[2,3]). Otherwise f{p} doesn't exist and would require a bunch of zero entries in f{p} above lf.
             iRange = iRange(max(k - lf, 1):end); % Remove i's corresponding to non-existent f{p} entries
-            
+
             for i = iRange
                 p = k + 1 - i;
                 b = b - LyapProduct(f{p}.', v{i}, i);
             end
         end
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add polynomial input components %%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % First pre-compute GaVb components we need once to re-use without recomputing
-        % Only need k-1 for V because the previous iteration for k handled k-2, etc.
-        for a = 0:lg
-            GaVb{a + 1, k - 1} = g{a + 1}.' * sparse(reshape(v{k - 1}, n, n ^ (k - 2)));
-        end
-        
-        % Next add BB.' terms; this must be done separately since some of the o=0 terms need to go on the LHS
-        for i = 3:k - 1 % Note how this is not 2:k; need to remove the V2 and Vk components that go in LHS
-            j = k + 2 - i;
-            b = b + 0.25 * i * j * vec(GaVb{1, i}.' * Rinv.' * GaVb{1, j});
-        end
-        
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if R ~= 0
-            % Then add remaining G terms (o = 1 to 2 ell)
-            for o = 1:2 * lg
-                for p_idx = max(0, o - lg):min(o, lg) % These max/mins get around the nonexistent Gs, such as g{2*lg}
-                    for i = 2:k - o
-                        q_idx = o - p_idx;
-                        j = k - o - i + 2;
-                        tmp = kron(speye(n ^ p_idx), vec(speye(m)).') ...
-                            * kron(vec(GaVb{q_idx + 1, j}).', kron(GaVb{p_idx + 1, i}, Rinv*speye(m))) ...
-                            * kron(speye(n ^ (j - 1)), kron(perfectShuffle(n ^ (i - 1), n ^ q_idx * m), speye(m))) ...
-                            * kron(speye(n ^ (k - p_idx)), vec(speye(m)));
-                        b = b + 0.25 * i * j * vec(tmp);
-                    end
+            for q_idx = 1:k-2                           % i + p + q = k + 1
+                for p_idx = 0:lg 
+                    i = k+1 - p_idx - q_idx;     if i<2; break; end; if i==k; continue; end
+                    b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx});
                 end
             end
         end
-        %%%%%%%%%%%%%%%%%%%%%% Add polynomial q(x) weighting components %%%%%%%%%%%%%%%%%%%%%%
+
+        %%%%%%%%%%%%%%%%%%%%%% Add state penalty components (Q(x)) %%%%%%%%%%%%%%%%%%%%%%
         if k <= lq + 1
             b = b - q{k};
         end
-        
+
+        %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
+        for i = 1:lr
+            for p_idx = 2:k-2 % start from 2 because the two p=1 and q=1 terms cancel with the two G terms
+                q_idx = k - p_idx - i+1; %if q_idx > k-2; continue; end
+                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); % Naive way 
+           
+                % Efficient way
+                len = n^(p_idx+q_idx);
+                for j = 1:size(r{i},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
+                    b([1:len]+(j-1)*len) = b([1:len]+(j-1)*len) ... 
+                        - vec(transpose(vec(K{q_idx}.' * reshape(r{i}(:,j),m,m) * K{p_idx})));
+                end
+            end
+        end
+
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now solve and symmetrize! %%%%%%%%%%%%%%%%%%%%%%
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k);
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
-        
-    end
-    
-    if ~options.skipGains
+
         %% Now compute the gain coefficient
-        for k=2:degree-2
-            K{k} = zeros(m,n^k);
-            % for i=2:k % in terms of i; issues because of nonexistent Gp coefficients
-            %     K{k-1} = K{k-1} - i/2*reshape(GaVb{k-i+1,i},m,n^(k-1))/R;
-            % end
-            % for p_idx = max(0, k-1 - lg):min(k-1, lg)
-            for p_idx = 0:lg
-                i = k-p_idx+1;
-                if i<2; break; end
-                K{k} = K{k} - transpose(i/2*reshape(GaVb{p_idx+1,i},m,n^k).'); 
-            end
-            % Now multiply by R^{-1}
-            K{k} = R\K{k};
-        end
-        
         % Compute last degree; GaVb for this hasn't been computed yet
-        k = degree - 1;
-        K{k} = zeros(m,n^k);
-        % for i=2:k % in terms of i; issues because of nonexistent Gp coefficients
-        %     K{k-1} = K{k-1} - i/2*reshape(GaVb{k-i+1,i},m,n^(k-1))/R;
-        % end
-        % for p_idx = max(0, k-1 - lg):min(k-1, lg)
-        for p_idx = 0:lg
-            i = k-p_idx+1;
-            if i<2; break; end
-            K{k} = K{k} - transpose(i/2*reshape(g{p_idx+1}.' * sparse(reshape(v{i}, n, n ^ (i - 1))),m,n^k).');
+        K{k-1} = zeros(m,n^(k-1));
+        for q_idx = 0:lg
+            j = k-q_idx;
+            if j<2; break; end
+            K{k-1} = K{k-1} - j/2*reshape(GaVb(q_idx,j, v), m, n^(k-1));
         end
-        K{k} = R\K{k};
-    else
-        K = [];
+        K{k-1} = R\K{k-1};
+        % Need to add R terms
+
     end
 end
 
 if useReducedOrderModel
     % Convert energy functions and gain matrices back to full state dimension
     v{2} = vec(V2f);
+    K{1} = K1f;
     for k = 3:degree
         v{k} = calTTv({TibInv}, k, k, v{k});
         if ~options.skipGains
@@ -383,6 +372,7 @@ if useReducedOrderModel
         end
     end
 end
+
 
 end
 
