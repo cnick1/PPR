@@ -89,6 +89,7 @@ end
 
 if ~isfield(options,'skipGains'); options.skipGains = false; end
 if ~isfield(options,'verbose'); options.verbose = false; end
+if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; end
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f) % polynomial drift
@@ -205,83 +206,21 @@ end
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
 K1 = -R\B.'*V2;
-K{1} = K1; 
+K{1} = K1;
 
-if isfield(options,'fr')
-    useReducedOrderModel = true;
-    nFOM = size(f{1}, 1); % Stash original FOM n for use later
-    if ~isfield(options,'r')
-        options.r = size(options.fr{1}, 1);
-    end
-
-    % Now replace f,g,q,R with fr,gr,qr
-    f = options.fr; g = options.gr;
-    A = f{1}; B = g{1};
-    q = options.qr; Tib = options.Tib; TibInv = pinv(Tib); % yikes
-
-    V2f = V2; K1f = K{1};
-    V2 = Tib.'*V2*Tib;
-    v{2} = vec(V2);
-    K{1} = K1f*Tib;
-    n = options.r;
-
-elseif isfield(options,'r') && options.r ~= size(f{1}, 1)
-    useReducedOrderModel = true;
-    if ~isfield(options,'eta'); options.eta = 0; end
-    fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
-
-    %% Compute reduced dynamics
-    try
-        Lchol = chol(V2, 'lower'); % V2 = R*R.', W2 = L*L.'
-    catch
-        warning("ppr: Gramian not positive definite, trying sqrtm()")
-        Lchol = sqrtm(V2); % V2 = R*R.', W2 = L*L.'
-    end
-    [U, Xi, V] = svd(Lchol.'); % from Theorem 2
-
-    if options.verbose
-        figure; semilogy(diag(Xi))
-        hold on; xline(options.r)
-        drawnow
-    end
-    % Truncate transformation to degree r
-    Xi = Xi(1:options.r,1:options.r);
-    V = V(:,1:options.r);
-    U = U(:,1:options.r);
-
-    % Define balancing transformation (internally balanced)
-    % Tib = V * diag(diag(Xi).^(-1/2));
-    % TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
-
-    Tib = U(:,1:options.r);
-    TibInv = Tib.';
-    options.Tib = Tib; options.TibInv = TibInv;
-    
-    % Transform dynamics using the linear (reduced) transformation Tin
-    if ~iscell(options.h); options.h = {options.h}; end
-    [options.fr, options.gr, options.hr] = linearTransformDynamics(f, g, options.h, Tib);
-    for k = 2:length(q)
-        if length(q{k}) == 1
-            options.qr{k} = q{k};
-        else
-            options.qr{k} = calTTv({Tib}, k, k, q{k});
-        end
-    end
+if useReducedOrderModel
+    options.V2 = V2; options.q = q;
+    options = getReducedOrderModel(f,g,options);
 
     % Now replace f,g,q with fr,gr,qr
-    f = options.fr; g = options.gr; q = options.qr;
+    f = options.fr; g = options.gr; q = options.qr; n = options.r;
     A = f{1}; B = g{1};
 
     V2f = V2; K1f = K{1};
-    V2 = Xi; %Tib.'*V2*Tib;
-    v{2} = vec(V2);
-    K{1} = K1f*Tib;
+    V2 = options.Tib.'*V2*options.Tib;
+    v{2} = vec(V2); K{1} = K1f*options.Tib;
     fprintf("complete. \n")
-    n = options.r;
 
-    clear Rchol Lchol U Xi V
-else
-    useReducedOrderModel = false;
 end
 if ~isfield(options,'r')
     options.r = size(f{1}, 1);
@@ -316,7 +255,7 @@ if (degree > 2)
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if R ~= 0
             for q_idx = 1:k-2                           % i + p + q = k + 1
-                for p_idx = 0:lg 
+                for p_idx = 0:lg
                     i = k+1 - p_idx - q_idx;     if i<2; break; end; if i==k; continue; end
                     b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx});
                 end
@@ -332,12 +271,12 @@ if (degree > 2)
         for i = 1:lr
             for p_idx = 2:k-2 % start from 2 because the two p=1 and q=1 terms cancel with the two G terms
                 q_idx = k - p_idx - i+1; %if q_idx > k-2; continue; end
-                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); % Naive way 
-           
+                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); % Naive way
+
                 % Efficient way
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
-                    b([1:len]+(j-1)*len) = b([1:len]+(j-1)*len) ... 
+                    b([1:len]+(j-1)*len) = b([1:len]+(j-1)*len) ...
                         - vec(transpose(vec(K{q_idx}.' * reshape(r{i}(:,j),m,m) * K{p_idx})));
                 end
             end
@@ -366,9 +305,9 @@ if useReducedOrderModel
     v{2} = vec(V2f);
     K{1} = K1f;
     for k = 3:degree
-        v{k} = calTTv({TibInv}, k, k, v{k});
+        v{k} = calTTv({options.TibInv}, k, k, v{k});
         if ~options.skipGains
-            K{k-1} = calTTv({TibInv}, k-1, k-1, K{k-1}.').';
+            K{k-1} = calTTv({options.TibInv}, k-1, k-1, K{k-1}.').';
         end
     end
 end
@@ -377,37 +316,39 @@ end
 end
 
 
-function [ft, gt, ht] = linearTransformDynamics(f, g, h, T)
-%transformDynamics Transforms the dynamics f, g, h by T.
+function [ft, gt] = linearTransformDynamics(f, g, T)
+%transformDynamics Transforms the dynamics f, g by T.
 %
-%   Usage: [ft, gt, ht] = transformDynamics(f, g, h, T)
+%   Usage: [ft, gt] = transformDynamics(f, g, T)
 %
 %   Inputs:
-%       f,g,h - cell arrays containing the polynomial coefficients for
-%               the drift, input, and output in the original coordinates.
+%       f,g - cell arrays containing the polynomial coefficients for
+%               the drift, input in the original coordinates.
 %       T     - linear reduced transformation
 %
 %   Output:
-%       ft,gt,ht - cell arrays containing the polynomial coefficients
-%                  for the transformed drift, input, and output.
+%       ft,gt - cell arrays containing the polynomial coefficients
+%                  for the transformed drift, input.
 %
 %   Background: Given a transformation T, compute the transformed dynamics.
 %   TODO: Add more details here.
 %
 %   Authors: Nick Corbin, UCSD
 %
+% if ~iscell(h); h = {h}; end
+
 [n, r] = size(T);
 [~,m] = size(g{1});
-[p,~] = size(h{1});
+% [p,~] = size(h{1});
 
-ft = cell(size(f)); gt = cell(size(g)); ht = cell(size(h));
+ft = cell(size(f)); gt = cell(size(g)); %ht = cell(size(h));
 
 for k = 1:length(f)
     ft{k} = zeros(n,r^k);
     for j = 1:n
         ft{k}(j,:) = ft{k}(j,:) + calTTv({T}, k, k, f{k}(j,:).').';
     end
-    ft{k} = T\ft{k};
+    ft{k} = T\ft{k}; % Could rewrite to use TibInv
 end
 
 gt{1} = T\g{1};
@@ -415,12 +356,90 @@ for k = 2:length(g)
     error("Only implemented linear inputs so far!")
 end
 
-for k = 1:length(h)
-    ht{k} = zeros(p,r^k);
-    for j = 1:p
-        ht{k}(j,:) = ht{k}(j,:) + calTTv({T}, k, k, h{k}(j,:).').';
+% for k = 1:length(h)
+%     ht{k} = zeros(p,r^k);
+%     for j = 1:p
+%         ht{k}(j,:) = ht{k}(j,:) + calTTv({T}, k, k, h{k}(j,:).').';
+%     end
+% end
+
+
+end
+
+function options = getReducedOrderModel(f,g,options)
+%getReducedOrderModel Get reduced order model
+%
+%   Usage:    options = getReducedOrderModel(options)
+%
+%   Inputs:
+%       options -
+%
+%   Output:
+%       options -
+%
+%   Background:
+%   TODO: Add more details here.
+%
+%   Authors: Nick Corbin, UCSD
+%
+
+if isfield(options,'fr')
+    % Already have ROM
+    return;
+end
+if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
+
+switch options.method
+    case 'eigsOfV2'
+        [options.Tib, Xi] = eigs(options.V2,options.r);
+        options.TibInv = options.Tib.';
+
+        if options.verbose
+            figure; semilogy(diag(Xi))
+            hold on; xline(options.r)
+            drawnow
+        end
+        
+    case 'balancing'
+        fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
+        error("Need to complete this")
+        % Define balancing transformation (internally balanced)
+        % V2 = R*R.', W2 = L*L.'
+        Lchol = lyapchol(A,B); % CHECK THIS
+        Rchol = lyapchol(A.',C); % CHECK THIS
+
+        [U, Xi, V] = svd(Lchol.'*Rchol); % from Theorem 2
+
+        if options.verbose
+            figure; semilogy(diag(Xi))
+            hold on; xline(options.r)
+            drawnow
+        end
+        % Truncate transformation to degree r
+        Xi = Xi(1:options.r,1:options.r);
+        V = V(:,1:options.r);
+        U = U(:,1:options.r);
+
+        % Define balancing transformation (internally balanced)
+        Tib = V * diag(diag(Xi).^(-1/2));
+        TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
+
+    case 'precomputed'
+        % Assume T is already given in options.Tib 
+        if ~isfield(options,'TibInv')
+            options.TibInv = pinv(options.Tib); % yikes
+        end
+end
+
+% Transform dynamics using the linear (reduced) transformation Tib
+[options.fr, options.gr] = linearTransformDynamics(f, g, options.Tib);
+for k = 2:length(options.q)
+    if length(options.q{k}) == 1
+        options.qr{k} = options.q{k};
+    else
+        options.qr{k} = calTTv({options.Tib}, k, k, options.q{k});
     end
 end
 
-
 end
+
