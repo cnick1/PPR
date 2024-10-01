@@ -11,13 +11,14 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
 %                 for the drift and input.
-%                   • f must contain at least linear and quadratic coefficients
-%                   • g must contain at least a linear input (B matrix)
 %       q       - cell arrays containing the polynomial coefficients for the
-%                 state-dependent weighting. At minimum q{2} = Q(:) where Q is
+%                 state penalty in the cost. At minimum q{2} = Q(:) where Q is
 %                 the quadratic weighting, i.e. x.'*Q*x (can optionally pass Q
 %                 matrix directly in this case)
-%       R       - quadratic weighting matrix on the input cost
+%       r       - cell arrays containing the polynomial coefficients for the
+%                 control penalty in the cost. At minimum r{1} = R where R is
+%                 the quadratic weighting, i.e. u.'*R*u (can optionally pass R
+%                 matrix directly in this case)
 %       degree  - desired degree of the computed value function. A degree d
 %                 energy function uses information from f,g,q up-to degree d-1.
 %                 The default choice of d is lf+1, where lf is the degree of
@@ -30,7 +31,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           functions in r dimensions rather than n; this can present a huge
 %           computational speedup.
 %           - r: dimension "r" of reduced order model. (Defaults to n)
-%           - fr,gr,hr,qr: reduced dynamics; if for example the past energy
+%           - fr,gr,qr: reduced dynamics; if for example the past energy
 %             function has already been computed, instead of recomputing the
 %             reduced dynamics, they can be passed in directly.
 %           - eta: H-infinity balancing parameter. Defaults to open-loop balacing
@@ -89,7 +90,7 @@ end
 
 if ~isfield(options,'skipGains'); options.skipGains = false; end
 if ~isfield(options,'verbose'); options.verbose = false; end
-if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; end
+if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f) % polynomial drift
@@ -399,7 +400,7 @@ switch options.method
             hold on; xline(options.r)
             drawnow
         end
-        
+
     case 'balancing'
         fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
         error("Need to complete this")
@@ -425,7 +426,7 @@ switch options.method
         TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
 
     case 'precomputed'
-        % Assume T is already given in options.Tib 
+        % Assume T is already given in options.Tib
         if ~isfield(options,'TibInv')
             options.TibInv = pinv(options.Tib); % yikes
         end

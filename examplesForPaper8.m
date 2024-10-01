@@ -37,6 +37,9 @@ for x0 = -.75:.25:.75
 end
 
 %% Example 11: Inverted Pendulum 
+for nFterms = 3:9
+        runExample11(nFterms, nFterms+1);
+end
 runExample11_mor(false, 7, 6,2)
 runExample11_mor(false, 7, 6,1)
 

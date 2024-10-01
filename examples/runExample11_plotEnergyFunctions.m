@@ -62,7 +62,6 @@ yPlot = linspace(-yLim, yLim, nY);
 [X, Y] = meshgrid(xPlot, yPlot);
 
 eFuture = zeros(nY, nX);
-eFuture = zeros(nY, nX);
 
 for i = 1:nY
     for j = 1:nX
