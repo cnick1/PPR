@@ -1,12 +1,11 @@
-function [] = runExample9_mor(n, r, degree)
+function runExample9_mor(n, degree, r)
 %runExample9 Runs the Allen-Cahn example.
 %
-%   Usage:  [v,w] = runExample9_mor(n,r,degree)
+%   Usage:  runExample9_mor(n,r,degree)
 %
 %   Inputs: n      - desired state dimension
-%           r      - ROM dimension; if r=n, no MOR is performed
 %           degree - desired polynomial degree of value function to compute
-%   Outputs:
+%           r      - ROM dimension; if r=n, no MOR is performed
 %
 %   Background: Based on p34.m from [1].
 %
@@ -14,12 +13,12 @@ function [] = runExample9_mor(n, r, degree)
 %              for Industrial and Applied Mathematics, 2000.
 %              doi: 10.1137/1.9780898719598.
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %%
 if nargin < 3
-    degree = 4;
+    r = n;
     if nargin < 2
-        r = 10;
+        degree = 4;
         if nargin < 1
             n = 33;
         end
@@ -42,7 +41,6 @@ for eps = [0.01 0.0075 0.005]
 
     % Compute PPR solution (LQR is just the first term)
     fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
-    options = struct;
     options.verbose = true; options.r = r; options.eta = 1; options.h = B.';
     [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
     fprintf("completed ppr() in %2.2f seconds. \n", toc)

@@ -27,22 +27,15 @@ exportData = true;
 for nFterms = 3:9
         runExample11(nFterms, nFterms+1);
 end
-runExample11_mor(false, 5, 6,2)
-runExample11_mor(false, 5, 6,1)
 
-runExample11_mor_plotEnergyFunctions(false, 2, 2,2)
-runExample11_mor_plotEnergyFunctions(false, 9, 10,2)
-runExample11_mor_plotEnergyFunctions(false, 5, 6,1)
+% Can run with acceleration using optional third argument
+runExample11(9, 10, 1);
 
 %% Example 9: Allen-Cahn equation
 % close all
-runExample9_mor(45,45,4)
-runExample9_mor(45,10,4)
-
-runExample9_mor_u(129,10,2)
-runExample9_mor_u(129,10,4)
-runExample9_mor_u(129,10,6)
-
+runExample9(45,4)
+runExample9(45,4,10)
+runExample9(129,4,10)
 
 for x0 = -.75:.25:.75
     runExample9_differentICs(33, 4, x0)

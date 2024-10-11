@@ -1,11 +1,11 @@
-function runExample9(n, degree)
+function runExample9(n, degree, r)
 %runExample9 Runs the Allen-Cahn example.
 %
-%   Usage:  runExample9
+%   Usage:  runExample9(n,degree,r)
 %
 %   Inputs: n      - desired state dimension
 %           degree - desired polynomial degree of value function to compute
-%   Outputs:
+%           r      - ROM dimension; if r=n, no MOR is performed
 %
 %   Background: Based on p34.m from [1].
 %
@@ -13,15 +13,15 @@ function runExample9(n, degree)
 %              for Industrial and Applied Mathematics, 2000.
 %              doi: 10.1137/1.9780898719598.
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %%
-
-if nargin < 2
-    degree = 4;
-    % degree = 2;
-    if nargin < 1
-        % n = 129;
-        n = 33;
+if nargin < 3
+    r = n;
+    if nargin < 2
+        degree = 4;
+        if nargin < 1
+            n = 33;
+        end
     end
 end
 
@@ -30,6 +30,7 @@ fprintf('Running Example 9\n')
 %% Construct controller
 y0 = .5; % Desired interface location
 
+% for eps = [0.005]
 for eps = [0.01 0.0075 0.005]
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
     [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
@@ -39,10 +40,10 @@ for eps = [0.01 0.0075 0.005]
     q = {[],Q2,Q3,Q4}; R = 1;
 
     % Compute PPR solution (LQR is just the first term)
-    fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree)
-    options.verbose = false; options.skipGains = false;
-    [~, GainsPPR] = ppr(f, B, q, R, degree, options);
-    fprintf("completed.\n")
+    fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
+    options = struct; options.verbose = true; options.r = r; options.eta = 1; options.h = B.';
+    [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
+    fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
@@ -89,5 +90,9 @@ for eps = [0.01 0.0075 0.005]
     end
     fprintf('\n')
 end
+
+% exportgraphics(figure(6),sprintf('plots/example9_mor_n%i_r%i_d%i.pdf',n,r,degree), 'ContentType', 'vector')
+% exportgraphics(figure(2),sprintf('plots/example9_mor_n%i_d%i.pdf',n,degree), 'ContentType', 'vector')
+% exportgraphics(figure(1),sprintf('plots/example9_mor_openloop_n%i.pdf',n), 'ContentType', 'vector')
 
 end

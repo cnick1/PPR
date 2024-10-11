@@ -302,15 +302,25 @@ if (degree > 2)
 end
 
 if useReducedOrderModel
+    %% Option 1: convert to full
     % Convert energy functions and gain matrices back to full state dimension
+    % v{2} = vec(V2f);
+    % K{1} = K1f;
+    % for k = 3:degree
+    %     v{k} = calTTv({options.TibInv}, k, k, v{k});
+    %     if ~options.skipGains
+    %         K{k-1} = calTTv({options.TibInv}, k-1, k-1, K{k-1}.').';
+    %     end
+    % end
+
+    %% Option 2: leave as reduced and use special data structure
     v{2} = vec(V2f);
-    K{1} = K1f;
     for k = 3:degree
-        v{k} = calTTv({options.TibInv}, k, k, v{k});
-        if ~options.skipGains
-            K{k-1} = calTTv({options.TibInv}, k-1, k-1, K{k-1}.').';
-        end
+        % v{k} = calTTv({options.TibInv}, k, k, v{k});
     end
+    K{1} = K1f;
+    K = factoredArray(K, options.TibInv);
+
 end
 
 
