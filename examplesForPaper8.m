@@ -1,4 +1,4 @@
-%  A script to run the examples in CONTROLS+MOR paper
+%  A script to run the examples in SIAM SISC paper
 %  The examples are the following:
 %   
 %       Example 10: 1D ODE toy example from Jeff's 2018 paper. The code
@@ -22,6 +22,18 @@ addpath('examples')
 
 exportData = true;
 
+
+%% Example 11: Inverted Pendulum 
+for nFterms = 3:9
+        runExample11(nFterms, nFterms+1);
+end
+runExample11_mor(false, 5, 6,2)
+runExample11_mor(false, 5, 6,1)
+
+runExample11_mor_plotEnergyFunctions(false, 2, 2,2)
+runExample11_mor_plotEnergyFunctions(false, 9, 10,2)
+runExample11_mor_plotEnergyFunctions(false, 5, 6,1)
+
 %% Example 9: Allen-Cahn equation
 % close all
 runExample9_mor(45,45,4)
@@ -36,14 +48,4 @@ for x0 = -.75:.25:.75
     runExample9_differentICs(33, 4, x0)
 end
 
-%% Example 11: Inverted Pendulum 
-for nFterms = 3:9
-        runExample11(nFterms, nFterms+1);
-end
-runExample11_mor(false, 7, 6,2)
-runExample11_mor(false, 7, 6,1)
-
-runExample11_mor_plotEnergyFunctions(exportData, 2, 2,2)
-runExample11_mor_plotEnergyFunctions(exportData, 11, 10,2)
-runExample11_mor_plotEnergyFunctions(exportData, 11, 10,1)
 
