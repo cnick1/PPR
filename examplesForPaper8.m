@@ -10,18 +10,12 @@
 %       approximations to the dynamics, different degree energy functions
 %       to compute, etc.
 %
-%       Example 7: 3D aircraft stall model for testing stabilization. From
-%       Garrard 1977, also studied in Almubarak 2019 ACC paper and others.
-% 
 %       Example 9: Chebychev discretization of Allen-Cahn equation
 %
 %
 close all; clear; clc;
 setKroneckerToolsPath
 addpath('examples')
-
-exportData = true;
-
 
 %% Example 11: Inverted Pendulum 
 for nFterms = 3:9
@@ -31,14 +25,17 @@ end
 % Can run with acceleration using optional third argument
 runExample11(9, 10, 1);
 
-%% Example 9: Allen-Cahn equation
+%% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 % close all
+% Run cases from CDC with different diffusion constants
 runExample9(45,4)
 runExample9(45,4,10)
 runExample9(129,4,10)
 
+% Run cases with different initial conditions
 for x0 = -.75:.25:.75
-    runExample9_differentICs(33, 4, x0)
+    runExample9_differentICs(45, 4, x0, 10)
 end
 
+%% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 

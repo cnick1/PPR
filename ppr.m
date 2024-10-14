@@ -271,7 +271,7 @@ if (degree > 2)
         %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
         for i = 1:lr
             for p_idx = 2:k-2 % start from 2 because the two p=1 and q=1 terms cancel with the two G terms
-                q_idx = k - p_idx - i+1; %if q_idx > k-2; continue; end
+                q_idx = k - p_idx - i+1; if q_idx < 1; continue; end%if q_idx > k-2; continue; end
                 % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); % Naive way
 
                 % Efficient way
