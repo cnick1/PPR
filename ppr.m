@@ -103,6 +103,7 @@ if iscell(f) % polynomial drift
 else
     % Need to test and debug this option
     A = f; lf = 1; % probably still need to define degree variable
+    f = {A};
     % error("ppr: Must pass in at least quadratic dynamics")
 end
 
