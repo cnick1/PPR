@@ -1,5 +1,5 @@
 function [f, g, h] = getSystem16(degree)
-%getSystem16  Returns a polynomial approximation to the 6D model of a triple pendulum.
+%getSystem16  Polynomial approximation to the 6D model of a triple pendulum.
 %
 %   Usage:  [f,g,h] = getSystem16(degree)
 %

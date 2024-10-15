@@ -20,14 +20,16 @@ function [f, g, h] = getSystem2(kawanoModel)
 %   from Kramer et. al. is returned [1]. The kawanoModel version is used in [3].
 %
 %   Reference: [1] B. Kramer, S. Gugercin, J. Borggaard, and L. Balicki, “Nonlinear
-%               balanced truncation: Part 1—computing energy functions,” arXiv,
-%               Dec. 2022. doi: 10.48550/ARXIV.2209.07645
+%              balanced truncation: Part 1—computing energy functions,” arXiv,
+%              Dec. 2022. doi: 10.48550/ARXIV.2209.07645
 %              [2] Y. Kawano and J. M. A. Scherpen, “Model reduction by
-%               differential balancing based on nonlinear hankel operators,”
-%               IEEE Transactions on Automatic Control, vol. 62, no. 7,
-%               pp. 3293–3308, Jul. 2017, doi: 10.1109/tac.2016.2628201.
+%              differential balancing based on nonlinear hankel operators,”
+%              IEEE Transactions on Automatic Control, vol. 62, no. 7,
+%              pp. 3293–3308, Jul. 2017, doi: 10.1109/tac.2016.2628201.
 %              [3] N. A. Corbin and B. Kramer, “Scalable computation of 𝓗_∞
-%               energy functions for polynomial control-affine systems,” 2023.
+%              energy functions for polynomial control-affine systems,” 2023.
+%
+%   Part of the PPR repository.
 %%
 
 if nargin < 1

@@ -1,5 +1,5 @@
 function [f, g, h] = getSystem15(degree)
-%getSystem15  Returns a polynomial approximation to the 4D model of a double pendulum.
+%getSystem15  Polynomial approximation to the 4D model of a double pendulum.
 %
 %   Usage:  [f,g,h] = getSystem15(degree)
 %

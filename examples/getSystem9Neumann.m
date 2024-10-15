@@ -1,5 +1,5 @@
 function [f, g, Q, D2, y] = getSystem9Neumann(eps, n)
-%getSystem9Neumann Returns a cubic Allen-Cahn model using Chebychev spatial discretization [1].
+%getSystem9Neumann Cubic Allen-Cahn w/ Nuemann BCs model using Chebychev discretization [1,2].
 %
 %   Usage:  [f,g,Q,D,y] = getSystem9Neumann(eps, N, y0)
 %
@@ -11,7 +11,7 @@ function [f, g, Q, D2, y] = getSystem9Neumann(eps, n)
 %       cheb() function from [1]. The system has equilibrium solutions
 %       u(x) = -1, 0, 1, which all satisfy the Neumann boundary conditions. 
 %       The family of steady-state solutions given by u(x) = tanh((x-x0)/sqrt(2*eps))
-%       are also equilibrium solutions. 
+%       also form equilibrium solutions. 
 %       
 %       Upon discretization, the model is
 %                   u_t = eps*D^2*u+u-u^3
@@ -25,8 +25,15 @@ function [f, g, Q, D2, y] = getSystem9Neumann(eps, n)
 %   References: [1] L. N. Trefethen, Spectral methods in MATLAB. Society
 %               for Industrial and Applied Mathematics, 2000.
 %               doi: 10.1137/1.9780898719598.
+%               [2] S. Dolgov, D. Kalise, and K. Kunisch, "Tensor
+%               decomposition methods for high-dimensional
+%               Hamilton-Jacobi-Bellman equations," SIAM Journal on
+%               Scientific Computing, vol. 43, no. 3, pp. A1625–A1650, Jan.
+%               2021, doi: 10.1137/19m1305136.
 %
+%   Part of the PPR repository.
 %%
+
 if nargin < 3
     y0 = 0.5;
     if nargin < 2

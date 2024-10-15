@@ -1,5 +1,5 @@
 function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
-%getSystem9 Returns a cubic Allen-Cahn model using Chebychev spatial discretization [1].
+%getSystem9 Cubic Allen-Cahn w/ Dirichlet BCs model using Chebychev discretization [1].
 %
 %   Usage:  [f,g,h,D,y,vref] = getSystem9(eps, N, y0)
 %
@@ -28,6 +28,7 @@ function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
 %               for Industrial and Applied Mathematics, 2000.
 %               doi: 10.1137/1.9780898719598.
 %
+%   Part of the PPR repository.
 %%
 if nargin < 3
     y0 = 0.5;

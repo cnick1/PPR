@@ -1,5 +1,5 @@
 function [f, g, h] = getSystem1()
-%getSystem1  Generates a simple 1D polynomial system for testing energy functions.
+%getSystem1  Simple 1D polynomial system for testing energy functions.
 %
 %   Usage:  [f, g, h] = getSystem1()
 %
@@ -14,12 +14,12 @@ function [f, g, h] = getSystem1()
 %   version is used in [2].
 %
 %   Reference: [1] B. Kramer, S. Gugercin, J. Borggaard, and L. Balicki, “Nonlinear
-%               balanced truncation: Part 1—computing energy functions,” arXiv,
-%               Dec. 2022. doi: 10.48550/ARXIV.2209.07645
+%              balanced truncation: Part 1—computing energy functions,” arXiv,
+%              Dec. 2022. doi: 10.48550/ARXIV.2209.07645
 %              [2] N. A. Corbin and B. Kramer, “Scalable computation of 𝓗_∞
-%               energy functions for polynomial control-affine systems,” 2023.
+%              energy functions for polynomial control-affine systems,” 2023.
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %%
 
 A = -2;

@@ -1,5 +1,5 @@
 function [f, g, h] = getSystem14(degree, model)
-%getSystem14  Returns a polynomial approximation to the 2D gradient model of a double pendulum.
+%getSystem14  Polynomial approximation to the 2D gradient model of a double pendulum.
 %
 %   Usage:  [f,g,h] = getSystem14(degree, model)
 %

@@ -1,6 +1,5 @@
 function [f, g, h] = getSystem11(degree, m, L)
-%getSystem11  Generates a 2D inverted pendulum model with "degree"
-%             polynomial sin approximation.
+%getSystem11  2D inverted pendulum with "degree" polynomial sin approximation.
 %
 %   Usage:  [f,g,h] = getSystem11(degree, m, L)
 %
