@@ -88,7 +88,6 @@ if nargin < 6
     options = struct();
 end
 
-if ~isfield(options,'skipGains'); options.skipGains = false; end
 if ~isfield(options,'verbose'); options.verbose = false; end
 if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 
