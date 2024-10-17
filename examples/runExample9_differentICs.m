@@ -1,10 +1,11 @@
-function runExample9_mor(n, degree, r)
-%runExample9 Runs the Allen-Cahn example.
+function runExample9_differentICs(n, degree, x0, r)
+%runExample9_differentICs Runs the Allen-Cahn example.
 %
-%   Usage:  runExample9_mor(n,r,degree)
+%   Usage:  runExample9(n,degree,x0,r)
 %
 %   Inputs: n      - desired state dimension
 %           degree - desired polynomial degree of value function to compute
+%           x0     - initial condition interface location
 %           r      - ROM dimension; if r=n, no MOR is performed
 %
 %   Background: Based on p34.m from [1].
@@ -15,14 +16,17 @@ function runExample9_mor(n, degree, r)
 %
 %   Part of the PPR repository.
 %%
-if nargin < 3
-    r = n;
-    if nargin < 2
-        degree = 4;
-        if nargin < 1
-            n = 33;
+if nargin < 4
+    if nargin < 3
+        x0 = -0.5;
+        if nargin < 2
+            degree = 4;
+            if nargin < 1
+                n = 33;
+            end
         end
     end
+    r = n;
 end
 
 fprintf('Running Example 9\n')
@@ -30,26 +34,28 @@ fprintf('Running Example 9\n')
 %% Construct controller
 y0 = .5; % Desired interface location
 
-% for eps = [0.005]
-for eps = [0.01 0.0075 0.005]
+for eps = [0.01]
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
     [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
+    % f = f(1); 
 
     B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
-    Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,4);
+    Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,1);
     q = {[],Q2,Q3,Q4}; R = 1;
 
     % Compute PPR solution (LQR is just the first term)
     fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
-    options.verbose = true; options.r = r; options.eta = 1; options.h = B.';
+    options = struct; options.verbose = false; options.r = r; options.h = B.';
     [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
+    [~, GainsLPR, options] = ppr(f(1), B, q, R, degree, options);
     fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
-    uPPR_quad = @(z) (kronPolyEval(GainsPPR, z, 2));
+    uLPR = @(z) (kronPolyEval(GainsLPR, z));
+    uSDRE = @(z) sdre(@(y)(f{1}-3*diag(vref).*diag(y)+diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
     uPPR = @(z) (kronPolyEval(GainsPPR, z));
-    controllers = {uOpenLoop, uLQR, uPPR_quad, uPPR};
+    controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR};
 
     %% Simulate closed-loop systems
     % Construct original system dynamics
@@ -57,12 +63,12 @@ for eps = [0.01 0.0075 0.005]
     FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
 
     % Initial condition from Trefethen
-    v0 = .53*y + .47*sin(-1.5*pi*y);
+    v0 = tanh((y-(x0))/sqrt(2*eps));
 
-    tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
+    tmax = 100; dt = .02; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
 
     fprintf("  Controller & Cost (eps=%2.4f)    ",eps)
-    for idx = 1:4
+    for idx = 1:5
         u = controllers{idx};
 
         % Simulate using ode solver (more efficient than forward euler)

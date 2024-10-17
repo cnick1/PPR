@@ -1,5 +1,5 @@
 function runExample9(n, degree, r)
-%runExample9 Runs the Allen-Cahn example.
+%runExample9 Runs the Allen-Cahn example with Dirichlet BCs.
 %
 %   Usage:  runExample9(n,degree,r)
 %
@@ -41,15 +41,18 @@ for eps = [0.01 0.0075 0.005]
 
     % Compute PPR solution (LQR is just the first term)
     fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
-    options = struct; options.verbose = true; options.r = r; options.eta = 1; options.h = B.';
+    options = struct; options.verbose = true; options.r = r; options.h = B.';
     [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
+    [~, GainsLPR] = ppr(f(1), B, q, R, degree, options);
     fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
-    uPPR_quad = @(z) (kronPolyEval(GainsPPR, z, 2));
+    uLPR= @(z) (kronPolyEval(GainsLPR, z));
+    % uSDRE = @(z) sdre(@(y)(f{1}+diag(y)),@(y)(B),Q2,R,z);
+    uSDRE = @(z) sdre(@(y)(f{1}+diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
     uPPR = @(z) (kronPolyEval(GainsPPR, z));
-    controllers = {uOpenLoop, uLQR, uPPR_quad, uPPR};
+    controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR};
 
     %% Simulate closed-loop systems
     % Construct original system dynamics
@@ -62,7 +65,7 @@ for eps = [0.01 0.0075 0.005]
     tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
 
     fprintf("  Controller & Cost (eps=%2.4f)    ",eps)
-    for idx = 1:4
+    for idx = 1:5
         u = controllers{idx};
 
         % Simulate using ode solver (more efficient than forward euler)

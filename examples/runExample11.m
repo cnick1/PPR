@@ -1,8 +1,8 @@
-function runExample11(nFterms, degree, reducedOrder, varargin)
+function runExample11(nFterms, degree, reducedOrder)
 %runExample11 Runs the 2D pendulum example. Plots a) the value function,
 %   b) the HJB residual, and c) closed-loop phase portraits.
 %
-%   Usage:  runExample11(nFterms, degree, varargin)
+%   Usage:  runExample11(nFterms, degree)
 %
 %   runExample11() runs the default case of a degree 6 approximation.
 %
@@ -18,7 +18,7 @@ function runExample11(nFterms, degree, reducedOrder, varargin)
 %
 %   References:
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %% Process inputs
 if nargin < 3
     if nargin < 2

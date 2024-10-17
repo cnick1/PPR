@@ -38,4 +38,14 @@ for x0 = -.75:.25:.75
 end
 
 %% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
+clear;clc;close all;
+runExample9_Neumann(14,6,0.2,0)
+runExample9_Neumann(14,6,0.2,0.05)
+runExample9_Neumann(14,6,0.2,0.1)
+runExample9_Neumann(14,6,0.2,0.2)
 
+runExample9_Neumann(14,6,0.5,0)
+runExample9_Neumann(14,6,0.5,0.5)
+runExample9_Neumann(14,6,0.5,1)
+runExample9_Neumann(14,6,0.5,1.5)
+runExample9_Neumann(14,6,0.5,2)

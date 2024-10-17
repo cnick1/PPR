@@ -8,3 +8,9 @@ testing*
 testing/
 plots/*
 examples/systemData/
+__pycache__/
+examples/__pycache__/
+examples/chisholmAndRBFAndOther/
+utils/kronDiff.m
+examples/runExample11_PMP.m
+examples/example11ExportedControlFunction.py
