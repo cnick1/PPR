@@ -49,10 +49,10 @@ for eps = [0.01 0.0075 0.005]
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
     uLPR= @(z) (kronPolyEval(GainsLPR, z));
-    % uSDRE = @(z) sdre(@(y)(f{1}+diag(y)),@(y)(B),Q2,R,z);
     uSDRE = @(z) sdre(@(y)(f{1}+diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
     uPPR = @(z) (kronPolyEval(GainsPPR, z));
     controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR};
+    controllerNames = {'Uncontrolled', 'LQR', 'LPR', 'SDRE', 'PPR'};
 
     %% Simulate closed-loop systems
     % Construct original system dynamics
@@ -75,10 +75,10 @@ for eps = [0.01 0.0075 0.005]
         Lagrangian = zeros(size(t));
         for i=1:length(t)
             xbar = X(i,:).' - vref; Ux = u(xbar);
-            Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
+            Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
         end
         performanceIndex = trapz(t, Lagrangian);
-        fprintf("\n        %i    & %3.3f         ",idx-1,performanceIndex)
+        fprintf("\n        %s    & %3.3f         ",controllerNames{idx},performanceIndex)
 
         % Plots just for checking results, not for the paper
         plotT = t(1:100:end); X = X(1:100:end,:); nplots = length(plotT);

@@ -78,7 +78,7 @@ for eps = [0.01]
         Lagrangian = zeros(size(t));
         for i=1:length(t)
             xbar = X(i,:).' - vref; Ux = u(xbar);
-            Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + 4*sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
+            Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
         end
         performanceIndex = trapz(t, Lagrangian);
         fprintf("\n        %i    & %3.3f         ",idx-1,performanceIndex)
