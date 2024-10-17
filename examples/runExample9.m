@@ -29,9 +29,9 @@ fprintf('Running Example 9\n')
 
 %% Construct controller
 y0 = .5; % Desired interface location
-
-% for eps = [0.005]
-for eps = [0.01 0.0075 0.005]
+epss = [0.01 0.0075 0.005];performanceIndex=zeros(5,3);
+for j=1:3
+    eps = epss(j);
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
     [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
 
@@ -40,19 +40,19 @@ for eps = [0.01 0.0075 0.005]
     q = {[],Q2,Q3,Q4}; R = 1;
 
     % Compute PPR solution (LQR is just the first term)
-    fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... \n",n,r,degree); tic
-    options = struct; options.verbose = true; options.r = r; options.h = B.';
+    fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,degree); tic
+    options = struct; options.verbose = false; options.r = r; options.h = B.';
     [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
+    fprintf("completed in %2.2f seconds. \n", toc)
     [~, GainsLPR] = ppr(f(1), B, q, R, degree, options);
-    fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
     uLPR= @(z) (kronPolyEval(GainsLPR, z));
-    uSDRE = @(z) sdre(@(y)(f{1}+diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
+    uSDRE = @(z) uLQR(z);%sdre(@(y)(f{1}+diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
     uPPR = @(z) (kronPolyEval(GainsPPR, z));
     controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR};
-    controllerNames = {'Uncontrolled', 'LQR', 'LPR', 'SDRE', 'PPR'};
+    controllerNames = {'Uncontrolled', 'LQR         ', 'LPR         ', 'SDRE        ', 'PPR         '};
 
     %% Simulate closed-loop systems
     % Construct original system dynamics
@@ -64,7 +64,6 @@ for eps = [0.01 0.0075 0.005]
 
     tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
 
-    fprintf("  Controller & Cost (eps=%2.4f)    ",eps)
     for idx = 1:5
         u = controllers{idx};
 
@@ -77,8 +76,7 @@ for eps = [0.01 0.0075 0.005]
             xbar = X(i,:).' - vref; Ux = u(xbar);
             Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
         end
-        performanceIndex = trapz(t, Lagrangian);
-        fprintf("\n        %s    & %3.3f         ",controllerNames{idx},performanceIndex)
+        performanceIndex(idx,j) = trapz(t, Lagrangian);
 
         % Plots just for checking results, not for the paper
         plotT = t(1:100:end); X = X(1:100:end,:); nplots = length(plotT);
@@ -89,9 +87,16 @@ for eps = [0.01 0.0075 0.005]
         figure, subplot('position',[.1 .4 .8 .5])
         mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
         view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-        title(sprintf("Controller %i  (eps=%2.4f)",idx-1,eps)); drawnow
+        title(sprintf("Controller %s  (eps=%2.4f)",controllerNames{idx},eps)); drawnow
     end
     fprintf('\n')
+end
+
+fprintf('# Table I Data (Allen-Cahn, Dirichlet BCs)\n');
+fprintf('# Control costs for different diffusion coefficients\n');
+fprintf("      Controller    &  eps=%2.4f  &  eps=%2.4f  &  eps=%2.4f  \n",epss)
+for idx = 1:5
+    fprintf("     %s   &  %9.3f   &  %9.3f   &  %9.3f       \n",controllerNames{idx},performanceIndex(idx,:))
 end
 
 % exportgraphics(figure(6),sprintf('plots/example9_mor_n%i_r%i_d%i.pdf',n,r,degree), 'ContentType', 'vector')
