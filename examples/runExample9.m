@@ -17,10 +17,10 @@ function runExample9(n, degree, r)
 %%
 if nargin < 3
     if nargin < 2
-        degree = 4;
         if nargin < 1
             n = 33;
         end
+        degree = 4;
     end
     r = n;
 end
@@ -89,10 +89,9 @@ for j=1:3
         view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
         title(sprintf("Controller %s  (eps=%2.4f)",controllerNames{idx},eps)); drawnow
     end
-    fprintf('\n')
 end
 
-fprintf('# Table I Data (Allen-Cahn, Dirichlet BCs)\n');
+fprintf('\n# Table I Data (Allen-Cahn, Dirichlet BCs)\n');
 fprintf('# Control costs for different diffusion coefficients\n');
 fprintf("      Controller    &  eps=%2.4f  &  eps=%2.4f  &  eps=%2.4f  \n",epss)
 for idx = 1:5
