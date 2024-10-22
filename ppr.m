@@ -220,8 +220,6 @@ if useReducedOrderModel
     V2f = V2; K1f = K{1};
     V2 = options.Tib.'*V2*options.Tib;
     v{2} = vec(V2); K{1} = K1f*options.Tib;
-    fprintf("complete. \n")
-
 end
 if ~isfield(options,'r')
     options.r = size(f{1}, 1);

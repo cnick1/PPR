@@ -38,7 +38,7 @@ A = Ax(x); B = Bx(x);
 
 % Check if Riccati equation was solved successfully
 if INFO.Report ~= 0
-    warning('SDRE Riccati equation did not converge.');
+    error('SDRE Riccati equation did not converge.');
 end
 
 u = -K*x;
