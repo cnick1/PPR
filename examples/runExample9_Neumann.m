@@ -26,11 +26,11 @@ if nargin < 3
 end
 
 
-% clear; close all; degree = 6; n = 14; 
+% clear; close all; degree = 6; n = 14;
 r = 3;
 plots = 'animation';
 
-fprintf('Running Example 9, Allen-Cahn example with Nuemman BCs, for ε=%.1f\n',eps)
+fprintf('\nRunning Example 9, Allen-Cahn example with Nuemman BCs, for ε=%.1f\n',eps)
 
 %% Get dynamics and define control problem
 [f, B, Q, ~, y] = getSystem9Neumann(eps, n);
@@ -91,31 +91,38 @@ end
 
 opts = odeset('RelTol', 1e-6, 'AbsTol', 1e-20);
 
-vOffsets = [0, 0.25, 0.5, 1, 1.5, 2];
-for j=1:6
+vOffsets = [0, 0.25, 0.5, 1, 1.5, 2]; if eps == 0.2; vOffsets = vOffsets ./ 20; end
+for j=1:length(vOffsets)
     clear UxPPR UxPPR_reduced UxTTHJB UxSDRE
     v0 = vOffsets(j) + cos(2*pi*y).*cos(pi*y); % Modified initial condition
 
-    % Simulate using ode solver (more efficient than forward euler)
+    % Simulate using ode solver (more efficient than forward euler) and
+    % compute performance indexes
     [tUnc, Xunc] = ode15s(@(t, v) FofXU(v,uUnc(v)),t, v0, opts);
-    [tLQR, XLQR] = ode15s(@(t, v) FofXU(v,uLQR(v)),t, v0, opts);
-    [tPPR, XPPR] = ode15s(@(t, v) FofXU(v,uPPR(v)),t, v0, opts);
-    [tPPR_reduced, XPPR_reduced] = ode15s(@(t, v) FofXU(v,uPPR_reduced(v)),t, v0, opts);
-    [tSDRE, XSDRE] = ode15s(@(t, v) FofXU(v,uSDRE(v)),t, v0, opts);
-    [tTTHJB, XTTHJB] = ode15s(@(t, v) FofXU(v,uTTHJB(v.')),t, v0, opts);
-
-
-    % Compute performance index (cost)
-    UxUnc = uUnc(Xunc.').'; UxLQR = uLQR(XLQR.').';
-    for i=1:length(tPPR); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
-    for i=1:length(tPPR_reduced); UxPPR_reduced(i,1) = uPPR_reduced(XPPR_reduced(i,:).'); end
-    for i=1:length(tSDRE); UxSDRE(i,1) = uSDRE(XSDRE(i,:).'); end
-    for i=1:length(tTTHJB); UxTTHJB(i,1) = uTTHJB(XTTHJB(i,:)); end
     costUnc(j) = trapz(tUnc, sum((Xunc.^2).*diag(Q).', 2));
+
+    [tLQR, XLQR] = ode15s(@(t, v) FofXU(v,uLQR(v)),t, v0, opts);
+    UxLQR = uLQR(XLQR.').';
     costLQR(j) = trapz(tLQR, sum((XLQR.^2).*diag(Q).', 2) + R*UxLQR.^2);
+
+    [tPPR, XPPR] = ode15s(@(t, v) FofXU(v,uPPR(v)),t, v0, opts);
+    for i=1:length(tPPR); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
     costPPR(j) = trapz(tPPR, sum((XPPR.^2).*diag(Q).', 2) + R*UxPPR.^2);
+
+    [tPPR_reduced, XPPR_reduced] = ode15s(@(t, v) FofXU(v,uPPR_reduced(v)),t, v0, opts);
+    for i=1:length(tPPR_reduced); UxPPR_reduced(i,1) = uPPR_reduced(XPPR_reduced(i,:).'); end
     costPPR_reduced(j) = trapz(tPPR_reduced, sum((XPPR_reduced.^2).*diag(Q).', 2) + R*UxPPR_reduced.^2);
-    costSDRE(j) = trapz(tSDRE, sum((XSDRE.^2).*diag(Q).', 2) + R*UxSDRE.^2);
+
+    try
+        [tSDRE, XSDRE] = ode15s(@(t, v) FofXU(v,uSDRE(v)),t, v0, opts);
+        for i=1:length(tSDRE); UxSDRE(i,1) = uSDRE(XSDRE(i,:).'); end
+        costSDRE(j) = trapz(tSDRE, sum((XSDRE.^2).*diag(Q).', 2) + R*UxSDRE.^2);
+    catch
+        costSDRE(j) = inf;
+    end
+    
+    [tTTHJB, XTTHJB] = ode15s(@(t, v) FofXU(v,uTTHJB(v.')),t, v0, opts);
+    for i=1:length(tTTHJB); UxTTHJB(i,1) = uTTHJB(XTTHJB(i,:)); end
     costTTHJB(j) = trapz(tTTHJB, sum((XTTHJB.^2).*diag(Q).', 2) + R*UxTTHJB.^2);
 
     switch plots
@@ -140,7 +147,7 @@ for j=1:6
                 plot(XTTHJB(i,:)); ylim([-1 1]);
                 ylim([-3 3]); xlim([0 14])
                 legend('Uncontrolled','LQR','PPR','PPR reduced','SDRE','TT-HJB')
-                pause(0.01)
+                % pause(0.01)
             end
         case 'figs'
             % Plots just for checking results, not for the paper
@@ -198,10 +205,10 @@ end
 fprintf('\n# Table III Data (Allen-Cahn, Neumann BCs)\n');
 fprintf('# Control costs for different initial condition offsets\n');
 fprintf("      Controller    &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f     \n",vOffsets)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'Uncontrolled', costUnc)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     LQR    ', costLQR)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     PPR    ', costPPR)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR reduced', costPPR_reduced)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
-    fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n\n", '     TTHJB  ', costTTHJB)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'Uncontrolled', costUnc)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     LQR    ', costLQR)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     PPR    ', costPPR)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR reduced', costPPR_reduced)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n\n", '     TTHJB  ', costTTHJB)
 end

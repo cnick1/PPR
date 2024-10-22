@@ -25,7 +25,7 @@ if nargin < 3
     r = 10;
 end
 
-fprintf('Running Example 9, Allen-Cahn example with Dirichlet BCs, for different initial conditions \n')
+fprintf('\nRunning Example 9, Allen-Cahn example with Dirichlet BCs, for different initial conditions \n')
 
 %% Construct controller
 y0 = .5; % Desired interface location
@@ -71,7 +71,7 @@ FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
 
 tmax = 100; dt = .02; t = 0:dt:tmax; % Specify time vector for plotting
 
-x0s = -.75:.25:.75; performanceIndex=zeros(6,length(x0s));
+x0s = -.75:.25:.75; performanceIndex=zeros(6,length(x0s)); 
 for j = 1:length(x0s)
     x0 = x0s(j);
 
