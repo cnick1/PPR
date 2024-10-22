@@ -29,7 +29,7 @@ fprintf('Running Example 9\n')
 
 %% Construct controller
 y0 = .5; % Desired interface location
-epss = [0.01 0.0075 0.005];performanceIndex=zeros(5,3);
+epss = [0.01 0.0075 0.005];performanceIndex=zeros(6,3);
 for j=1:3
     eps = epss(j);
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
@@ -73,7 +73,7 @@ for j=1:3
     % Initial condition from Trefethen
     v0 = .53*y + .47*sin(-1.5*pi*y);
 
-    tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector to accurately approximate cost function integral
+    tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector for plotting
 
     for idx = 1:length(controllers)
         u = controllers{idx};
