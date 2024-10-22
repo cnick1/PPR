@@ -35,12 +35,10 @@ runExample11(9, 10, 1);
 
 % Run cases with different diffusion coefficients
 runExample9(45,4,10)
-runExample9(129,4,10)
+% runExample9(129,4,10)
 
 % Run cases with different initial conditions
-for x0 = -.75:.25:.75
-    runExample9_differentICs(45, 4, x0, 10)
-end
+runExample9_differentICs(45, 4, 10)
 
 %% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 % clear;clc;close all;

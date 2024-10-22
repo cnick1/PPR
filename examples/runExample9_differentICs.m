@@ -15,70 +15,68 @@ function runExample9_differentICs(n, degree, r)
 %
 %   Part of the PPR repository.
 %%
-if nargin < 4
-    if nargin < 3
-        x0 = -0.5;
-        if nargin < 2
-            degree = 4;
-            if nargin < 1
-                n = 33;
-            end
+if nargin < 3
+    if nargin < 2
+        if nargin < 1
+            n = 33;
         end
+        degree = 4;
     end
     r = 10;
 end
 
-fprintf('Running Example 9\n')
+fprintf('Running Example 9, Allen-Cahn example with Dirichlet BCs, for different initial conditions \n')
 
 %% Construct controller
 y0 = .5; % Desired interface location
 eps = 0.01;
+
+% Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
+[f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
+
+B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
+Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,1);
+q = {[],Q2,Q3,Q4}; R = 1;
+
+% Full PPR solution (LQR is just the first term)
+fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
+options = struct; options.verbose = false; options.h = B.';
+[~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
+fprintf("completed in %2.2f seconds. \n", toc)
+
+% Reduced PPR Solution
+fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,degree); tic
+options = struct; options.verbose = false; options.r = r; options.h = B.';
+[~, GainsPPR_reduced, options] = ppr(f, B, q, R, degree, options);
+fprintf("completed in %2.2f seconds. \n", toc)
+
+% LPR Solution
+[~, GainsLPR] = ppr(f(1), B, q, R, degree, options);
+
+% Construct control laws
+uOpenLoop = @(z) zeros(m,1);
+uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+uLPR= @(z) (kronPolyEval(GainsLPR, z));
+uSDRE = @(z) sdre(@(y)(f{1}-3*diag(vref).*diag(y)-diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
+uPPR = @(z) (kronPolyEval(GainsPPR, z));
+uPPR_reduced = @(z) (kronPolyEval(GainsPPR_reduced, z));
+
+controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR, uPPR_reduced};
+controllerNames = {'Uncontrolled', 'LQR         ', 'LPR         ', 'SDRE        ', 'PPR         ', 'PPR reduced '};
+
+%% Simulate closed-loop systems
+% Construct original system dynamics
+D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
+FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
+
+tmax = 100; dt = .02; t = 0:dt:tmax; % Specify time vector for plotting
+
 x0s = -.75:.25:.75; performanceIndex=zeros(6,length(x0s));
 for j = 1:length(x0s)
     x0 = x0s(j);
-    % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
-    [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
-
-    B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
-    Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,1);
-    q = {[],Q2,Q3,Q4}; R = 1;
-
-    % Full PPR solution (LQR is just the first term)
-    fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
-    options = struct; options.verbose = false; options.h = B.';
-    [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
-    fprintf("completed in %2.2f seconds. \n", toc)
-
-    % Reduced PPR Solution
-    fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,degree); tic
-    options = struct; options.verbose = false; options.r = r; options.h = B.';
-    [~, GainsPPR_reduced, options] = ppr(f, B, q, R, degree, options);
-    fprintf("completed in %2.2f seconds. \n", toc)
-
-    % LPR Solution
-    [~, GainsLPR] = ppr(f(1), B, q, R, degree, options);
-
-    % Construct control laws
-    uOpenLoop = @(z) zeros(m,1);
-    uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
-    uLPR= @(z) (kronPolyEval(GainsLPR, z));
-    uSDRE = @(z) sdre(@(y)(f{1}-3*diag(vref).*diag(y)-diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
-    uPPR = @(z) (kronPolyEval(GainsPPR, z));
-    uPPR_reduced = @(z) (kronPolyEval(GainsPPR_reduced, z));
-
-    controllers = {uOpenLoop, uLQR, uLPR, uSDRE, uPPR, uPPR_reduced};
-    controllerNames = {'Uncontrolled', 'LQR         ', 'LPR         ', 'SDRE        ', 'PPR         ', 'PPR reduced '};
-
-    %% Simulate closed-loop systems
-    % Construct original system dynamics
-    D2 = D^2; D2([1 n],:) = zeros(2,n); % For boundary conditions
-    FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
 
     % Initial condition with x0 interface location
     v0 = tanh((y-(x0))/sqrt(2*eps));
-
-    tmax = 100; dt = .02; t = 0:dt:tmax; % Specify time vector for plotting
-    
 
     for idx = 1:length(controllers)
         u = controllers{idx};

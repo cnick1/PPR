@@ -25,7 +25,7 @@ if nargin < 3
     r = 10;
 end
 
-fprintf('Running Example 9\n')
+fprintf('Running Example 9, Allen-Cahn example with Dirichlet BCs, for different diffusion coefficients \n')
 
 %% Construct controller
 y0 = .5; % Desired interface location
