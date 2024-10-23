@@ -1,11 +1,13 @@
 function runExample9(n, degree, r)
-%runExample9 Runs the Allen-Cahn example with Dirichlet BCs.
+%runExample9 Runs the Allen-Cahn example with Dirichlet BCs. This script
+% runs the examlpe for three different values of the diffusion coefficient
+% ε, showing performance for different strengths of the nonlinearity.
 %
 %   Usage:  runExample9(n,degree,r)
 %
-%   Inputs: n      - desired state dimension
-%           degree - desired polynomial degree of value function to compute
-%           r      - ROM dimension; if r=n, no MOR is performed
+%   Inputs: n      - state dimension
+%           degree - polynomial degree of value function to compute
+%           r      - ROM dimension for ppr acceleration
 %
 %   Background: Based on p34.m from [1].
 %
@@ -29,7 +31,7 @@ fprintf('\nRunning Example 9, Allen-Cahn example with Dirichlet BCs, for differe
 
 %% Construct controller
 y0 = .5; % Desired interface location
-epss = [0.01 0.0075 0.005];performanceIndex=zeros(6,3);
+epss = [0.01 0.0075 0.005]; performanceIndex=zeros(6,3);
 for j=1:3
     eps = epss(j);
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
@@ -41,7 +43,7 @@ for j=1:3
 
     % Full PPR solution (LQR is just the first term)
     fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
-    options = struct; options.verbose = false; options.h = B.';
+    options = struct; options.verbose = false; 
     [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
     fprintf("completed in %2.2f seconds. \n", toc)
 
@@ -58,6 +60,7 @@ for j=1:3
     uOpenLoop = @(z) zeros(m,1);
     uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
     uLPR= @(z) (kronPolyEval(GainsLPR, z));
+    % uSDRE = @(z) (kronPolyEval(GainsLPR, z));
     uSDRE = @(z) sdre(@(y)(f{1}-3*diag(vref).*diag(y)-diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);
     uPPR = @(z) (kronPolyEval(GainsPPR, z));
     uPPR_reduced = @(z) (kronPolyEval(GainsPPR_reduced, z));
@@ -75,6 +78,8 @@ for j=1:3
 
     tmax = 1000; dt = .2; t = 0:dt:tmax; % Specify time vector for plotting
 
+    fig1 = figure('Position',[113 277.6667 1.5807e+03 482.6667]);
+    % fig2 = figure('Position',[122.3333 10.3333 1.5547e+03 446.6667]);
     for idx = 1:length(controllers)
         u = controllers{idx};
 
@@ -85,10 +90,14 @@ for j=1:3
             % Compute performance index (cost)
             Lagrangian = zeros(size(t));
             for i=1:length(t)
-                xbar = X(i,:).' - vref; Ux = u(xbar);
+                xbar = X(i,:).' - vref; Ux = u(xbar); usig(:,i) = Ux;
                 Lagrangian(i) = 1/2*(xbar.'*Q2*xbar + Ux.'*R*Ux + sum(xbar.^4)); % hardcoded v.^4 instead of Q4 for speed
             end
             performanceIndex(idx,j) = trapz(t, Lagrangian);
+           
+            % figure(fig2)
+            % subplot(2,3,idx)
+            % plot(t,usig); hold on; xlim([0 200])
 
             % Plots just for checking results, not for the paper
             plotT = t(1:100:end); X = X(1:100:end,:); nplots = length(plotT);
@@ -96,7 +105,8 @@ for j=1:3
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),20),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            figure(fig1)
+            subplot(2,3,idx)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title(sprintf("Controller %s  (eps=%2.4f)",controllerNames{idx},eps)); drawnow

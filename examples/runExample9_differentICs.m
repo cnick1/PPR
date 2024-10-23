@@ -40,7 +40,7 @@ q = {[],Q2,Q3,Q4}; R = 1;
 
 % Full PPR solution (LQR is just the first term)
 fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
-options = struct; options.verbose = false; options.h = B.';
+options = struct; options.verbose = false; 
 [~, GainsPPR, options] = ppr(f, B, q, R, degree, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 
@@ -71,7 +71,8 @@ FofXU = @(v,u) (eps*D2*v + v - v.^3 + B*u);
 
 tmax = 100; dt = .02; t = 0:dt:tmax; % Specify time vector for plotting
 
-x0s = -.75:.25:.75; performanceIndex=zeros(6,length(x0s)); 
+figure('Position',[113 277.6667 1.5807e+03 482.6667])
+x0s = [-.75, -.5, -.25, 0, .25, .75]; performanceIndex=zeros(6,length(x0s)); 
 for j = 1:length(x0s)
     x0 = x0s(j);
 
@@ -99,7 +100,7 @@ for j = 1:length(x0s)
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),20),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,idx)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -1.05 1.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title(sprintf("Controller %s  (x0=%2.2f)",controllerNames{idx},x0)); drawnow

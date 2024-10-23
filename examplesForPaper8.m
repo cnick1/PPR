@@ -18,7 +18,7 @@ setKroneckerToolsPath
 addpath('examples')
 
 %% Example 11: Inverted Pendulum 
-for nFterms = 3:9
+for nFterms = 3:2:9
         runExample11(nFterms, nFterms+1);
 end
 
@@ -29,9 +29,8 @@ runExample11(9, 10, 1);
 % Allen-Cahn example where we wish to move the interface. This example
 % features comparison with SDRE and the Bass 1966 approach which is like
 % linear-polynomial regulation (sort-of). TT-HJB cannot be applied to this
-% example because it is multi-input, and TT-HJB is only written for single
-% input.
-% close all
+% example (TT-HJB is only written for single input).
+close all; clear; clc
 
 % Run cases with different diffusion coefficients
 runExample9(45,4,10)
@@ -42,6 +41,4 @@ runExample9_differentICs(45, 4, 10)
 
 %% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 % clear;clc;close all;
-runExample9_Neumann(14,6,0.2)
-
 runExample9_Neumann(14,6,0.5)

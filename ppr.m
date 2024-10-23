@@ -81,7 +81,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %%
 
 % Create a vec function for readability
-vec = @(X) X(:); v = cell(1,degree);
+vec = @(X) X(:); v = cell(1,degree); K = cell(1,degree-1);
 
 %% Process inputs
 if nargin < 6
@@ -100,10 +100,8 @@ if iscell(f) % polynomial drift
         degree = lf+1;
     end
 else
-    % Need to test and debug this option
-    A = f; lf = 1; % probably still need to define degree variable
+    A = f; lf = 1; 
     f = {A};
-    % error("ppr: Must pass in at least quadratic dynamics")
 end
 
 if iscell(g) % polynomial input
@@ -124,6 +122,13 @@ if iscell(q) % Polynomial state penalty
         Q = q{2};
     end
     lq = length(q) - 1;
+
+    % If q's are scalars, use 'identity' tensors
+    for i=3:length(q)
+        if isscalar(q{i})
+            q{i} = q{i}*sparse(linspace(1,n^i,n),1,1); % Like an identity matrix but a tensor, vectorized
+        end
+    end
 else
     % quadratic state penalty with weighting matrix Q
     Q = q;
@@ -137,14 +142,27 @@ if iscell(r) % Polynomial control penalty
     else
         R = r{1};
     end
-    lr = length(r);
+    lr = length(r) - 1;
+
+    % If r's are scalars, use 'identity' tensors
+    for i=2:length(r)
+        if isscalar(r{i})
+            % Naive way
+            % temp = sparse(m^2,n^(i-1)); temp(:,linspace(1,n^(i-1),n)) = repmat(vec(speye(m)),1,n);
+            % r{i} = r{i}*temp; % Like an identity matrix but a tensor, vectorized
+
+            % More efficient way: rows=linspace(1,m^2,m), columns=linspace(1,n^(i-1),n), so use
+            % repmat to duplicate rows n times and columns m times, forming all possible combinations.
+            r{i} = r{i}*full(sparse(repmat(linspace(1,m^2,m),1,n),repmat(linspace(1,n^(i-1),n),m,1),1));
+        end
+    end
 else
     % quadratic control penalty with weighting matrix R
     if length(r) == 1
         r = r*eye(m);
     end
     R = r;
-    lr = 1;
+    lr = 0;
     r = {vec(R)};
 end
 
@@ -200,8 +218,7 @@ end
 %  Check the residual of the Riccati/Lyapunov equation
 if (options.verbose)
     RES = A' * V2 + V2 * A - (V2 * B) * Rinv * (B' * V2) + Q;
-    fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf'));
-    clear RES
+    fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf')); clear RES
 end
 
 %  Reshape the resulting quadratic coefficients
@@ -228,55 +245,79 @@ end
 %% v3-vd, Degree 3 and above coefficients (3<=k<=d cases)
 if (degree > 2)
     % Set up the generalized Lyapunov solver (LHS coefficient matrix)
-    [Acell{1:degree}] = deal((A + B * K{1}).');
+    [Acell{1:degree}] = deal((A + B * K{1}).'); 
     GaVb = memoize(@(a, b, v) g{a + 1}.' * sparse(reshape(v{b}, n, n^(b-1)))); % Memoize evaluation of GaVb
 
-    % Compute the value function coefficients
     for k = 3:degree
+        %% Compute the value function coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         b = 0; % Initialize b
+        K{k-1} = zeros(m,n^(k-1)); % Initialize K
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
-        if lf > 1 % If we have polynomial dynamics
-            iRange = 2:(k - 1); % Theoretical sum limits
+        if lf > 1 % If we have polynomial drift dynamics
+            % Here we add the f(x) terms. The range for possible i's is
+            % 2:k-1, since v_k is in the left-hand-side terms. However, not all of
+            % these i's have corresponding F_p's that exist. For example, maybe only
+            % F_2 and F_3 exist, in which case only the last two i's, [k-2, k-1], are
+            % required. Indexing on the i's backwards and checking if we have run out
+            % of F_p's allows us to do this easily.
 
-            % iRange only needs to have at most the lf-1 last i's; for example, if there are only lf=3 and
-            % there are only f{2} and f{3} to consider, iRange = [k-2, k-1] is sufficient (corresponding to
-            % p=[2,3]). Otherwise f{p} doesn't exist and would require a bunch of zero entries in f{p} above lf.
-            iRange = iRange(max(k - lf, 1):end); % Remove i's corresponding to non-existent f{p} entries
-
-            for i = iRange
-                p = k + 1 - i;
+            for i = flip(2:k-1)                           % Theoretical sum limits for V_i's; index backwards in i so that p indexes forwards
+                p = k + 1 - i; 
+                if p > lf; break; end                     % Only run while we have F_p's left
                 b = b - LyapProduct(f{p}.', v{i}, i);
             end
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if R ~= 0
-            for q_idx = 1:k-2                           % i + p + q = k + 1
-                for p_idx = 0:lg
-                    i = k+1 - p_idx - q_idx;     if i<2; break; end; if i==k; continue; end
+            % Here we add the g(x)u(x) terms. The sum is over indexes satisfying
+            % i+p+q=k+1. The range for possible q's is 1:k-2 (technically q could go
+            % up to k-1, but that term cancels with some of the R(x) terms), the range 
+            % for i's is 2:k-1, and the range for possible p's is 0:lg. However, the q=1
+            % and p=0 term belongs on the left-hand-side, so we need to skip that term
+            % with a continue statement. And since q and p index forwards, i indexes
+            % backwards (at most from k), but once i reaches i<2 we run out of V_i's,
+            % so we need a break statement.
+            
+            for q_idx = 1:k-2                             % Theoretical sum limits for K_q's                          
+                for p_idx = 0:lg                          % Theoretical sum limits for G_p's
+                    i = k+1 - p_idx - q_idx;    
+                    if i==k; continue; end                % Skip the LHS term that is already accounted for
+                    if i<2; break; end                    % Only run while we have V_i's left
                     b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx});
                 end
             end
         end
 
         %%%%%%%%%%%%%%%%%%%%%% Add state penalty components (Q(x)) %%%%%%%%%%%%%%%%%%%%%%
-        if k <= lq + 1
+        if k <= lq + 1                                    % Simply check if q{k} exists
             b = b - q{k};
         end
 
         %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
-        for i = 1:lr
-            for p_idx = 2:k-2 % start from 2 because the two p=1 and q=1 terms cancel with the two G terms
-                q_idx = k - p_idx - i+1; if q_idx < 1; continue; end%if q_idx > k-2; continue; end
-                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); % Naive way
+        % Here we add the u(x)'R(x)u(x) terms. The sum is over indices satisfying
+        % i+p+q=k. Note, the r cell array does not use zero indexing. The range for
+        % possible i's is 0:lr. The theoretical range for p's and q's would be
+        % 1:k-1, but the k-1 term hasn't been computed yet! It turns out these terms
+        % (i=0,p=1,q=k-1 & i=0,p=k-1,q=1) cancel with terms in the G(x) sums. So we
+        % will index from 1:k-2 and skip the k-1 term. (Note that p=1 and q=1 DO
+        % appear if lr>0, so we can't just index 2:k-2.)
+        for i = 0:lr                                     % Theoretical sum limits for r_i's
+            for p_idx = 1:k-2                            % Theoretical sum limits for K_p's   
+                q_idx = k - p_idx - i; 
+                if q_idx==k-1; continue; end             % Skip the k-1 term that cancels with the G(x) terms
+                if q_idx<1; break; end                   % Only run while we have K_q's left
+                % Naive way
+                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx})); 
 
                 % Efficient way
-                len = n^(p_idx+q_idx);
-                for j = 1:size(r{i},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
-                    b([1:len]+(j-1)*len) = b([1:len]+(j-1)*len) ...
-                        - vec(transpose(vec(K{q_idx}.' * reshape(r{i}(:,j),m,m) * K{p_idx})));
+                len = n^(p_idx+q_idx); 
+                for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
+                    bRange = (1:len)+(j-1)*len;
+                    b(bRange) = b(bRange) ...
+                        - vec(transpose(vec(K{q_idx}.' * reshape(r{i+1}(:,j),m,m) * K{p_idx})));
                 end
             end
         end
@@ -286,31 +327,40 @@ if (degree > 2)
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
 
         %% Now compute the gain coefficient
-        % Compute last degree; GaVb for this hasn't been computed yet
-        K{k-1} = zeros(m,n^(k-1));
-        for q_idx = 0:lg
-            j = k-q_idx;
-            if j<2; break; end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Here we add the terms due to the gradient of the value function. The
+        % indices must satisfy j+q=k. The range for the q's is 0:lg; the
+        % corresponding range for the js is k:2, assuming the G's exist. In
+        % other words, we start with the term given by B and the last computed
+        % vk, and go down in the vks from there. We will go as high as there are 
+        % q's, so index forward on the q's. If you run out of V coeffients, you 
+        % are done and can break, even if more G's remain.
+        for q_idx = 0:lg                                     % Theoretical sum limits for r_i's
+            j = k - q_idx;
+            if j<2; break; end                               % Only run while we have V_j's left
             K{k-1} = K{k-1} - j/2*reshape(GaVb(q_idx,j, v), m, n^(k-1));
         end
-        K{k-1} = R\K{k-1};
-        % Need to add R terms
 
+        %%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%%%
+        % Here we add the terms due to the nonlinear control penalty R(x). The
+        % theoretical range for q would be 0:lr, but the q=0 term goes on the
+        % left-hand-side, so the range for q is 1:lr. Then the indices must satisfy
+        % p+q=k-1.
+        for q_idx = 1:lr                                     % Theoretical sum limits for r_i's
+            p = k-1 - q_idx;
+            if p<1; break; end                               % Only run while we have K_p's left
+
+            % Naive way
+            K{k-1} = K{k-1} - reshape(r{q_idx+1}.',m*n^q_idx,m).'*kron(K{p},speye(n^q_idx));
+            % TODO: replace ^ with efficient way
+        end
+
+        % Now multiply by R0^(inv)
+        K{k-1} = R\K{k-1};
     end
 end
 
 if useReducedOrderModel
-    %% Option 1: convert to full
-    % Convert energy functions and gain matrices back to full state dimension
-    % v{2} = vec(V2f);
-    % K{1} = K1f;
-    % for k = 3:degree
-    %     v{k} = calTTv({options.TibInv}, k, k, v{k});
-    %     if ~options.skipGains
-    %         K{k-1} = calTTv({options.TibInv}, k-1, k-1, K{k-1}.').';
-    %     end
-    % end
-
     %% Option 2: leave as reduced and use special data structure
     v{2} = vec(V2f);
     for k = 3:degree
@@ -318,7 +368,6 @@ if useReducedOrderModel
     end
     K{1} = K1f;
     K = factoredArray(K, options.TibInv);
-
 end
 
 
@@ -348,9 +397,8 @@ function [ft, gt] = linearTransformDynamics(f, g, T)
 
 [n, r] = size(T);
 [~,m] = size(g{1});
-% [p,~] = size(h{1});
 
-ft = cell(size(f)); gt = cell(size(g)); %ht = cell(size(h));
+ft = cell(size(f)); gt = cell(size(g));
 
 for k = 1:length(f)
     ft{k} = zeros(n,r^k);
@@ -364,14 +412,6 @@ gt{1} = T\g{1};
 for k = 2:length(g)
     error("Only implemented linear inputs so far!")
 end
-
-% for k = 1:length(h)
-%     ht{k} = zeros(p,r^k);
-%     for j = 1:p
-%         ht{k}(j,:) = ht{k}(j,:) + calTTv({T}, k, k, h{k}(j,:).').';
-%     end
-% end
-
 
 end
 

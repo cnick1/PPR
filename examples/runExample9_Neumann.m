@@ -25,10 +25,9 @@ if nargin < 3
     eps = 0.5;
 end
 
-
 % clear; close all; degree = 6; n = 14;
 r = 3;
-plots = 'animation';
+plots = 'figs';
 
 fprintf('\nRunning Example 9, Allen-Cahn example with Nuemman BCs, for ε=%.1f\n',eps)
 
@@ -41,8 +40,8 @@ R = 1e-1; m = size(B,2);
 uUnc = @(z) zeros(m,1);
 
 % PPR Controller
-fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
-options = struct; options.verbose = false; options.h = B.'; % It appears that the optimal control strategy for larger offset initial conditions is actually to temper the controller; use a little bit of input but sort of ride it out for a while before kicking in further. Can I use that as intuition to choose a higher order Q4 or R *artificially* to solve the quadratic cost problem with some insight?
+fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,6); tic
+options = struct; options.verbose = false; % It appears that the optimal control strategy for larger offset initial conditions is actually to temper the controller; use a little bit of input but sort of ride it out for a while before kicking in further. Can I use that as intuition to choose a higher order Q4 or R *artificially* to solve the quadratic cost problem with some insight?
 [~, GainsPPR] = ppr(f, B, Q, R, 6, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 
@@ -60,7 +59,7 @@ uPPR_reduced = @(z) (kronPolyEval(GainsPPR_reduced, z));
 uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
 
 % SDRE Controller
-uSDRE = @(z) sdre(@(y)(f{1}+diag(y.^2)),@(y)(B),Q,R,z);
+uSDRE = @(z) sdre(@(y)(f{1} - diag(y.^2)),@(y)(B),Q,R,z);
 
 % TT-HJB Controller
 addpath(genpath('../TT-Toolbox/'),genpath('../tamen/'),genpath('../TT-HJB/'))
@@ -91,7 +90,7 @@ end
 
 opts = odeset('RelTol', 1e-6, 'AbsTol', 1e-20);
 
-vOffsets = [0, 0.25, 0.5, 1, 1.5, 2]; if eps == 0.2; vOffsets = vOffsets ./ 20; end
+vOffsets = [0, 0.25, 0.5, 1, 1.5, 2]; 
 for j=1:length(vOffsets)
     clear UxPPR UxPPR_reduced UxTTHJB UxSDRE
     v0 = vOffsets(j) + cos(2*pi*y).*cos(pi*y); % Modified initial condition
@@ -120,7 +119,7 @@ for j=1:length(vOffsets)
     catch
         costSDRE(j) = inf;
     end
-    
+
     [tTTHJB, XTTHJB] = ode15s(@(t, v) FofXU(v,uTTHJB(v.')),t, v0, opts);
     for i=1:length(tTTHJB); UxTTHJB(i,1) = uTTHJB(XTTHJB(i,:)); end
     costTTHJB(j) = trapz(tTTHJB, sum((XTTHJB.^2).*diag(Q).', 2) + R*UxTTHJB.^2);
@@ -147,9 +146,20 @@ for j=1:length(vOffsets)
                 plot(XTTHJB(i,:)); ylim([-1 1]);
                 ylim([-3 3]); xlim([0 14])
                 legend('Uncontrolled','LQR','PPR','PPR reduced','SDRE','TT-HJB')
-                % pause(0.01)
+                pause(0.005)
             end
         case 'figs'
+            fig2 = figure;
+            plot(tUnc,tUnc*0)
+            hold on;
+            plot(tLQR,UxLQR)
+            plot(tPPR,UxPPR)
+            plot(tPPR_reduced,UxPPR_reduced)
+            plot(tSDRE,UxSDRE)
+            plot(tTTHJB,UxTTHJB)
+            legend('Uncontrolled','LQR','PPR','PPR reduced','SDRE','TT-HJB')
+
+            figure('Position',[113 277.6667 1.5807e+03 482.6667])
             % Plots just for checking results, not for the paper
             plotIndices = round(linspace(0,1,51).^3*5000+1);
             % plotIndices = linspace(1,5001,51);
@@ -159,7 +169,7 @@ for j=1:length(vOffsets)
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,1)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title("Open-loop"); drawnow
@@ -168,7 +178,7 @@ for j=1:length(vOffsets)
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,2)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title("LQR"); drawnow
@@ -177,7 +187,7 @@ for j=1:length(vOffsets)
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,3)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title("PPR"); drawnow
@@ -186,19 +196,30 @@ for j=1:length(vOffsets)
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,4)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-            title("PPR"); drawnow
+            title("PPR reduced"); drawnow
+
+            X = XSDRE(plotIndices,:);
+            for i=1:length(plotT)
+                plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
+            end
+            subplot(2,3,5)
+            mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
+            view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+            title("SDRE"); drawnow
 
             X = XTTHJB(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
-            figure, subplot('position',[.1 .4 .8 .5])
+            subplot(2,3,6)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -2.05 3.05]),
             view(-60,55), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
             title("TT-HJB"); drawnow
+
+
     end
 end
 
@@ -207,8 +228,8 @@ fprintf('# Control costs for different initial condition offsets\n');
 fprintf("      Controller    &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f     \n",vOffsets)
 fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'Uncontrolled', costUnc)
 fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     LQR    ', costLQR)
+fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
 fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     PPR    ', costPPR)
 fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR reduced', costPPR_reduced)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
 fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n\n", '     TTHJB  ', costTTHJB)
 end
