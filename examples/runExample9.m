@@ -38,8 +38,7 @@ for j=1:3
     [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);
 
     B = B(:,linspace(1,n,5)); B(:,[1 5]) = []; m = size(B,2);
-    Q2 = 0.1; Q3 = sparse(n^3,1) ; Q4 = sparse(linspace(1,n^4,n),1,1);
-    q = {[],Q2,Q3,Q4}; R = 1;
+    Q2 = 0.1; q = {[],Q2,0,1}; R = 1;
 
     % Full PPR solution (LQR is just the first term)
     fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,degree); tic
