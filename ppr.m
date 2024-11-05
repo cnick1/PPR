@@ -153,7 +153,7 @@ if iscell(r) % Polynomial control penalty
 
             % More efficient way: rows=linspace(1,m^2,m), columns=linspace(1,n^(i-1),n), so use
             % repmat to duplicate rows n times and columns m times, forming all possible combinations.
-            r{i} = r{i}*full(sparse(repmat(linspace(1,m^2,m),1,n),repmat(linspace(1,n^(i-1),n),m,1),1));
+            r{i} = r{i}*sparse(repmat(linspace(1,m^2,m),1,n),repmat(linspace(1,n^(i-1),n),m,1),1);
         end
     end
 else
