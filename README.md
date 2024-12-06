@@ -26,8 +26,11 @@ The control input $u$ is the horizontal force on the cart.
 The nonlinear equations of motion are
 
 ```math
-\begin{bmatrix}\dot{x}\\\\ddot{x}\\\\dot{\theta}\\\\ddot{\theta}\end{bmatrix}=\begin{bmatrix}x_2\\\\frac{-0.27x_2-0.18x_4^2\sin(x_3)+4\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\\\x_4\\\\frac{40\sin(x_3)-0.67x_2\cos(x_3)-0.44x_4^2\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}+\begin{bmatrix}0\\\\frac{2.7}{1.8-0.44\cos(x_3)^2}\\\0\\\\frac{6.7\cos(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}u
+\sqrt{3}
 ```
+
+$\begin{bmatrix}\dot{x}\\\\ddot{x}\\\\dot{\theta}\\\\ddot{\theta}\end{bmatrix}=\begin{bmatrix}x_2\\\\frac{-0.27x_2-0.18x_4^2\sin(x_3)+4\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\\\x_4\\\\frac{40\sin(x_3)-0.67x_2\cos(x_3)-0.44x_4^2\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}+\begin{bmatrix}0\\\\frac{2.7}{1.8-0.44\cos(x_3)^2}\\\0\\\\frac{6.7\cos(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}u$
+
 
 ```math
 y =
