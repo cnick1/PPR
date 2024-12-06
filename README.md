@@ -24,34 +24,13 @@ All of these quantities are cell arrays containing matrix coefficients defining 
 The outputs are the cart displacement $x$ and the pendulum angle $\theta$. 
 The control input $u$ is the horizontal force on the cart.
 The nonlinear equations of motion are
-$$
-        \begin{bmatrix}
-        \dot{x} \\
-        \ddot{x} \\
-        \dot{\theta} \\
-        \ddot{\theta}
-    \end{bmatrix}
-    =              
-    \begin{bmatrix}
-         x_2 \\ 
-         \frac{ - 0.27 x_2 - 0.18 x_4^2 \sin(x_3)  + 4 \cos(x_3) \sin(x_3)}
-         {1.8 - 0.44\cos(x_3)^2}\\ 
-         x_4 \\ 
-         \frac{40 \sin(x_3) - 0.67 x_2 \cos(x_3) - 0.44 x_4^2 \cos(x_3)\sin(x_3)}
-         {1.8 - 0.44\cos(x_3)^2}
-    \end{bmatrix}
-    +            
-    \begin{bmatrix}
-         0 \\ 
-         \frac{2.7 }
-         {1.8 - 0.44\cos(x_3)^2}\\ 
-         0 \\ 
-         \frac{6.7 \cos(x_3)}
-         {1.8 - 0.44\cos(x_3)^2}
-    \end{bmatrix} u
-$$
-$$
-    y =
+
+```math
+\begin{bmatrix}\dot{x}\\\\ddot{x}\\\\dot{\theta}\\\\ddot{\theta}\end{bmatrix}=\begin{bmatrix}x_2\\\\frac{-0.27x_2-0.18x_4^2\sin(x_3)+4\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\\\x_4\\\\frac{40\sin(x_3)-0.67x_2\cos(x_3)-0.44x_4^2\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}+\begin{bmatrix}0\\\\frac{2.7}{1.8-0.44\cos(x_3)^2}\\\0\\\\frac{6.7\cos(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}u
+```
+
+```math
+y =
     \begin{bmatrix}
         1 & 0 & 0 & 0 \\
         0 & 0 & 1 & 0
@@ -67,11 +46,11 @@ $$
         0 \\
         0
     \end{bmatrix} u
-$$
+```
 
 The linearized dynamics are then
-$$
-    \begin{bmatrix}
+```math
+\begin{bmatrix}
         \dot{x} \\
         \ddot{x} \\
         \dot{\theta} \\
@@ -97,7 +76,7 @@ $$
         0 \\
         5
     \end{bmatrix} u
-$$
+```
 which is almost identical to the model used in the LQR function documentation, except for the (2,2) entry which is -0.1 there. 
 `getSystem22()` uses the helper function `approxPolynomialDynamics()` to compute the polynomial coefficient arrays `f`, `g`, and `h` for the dynamics using the symbolic nonlinear dynamics.
 
@@ -424,42 +403,32 @@ Since the solutions computed herein are of a polynomial nature, the value functi
 The LQR value function which comes from the first term in the Taylor expansion and is a quadratic function guaranteed to be positive, satisfying the requirements of a Lyapunov function. 
 The higher-order polynomial approximations to the value function however are not guaranteed to satisfy the positivity requirement of a Lyapunov function outside of a neighborhood of the origin. 
 
-
-<!-- ## Tips
-lqr supports descriptor models with nonsingular E. The output S of lqr is the solution of the algebraic Riccati equation for the equivalent explicit state-space model:
-$$
-    \dot{x} = E^{−1}Ax+E^{−1} Bu
-$$ -->
-
 ## Algorithms
 For continuous-time systems, `ppr` computes the multi-input state-feedback control $u=K_1x+K_2x^{(2)}+K_3x^{(3)}$---where
  $x^{(2)}=(x\otimes x),x^{(3)}(x\otimes x\otimes x),etc.$ and $\otimes$ is the Kronecker product---that minimizes the polynomial cost function
-$$
-    \frac{1}{2} \int_{0}^{\infty} \left(x^\top Q x  +  u^\top R u + \sum_{p=3}^{\infty} q_p^\top x^{(p)} + \frac{1}{2} \sum_{p=1}^{\infty}
-  {x^{(p)}}^\top r_p^\top u^{(2)}\right)dt
-$$
+ 
+$$\frac{1}{2} \int_{0}^{\infty} \left(x^\top Q x  +  u^\top R u + \sum_{p=3}^{\infty} q_p^\top x^{(p)} + \frac{1}{2} \sum_{p=1}^{\infty}
+  {x^{(p)}}^\top r_p^\top u^{(2)}\right)dt$$
+  
 subject to the system dynamics 
-$$
-    \dot{x}  = \sum_{p=1}^\infty F_p x^{(p)} + \left(\sum_{p=0}^\infty G_p \left(x^{(p)} \otimes I_m\right) \right) u, \\
-$$
+
+$$\dot{x}  = \sum_{p=1}^\infty F_p x^{(p)} + \left(\sum_{p=0}^\infty G_p \left(x^{(p)} \otimes I_m\right) \right) u.$$
 
 This can be thought of as a Taylor approximation to the analytic optimal control problem
-$$
-    J(x,u)=\int_0^\infty \left(x^\top Q(x) x + u^\top R(x) u \right)dt 
-$$
+
+$$J(x,u)=\int_0^\infty \left(x^\top Q(x) x + u^\top R(x) u \right)dt$$
+
 subject to the control-affine system dynamics 
-$$
-    \dot{x} = f(x)+ g(x)u 
-$$
+
+$$\dot{x} = f(x)+ g(x)u.$$
 
 In addition to the state-feedback gains $K_i$, ppr returns the Taylor coefficients $v_i$ of value function associated with the Hamilton-Jacobi-Bellman equation
-$$
-    0 = \frac{\partial V^\top(x)}{\partial x}  f(x) - \frac{1}{2} \frac{\partial V^\top(x)}{\partial x}g(x) R^{-1}(x)g^\top(x) \frac{\partial V(x)}{\partial x} + \frac{1}{2} x^\top Q(x) x.
-$$
+
+$$0 = \frac{\partial V^\top(x)}{\partial x}  f(x) - \frac{1}{2} \frac{\partial V^\top(x)}{\partial x}g(x) R^{-1}(x)g^\top(x) \frac{\partial V(x)}{\partial x} + \frac{1}{2} x^\top Q(x) x.$$
+
 The gain coefficients $K_i$ are derived from $v_i$ using
-$$
-  u(x)  =  -R^{-1}(x) g^\top(x) \frac{\partial V(x(t))}{\partial x}.
-$$
+
+$$u(x)  =  -R^{-1}(x) g^\top(x) \frac{\partial V(x(t))}{\partial x}.$$
 
 
 ## Dependencies
