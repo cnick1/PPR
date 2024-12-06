@@ -16,7 +16,7 @@ All of these quantities are cell arrays containing matrix coefficients defining 
 <!-- collapse all -->
 <!-- ### LQR Control for Inverted Pendulum Model -->
 
-<details open>
+<details>
 <summary>PPR Control for Inverted Pendulum on a Cart Model</summary>
 <br>
 
@@ -25,15 +25,35 @@ The outputs are the cart displacement $x$ and the pendulum angle $\theta$.
 The control input $u$ is the horizontal force on the cart.
 The nonlinear equations of motion are
 
-```math
-\sqrt{3}
-```
+$`
+        \begin{bmatrix}
+        \dot{x} \\
+        \ddot{x} \\
+        \dot{\theta} \\
+        \ddot{\theta}
+    \end{bmatrix}
+    =              
+    \begin{bmatrix}
+         x_2 \\ 
+         \frac{ - 0.27 x_2 - 0.18 x_4^2 \sin(x_3)  + 4 \cos(x_3) \sin(x_3)}
+         {1.8 - 0.44\cos(x_3)^2}\\ 
+         x_4 \\ 
+         \frac{40 \sin(x_3) - 0.67 x_2 \cos(x_3) - 0.44 x_4^2 \cos(x_3)\sin(x_3)}
+         {1.8 - 0.44\cos(x_3)^2}
+    \end{bmatrix}
+    +            
+    \begin{bmatrix}
+         0 \\ 
+         \frac{2.7 }
+         {1.8 - 0.44\cos(x_3)^2}\\ 
+         0 \\ 
+         \frac{6.7 \cos(x_3)}
+         {1.8 - 0.44\cos(x_3)^2}
+    \end{bmatrix} u
+`$
 
-$\begin{bmatrix}\dot{x}\\\\ddot{x}\\\\dot{\theta}\\\\ddot{\theta}\end{bmatrix}=\begin{bmatrix}x_2\\\\frac{-0.27x_2-0.18x_4^2\sin(x_3)+4\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\\\x_4\\\\frac{40\sin(x_3)-0.67x_2\cos(x_3)-0.44x_4^2\cos(x_3)\sin(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}+\begin{bmatrix}0\\\\frac{2.7}{1.8-0.44\cos(x_3)^2}\\\0\\\\frac{6.7\cos(x_3)}{1.8-0.44\cos(x_3)^2}\end{bmatrix}u$
-
-
-```math
-y =
+$`
+    y =
     \begin{bmatrix}
         1 & 0 & 0 & 0 \\
         0 & 0 & 1 & 0
@@ -49,11 +69,12 @@ y =
         0 \\
         0
     \end{bmatrix} u
-```
+`$
 
 The linearized dynamics are then
-```math
-\begin{bmatrix}
+
+$`
+    \begin{bmatrix}
         \dot{x} \\
         \ddot{x} \\
         \dot{\theta} \\
@@ -79,7 +100,8 @@ The linearized dynamics are then
         0 \\
         5
     \end{bmatrix} u
-```
+`$
+
 which is almost identical to the model used in the LQR function documentation, except for the (2,2) entry which is -0.1 there. 
 `getSystem22()` uses the helper function `approxPolynomialDynamics()` to compute the polynomial coefficient arrays `f`, `g`, and `h` for the dynamics using the symbolic nonlinear dynamics.
 
@@ -113,10 +135,11 @@ Find the gain matrices $K_i$ using `ppr`.
 ```
 [~, K] = ppr(f, g, Q, R,8)
 ```
+```console
     K = 1×7 cell array
 
         {1×4 double}    {1×16 double}    {1×64 double}    {1×256 double}    {1×1024 double}    {1×4096 double}    {1×16384 double}
-
+```
 
 Unlike `lqr`, which returns a single gain matrix $K$, `ppr` return several matrices in a cell array. 
 The first entry in the array $K_1$ is precisely the 1x4 LQR gain matrix, hence an LQR controller can be computed by calling `ppr` with `degree` set to 2, which computes a quadratic value function approximation and a linear feedback. 
@@ -174,7 +197,7 @@ It is also worth noting that MPC can do swing-up control, whereas PPR and LQR cu
 
 </details>
 
-<details open>
+<details>
 <summary>PPR Control for Aircraft Stabilization Model</summary>
 <br>
 `getSystem7()` returns the cubic 3D state-space model of an F-8 aircraft cruising at 30,000 ft at Mach = 0.85 developed originally in [5].
@@ -182,11 +205,17 @@ The state represents the angle of attack $x_1$, the angle f the plane relative t
 The control input $u$ is the angle of the tail elevator.
 The nonlinear equations of motion are
 
-$$
-    \dot{x}_1  = x_3  - x_1^2 x_3 - 0.088 x_1 x_3 - 0.877 x_1 + 0.47 x_1^2 - 0.019 x_2^2 + 3.846 x_1^3 - 0.215 u + 0.28 u x_1^2\\
-    \dot{x}_2  = x_3  \\                                           
+$`
+    \dot{x}_1  = x_3  - x_1^2 x_3 - 0.088 x_1 x_3 - 0.877 x_1 + 0.47 x_1^2 - 0.019 x_2^2 + 3.846 x_1^3 - 0.215 u + 0.28 u x_1^2
+`$
+
+$`
+    \dot{x}_2  = x_3                                             
+`$ 
+
+$`    
     \dot{x}_3  = -0.396 x_3 - 4.208 x_1 - 0.47 x_1^2 - 3.564 x_1^3 - 20.967 u + 6.265 u x_1^2.
-$$ 
+`$ 
 
 The objective is to stabilize the aircraft subject to a perturbation in the initial angle of attack, i.e. bring the initial condition $x_0 = [\alpha_0 \quad 0 \quad 0]^\top$ asymptotically to the origin.
 
@@ -271,7 +300,7 @@ Below is the plot of the results comparing the controller performances for diffe
 
 ## Input Arguments
 <!-- collapse all -->
-<details open>
+<details>
 <summary>f — Drift vector field coefficients</summary>
 <br>
 cell array
@@ -281,7 +310,7 @@ The first coefficient is the n-by-n linear state matrix, `A = f{1}`, where n is 
 The remaining coefficients `f{i}` must be n-by-n^i matrices.
 </details>
 
-<details open>
+<details>
 <summary>g — Input vector field coefficients</summary>
 <br>
 cell array
@@ -291,7 +320,7 @@ The first coefficient is the n-by-m linear input-to-state matrix, `B = g{1}`, wh
 The remaining coefficients `g{i}` must be n-by-mn^(i-1) matrices.
 </details>
 
-<details open>
+<details>
 <summary>q — State-cost coefficients</summary>
 <br>
 cell array
@@ -309,7 +338,7 @@ Optionally, just the quadratic cost matrix `Q` can be passed.
 `q{2} = Q` should be a positive semi-definite matrix.
 </details>
 
-<details open>
+<details>
 <summary>r — Input-cost coefficients</summary>
 <br>
 cell array 
@@ -326,7 +355,7 @@ Optionally, just the quadratic cost matrix `R` can be passed.
 `r{1} = R` should be a positive definite matrix.
 </details>
 
-<details open>
+<details>
 <summary>d — Value function polynomial degree</summary>
 <br>
 length(f)+1 (default)| (typically even) integer
@@ -338,7 +367,7 @@ The default choice of `d` is `length(f)+1`.
 </details>
 
 
-<details open>
+<details>
 <summary>options — Solver options</summary>
 <br>
 structure
@@ -356,7 +385,7 @@ Solver options with the following fields:
 
 ## Output Arguments
 <!-- collapse all -->
-<details open>
+<details>
 <summary>v — Coefficients of solution approximation to the associated Hamilton-Jacobi-Bellman equation</summary>
 <br>
 cell array
@@ -366,7 +395,7 @@ Taylor coefficients of the value function, which is solution to the associated H
 `v{i}' is an n^i-by-1 vector.
 </details>
 
-<details open>
+<details>
 <summary>K — Optimal gain coefficients</summary>
 <br>
 cell array 
@@ -376,7 +405,7 @@ Taylor coefficients of the optimal feedback law, specified in Kronecker polynomi
 The higher-order `K{i}`, which are m-by-n^i matrices, are the higher-order coefficients in the Taylor expansion of the optimal control law.
 </details>
 
-<details open>
+<details>
 <summary>options — Solver options</summary>
 <br>
 structure
