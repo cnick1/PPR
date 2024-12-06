@@ -32,7 +32,7 @@ fprintf('\nRunning Example 9, Allen-Cahn example with Dirichlet BCs, for differe
 %% Construct controller
 y0 = .5; % Desired interface location
 epss = [0.01 0.0075 0.005]; performanceIndex=zeros(6,3);
-for j=1:3
+for j=1:1
     eps = epss(j);
     % Get system expanded about vref, reference configuration (@ origin) -> v = v+vref
     [f, B, ~, D, y, vref] = getSystem9(eps, n-1, y0);

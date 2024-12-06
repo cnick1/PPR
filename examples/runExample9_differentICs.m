@@ -111,9 +111,9 @@ end
 
 fprintf('\n# Table II Data (Allen-Cahn, Dirichlet BCs)\n');
 fprintf('# Control costs for different initial conditions\n');
-fprintf("      Controller    &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f  \n",x0s)
+fprintf("      Controller    &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f   &   x0=%5.2f  \n",x0s)
 for idx = 1:length(controllers)
-    fprintf("     %s   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f       \n",controllerNames{idx},performanceIndex(idx,:))
+    fprintf("     %s   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f   &  %9.3f       \n",controllerNames{idx},performanceIndex(idx,:))
 end
 
 % exportgraphics(figure(6),sprintf('plots/example9_mor_n%i_r%i_d%i.pdf',n,r,degree), 'ContentType', 'vector')

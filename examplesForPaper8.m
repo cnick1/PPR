@@ -1,7 +1,7 @@
 %  A script to run the examples in SIAM SISC paper
 %  The examples are the following:
 %   
-%       Example 10: 1D ODE toy example from Jeff's 2018 paper. The code
+%       Example 10: 1D ODE toy example inspired by Jeff's 2018 paper. The code
 %       here is just to compute energy functions and plot controllers
 %       working/not working. In the write-up I hardcoded the energy
 %       function values, so there is nothing to export with this example.
@@ -16,14 +16,25 @@
 close all; clear; clc;
 setKroneckerToolsPath
 addpath('examples')
+addpath('utils')
+
+%% Example 10: 1D Toy Example
+% Prints out the closed-loop dynamics of LQR and PPR controllers
+runExample10();
 
 %% Example 11: Inverted Pendulum 
-for nFterms = 3:2:9
-        runExample11(nFterms, nFterms+1);
+% Produces the value function plots, residual plots, and closed-loop phase
+% portrait (by calling external python script)
+for nFterms = 1:2:9
+    runExample11(nFterms, nFterms+1);
 end
-
-% Can run with acceleration using optional third argument
+% Can run with acceleration using optional third argument to do reduction
 runExample11(9, 10, 1);
+
+% Can play around with RofX and QofX for pendulum example, didn't have much success
+% for nFterms = 1:2:9
+%     runExample11_RofX(nFterms, nFterms+1);
+% end
 
 %% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 % Allen-Cahn example where we wish to move the interface. This example
@@ -39,6 +50,9 @@ runExample9(45,4,10)
 % Run cases with different initial conditions
 runExample9_differentICs(45, 4, 10)
 
-%% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
+%% Example 9: Allen-Cahn equation, Neumann Boundary Conditions
 % clear;clc;close all;
 runExample9_Neumann(14,6,0.5)
+
+%% Example 22: 4D Pendulum Cart Example
+runExample22();

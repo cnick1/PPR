@@ -47,7 +47,7 @@ function [f, g, h, zInit, M] = getSystem3(n, m, p, epsilon, alpha)
 if (nargin == 0)
     n = 16;
     m = 4;
-    p = 4;
+    p = 1;
     epsilon = 0.001; % set the viscosity parameter which controls the relative
     % importance of the nonlinear term
     alpha = 0; % a linear reaction term

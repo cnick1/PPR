@@ -227,11 +227,11 @@ K1 = -R\B.'*V2;
 K{1} = K1;
 
 if useReducedOrderModel
-    options.V2 = V2; options.q = q;
+    options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
     options = getReducedOrderModel(f,g,options);
 
     % Now replace f,g,q with fr,gr,qr
-    f = options.fr; g = options.gr; q = options.qr; n = options.r;
+    f = options.fr; g = options.gr; q = options.qr; r = options.Rr; n = options.r;
     A = f{1}; B = g{1};
 
     V2f = V2; K1f = K{1};
@@ -363,11 +363,12 @@ end
 if useReducedOrderModel
     %% Option 2: leave as reduced and use special data structure
     v{2} = vec(V2f);
-    for k = 3:degree
-        % v{k} = calTTv({options.TibInv}, k, k, v{k});
-    end
+    % for k = 3:degree
+    %     v{k} = calTTv({options.TibInv}, k, k, v{k}); % Naive way
+    % end
+    v = factoredValueArray(v, options.TibInv);
     K{1} = K1f;
-    K = factoredArray(K, options.TibInv);
+    K = factoredGainArray(K, options.TibInv);
 end
 
 
@@ -482,11 +483,24 @@ end
 
 % Transform dynamics using the linear (reduced) transformation Tib
 [options.fr, options.gr] = linearTransformDynamics(f, g, options.Tib);
+
+% Transform Q(x)
 for k = 2:length(options.q)
     if length(options.q{k}) == 1
         options.qr{k} = options.q{k};
     else
         options.qr{k} = calTTv({options.Tib}, k, k, options.q{k});
+    end
+end
+
+
+% Transform R(x)
+options.Rr{1} = options.R{1};
+for k = 2:length(options.R)
+    if length(options.R{k}) == 1
+        options.Rr{k} = options.R{k};
+    else
+        options.Rr{k} = calTTv({options.Tib}, k-1, k-1, options.R{k}.').';
     end
 end
 
