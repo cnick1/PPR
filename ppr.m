@@ -136,6 +136,33 @@ else
     q = {[], vec(Q)};
 end
 
+% Check if R is positive definite, negative definite, or zero
+if ~iscell(r) && length(r) == 1
+    if r > 0
+        % disp('R is positive definite.')
+        RPosDef = 1; % Case 1
+        Rinv = 1 / r;
+    elseif r < 0
+        % disp('R is negative definite.')
+        RPosDef = 2; % Case 2
+        Rinv = 1 / r;
+    else
+        % disp('R is zero')
+        RPosDef = 3; % Case 3
+        Rinv = 0;
+    end
+else
+    try
+        chol(r);
+        % disp('R is positive definite.')
+        RPosDef = 1; % Case 1
+    catch
+        % disp('R is negative definite.')
+        RPosDef = 2; % Case 2
+    end
+    Rinv = inv(r); % TODO: Yikes
+end
+
 if iscell(r) % Polynomial control penalty
     if length(r{1}) > 1
         R = reshape(r{1}, m, m);
@@ -166,32 +193,6 @@ else
     r = {vec(R)};
 end
 
-% Check if R is positive definite, negative definite, or zero
-if length(R) == 1
-    if R > 0
-        % disp('R is positive definite.')
-        RPosDef = 1; % Case 1
-        Rinv = 1 / R;
-    elseif R < 0
-        % disp('R is negative definite.')
-        RPosDef = 2; % Case 2
-        Rinv = 1 / R;
-    else
-        % disp('R is zero')
-        RPosDef = 3; % Case 3
-        Rinv = 0;
-    end
-else
-    try
-        chol(R);
-        % disp('R is positive definite.')
-        RPosDef = 1; % Case 1
-    catch
-        % disp('R is negative definite.')
-        RPosDef = 2; % Case 2
-    end
-    Rinv = inv(R); % TODO: Yikes
-end
 
 %% V2, Degree 2 coefficient (k=2 case)
 switch RPosDef
@@ -223,8 +224,7 @@ end
 
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
-K1 = -R\B.'*V2;
-K{1} = K1;
+K1 = -Rinv*B.'*V2; K{1} = K1;
 
 if useReducedOrderModel
     options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
@@ -356,7 +356,7 @@ if (degree > 2)
         end
 
         % Now multiply by R0^(inv)
-        K{k-1} = R\K{k-1};
+        K{k-1} = Rinv*K{k-1};
     end
 end
 
