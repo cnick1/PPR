@@ -16,7 +16,7 @@ All of these quantities are cell arrays containing matrix coefficients defining 
 <!-- collapse all -->
 <!-- ### LQR Control for Inverted Pendulum Model -->
 
-<details>
+<details open>
 <summary>PPR Control for Inverted Pendulum on a Cart Model</summary>
 <br>
 
@@ -197,7 +197,7 @@ It is also worth noting that MPC can do swing-up control, whereas PPR and LQR cu
 
 </details>
 
-<details>
+<details open>
 <summary>PPR Control for Aircraft Stabilization Model</summary>
 <br>
 `getSystem7()` returns the cubic 3D state-space model of an F-8 aircraft cruising at 30,000 ft at Mach = 0.85 developed originally in [5].
