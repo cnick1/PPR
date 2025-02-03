@@ -1,9 +1,18 @@
-function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
-%getSystem9 Cubic Allen-Cahn w/ Dirichlet BCs model using Chebychev discretization [1].
+function [f, g, h, D, y] = getSystem9(eps, N, y0)
+%getSystem9 Returns a cubic Allen-Cahn model using Chebychev spatial discretization [1].
 %
-%   Usage:  [f,g,h,D,y,vref] = getSystem9(eps, N, y0)
+%   Usage:  [f,g,h,D,y] = getSystem9(eps, N, y0)
 %
-%   Background: The Allen-Cahn equation is
+%   Inputs:        eps - Diffusion coefficient
+%                    N - number of Chebychev nodes
+%                   y0 - reference configuration?
+%
+%   Outputs:     f,g,h - Cell arrays containing the polynomial coefficients
+%                        for the drift, input, and output
+%                    D - differentiation matrix
+%                    y - spatial domain
+%
+%   Description: The Allen-Cahn equation is
 %                   u_t = eps*u_xx+u-u^3, u(-1)=-1, u(1)=1
 %       The spatial domain is discretized using Chebychev points, and the
 %       spatial derivative becomes u_x = D*u with differentiation matrix D.
@@ -58,7 +67,7 @@ vref = tanh((y-y0)/sqrt(2*eps));
 f{1} = eps*D2 + eye(n) - 3*diag(vref.^2);
 f{2} = sparse(1:n,linspace(1,n^2,n),-3*vref);
 f{3} = sparse(1:n,linspace(1,n^3,n),-1);
-g = eye(n); 
+g = eye(n);
 h = eye(n);
 
 % Select controls |--*--*--*--|

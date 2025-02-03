@@ -1,15 +1,24 @@
 function [f, g, h] = getSystem11(degree, m, L)
-%getSystem11  2D inverted pendulum with "degree" polynomial sin approximation.
+%getSystem11  Generates a 2D inverted pendulum model with "degree"
+%             polynomial sin approximation.
 %
 %   Usage:  [f,g,h] = getSystem11(degree, m, L)
 %
-%              \dot{x}_1 & = x_2                                                                                                                     \\
-%              \dot{x}_2 & = \frac{3T}{m\L^2} + \frac{3g}{2\L} (x_1-\frac{x_1^3}{6}+\frac{x_1^5}{120}-\frac{x_1^7}{5040} + \frac{x_1^9}{362880})
-%                   y    & = x_1
+%   Inputs:    degree - desired degree of the polynomial approximation
+%                   m - mass
+%                   L - pendulum length
 %
-%   Reference: [1] N. A. Corbin and B. Kramer, “The polynomial-polynomial regulator:
-%              computing feedback for polynomially nonlinear systems with polynomial
-%              performance indexes,” 2023.
+%   Outputs:    f,g,h  - Cell arrays containing the polynomial coefficients
+%                        for the drift, input, and output
+%
+% Description: The polynomial approximation to the pendulum is
+%           ẋ₁ = x₂
+%           ẋ₂ = 3u/(mL²) + 3g/(2L) ( x₁ - x₁³/6 + x₁⁵/120 - x₁⁷/5040 + x₁⁹/362880 + ... )
+%            y = x₁
+%
+%   Reference: [1] N. A. Corbin and B. Kramer, “Computing solutions to the
+%               polynomial-polynomial regulator problem,” in 2024 63rd IEEE
+%               Conference on Decision and Control, Dec. 2024
 %
 %%
 
