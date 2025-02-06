@@ -100,7 +100,7 @@ if iscell(f) % polynomial drift
         degree = lf+1;
     end
 else
-    A = full{f}; lf = 1;
+    A = full(f); lf = 1;
     f = {A};
 end
 
@@ -108,7 +108,7 @@ if iscell(g) % polynomial input
     B = full(g{1});
     lg = length(g) - 1;
 else
-    B = full{g};
+    B = full(g);
     lg = 0;
     g = {B};
 end
