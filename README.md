@@ -145,12 +145,12 @@ Unlike `lqr`, which returns a single gain matrix $K$, `ppr` return several matri
 The first entry in the array $K_1$ is precisely the 1x4 LQR gain matrix, hence an LQR controller can be computed by calling `ppr` with `degree` set to 2, which computes a quadratic value function approximation and a linear feedback. 
 The remaining $K_i$ are the higher order gain matrices corresponding to quadratic, cubic, etc. feedback terms. 
 
-A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval'. 
+A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval`. 
 Here we use the function to define both the LQR and PPR controllers, along with an "open-loop" controller corresponding to the uncontrolled system: 
 ```
-uOpenLoop = @(z) zeros(1,1);
-uLQR = @(z) (kronPolyEval(K, z, 1));
-uPPR = @(z) (kronPolyEval(K, z));
+uOpenLoop = @(x) zeros(1,1);
+uLQR = @(x) (kronPolyEval(K, x, 1));
+uPPR = @(x) (kronPolyEval(K, x));
 ```
 
 Using this format, we can easily simulate the closed-loop performance of the different controllers. 
@@ -257,10 +257,10 @@ The remaining $K_i$ are the higher order gain matrices corresponding to quadrati
 A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval`. 
 Here we use the function to define both the LQR and PPR controllers, along with an "open-loop" controller corresponding to the uncontrolled system: 
 ```
-uLQR = @(z) (kronPolyEval(K, z, 1));
-uPPR3 = @(z) (kronPolyEval(K, z, 3));
-uPPR5 = @(z) (kronPolyEval(K, z, 5));
-uPPR7 = @(z) (kronPolyEval(K, z, 7));
+uLQR = @(x) (kronPolyEval(K, x, 1));
+uPPR3 = @(x) (kronPolyEval(K, x, 3));
+uPPR5 = @(x) (kronPolyEval(K, x, 5));
+uPPR7 = @(x) (kronPolyEval(K, x, 7));
 ```
 
 Using this format, we can easily simulate the closed-loop performance of the different controllers. 
