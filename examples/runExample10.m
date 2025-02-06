@@ -39,7 +39,7 @@ fprintf('        PPR dynamics:   dx/dt = %s\n', char(vpa(FofXU(x, uPPR(x)),     
 
 %% See if closed-loop simulations match expectation
 return; % Comment this out to run the rest of the script
-uSDRE = @(z) sdre(@(y)(f{1}+f{2}*y+f{3}*y^2),@(y)(g{1}),Q2+diag(z.^2),R,z);
+uSDRE = @(z) sdre(@(y)(f{1}+f{2}*y+f{3}*y^2),@(y)(g{1}),Q2+diag(z.^2),R,z); %#ok<UNRCH>
 controllers = {uOpenLoop, uLQR, uSDRE, uPPR};
 controllerNames = {'Uncontrolled', 'LQR         ', 'SDRE        ', 'PPR         '};
 figure('Position',[113 277.6667 1.5807e+03 482.6667]);

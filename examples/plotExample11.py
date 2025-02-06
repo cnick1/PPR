@@ -1,3 +1,10 @@
+"""
+I prefer the way that these streamplot plots look in Python compared to 
+tikz/pgf (difficult because there are ode simulations to do) and Matlab. So 
+this function generates the phase portraits for the pendulum example using 
+the controller passed to it, which I compute in Matlab. 
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches

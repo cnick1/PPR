@@ -45,7 +45,7 @@ fprintf('Simulating...')
 % q = {0,0,sparse(linspace(1,2^3,2),1,0),sparse(linspace(1,2^4,2),1,100)}; r = {1,zeros(1,2)+0.0};
 q = 0; r = 1;
 options.verbose = true; options.r = reducedOrder; tic
-[w, GainsPPR, ~] = ppr(f, g, q, r, degree, options);
+[v, GainsPPR, ~] = ppr(f, g, q, r, degree, options);
 fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
 nX = 301; nY = nX; xLim = pi; yLim = 5;
@@ -56,8 +56,8 @@ HJBResidual = zeros(nY, nX); valueFunction = zeros(nY, nX);
 for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
-        valueFunction(i, j) = 0.5 * kronPolyEval(w, x, degree);
-        HJBResidual(i, j) = computeHJBResidual(gravity, L, g, w, degree, x);
+        valueFunction(i, j) = 0.5 * kronPolyEval(v, x, degree);
+        HJBResidual(i, j) = computeHJBResidual(gravity, L, g, v, degree, x);
         if valueFunction(i, j) < 0
             valueFunction(i, j) = NaN;
         end
@@ -70,8 +70,12 @@ xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex')
 set(gca, 'FontSize', 16); xticks([-pi, 0, pi]); xticklabels({'-\pi', '0', '\pi'})
 load(fullfile('utils', 'YlGnBuRescaled.mat')); colormap(flip(YlGnBuRescaled))
 clim([0 4e4])
-colorbar
 drawnow
+
+axis off
+fprintf('Exporting figure to: \n     plots/example11_valueFun_d%i_polynomial%i.pdf\n', degree, nFterms)
+exportgraphics(fig1, sprintf('plots/example11_valueFun_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
+colorbar
 
 fig2 = figure;
 pcolor(X, Y, log10(abs(HJBResidual))); shading interp;
@@ -80,6 +84,11 @@ set(gca, 'FontSize', 16); xticks([-pi, 0, pi]); xticklabels({'-\pi', '0', '\pi'}
 load('utils\YlGnBuRescaled.mat'); colormap(flip(YlGnBuRescaled))
 clim([-3 9])
 drawnow
+
+axis off
+fprintf('Exporting figure to: \n     plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
+exportgraphics(fig2, sprintf('plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
+
 
 %% Closed-loop phase portraits
 plotPhasePortrait(degree, GainsPPR)
