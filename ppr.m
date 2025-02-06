@@ -13,6 +13,10 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %               G = @(x) (g{1} + kronPolyEval(g(2:end), x));
 %           The system can then be simulated for example using ode45:
 %               [t, X] = ode45(@(t, x) F(x) + G(x) * uPPR(x), tspan, x0);
+%           In some cases, it is more efficient or more accurate to program
+%           F(x) and G(x) differently, e.g. instead of using the polynomial
+%           approximation given by the cell arrays f,g, sometimes the full
+%           nonlinear functions are known, e.g. sin(x), etc. 
 %       
 %       H∞ balancing energy functions can be computed as
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree);
