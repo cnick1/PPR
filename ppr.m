@@ -2,12 +2,22 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %ppr  Compute a polynomial approximation to the value function for a polynomial
 % control-affine dynamical system.
 %
-%   Usage: v = ppr(f, g, q, R, degree)
+%   Usage: [v, K] = ppr(f, g, q, r, degree)
 %
+%       PPR Controller can be computed as [~, K] = ppr(f, g, q, R, degree)
+%           Recommended implementation of PPR controllers for simulations
+%           is to define the dynamics and controller using the kronPolyEval
+%           function: 
+%               uPPR = @(x) (kronPolyEval(K, x));
+%               F = @(x) kronPolyEval(f, x);
+%               G = @(x) (g{1} + kronPolyEval(g(2:end), x));
+%           The system can then be simulated for example using ode45:
+%               [t, X] = ode45(@(t, x) F(x) + G(x) * uPPR(x), tspan, x0);
+%       
 %       H∞ balancing energy functions can be computed as
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree);
 %           [w] = ppr(f, g, h2q(h), 1/eta, degree);
-%
+%       
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
 %                 for the drift and input.

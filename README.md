@@ -254,7 +254,7 @@ Unlike `lqr`, which returns a single gain matrix $K$, `ppr` return several matri
 The first entry in the array $K_1$ is precisely the 1x3 LQR gain matrix, hence an LQR controller can be computed by calling `ppr` with `degree` set to 2, which computes a quadratic value function approximation and a linear feedback. 
 The remaining $K_i$ are the higher order gain matrices corresponding to quadratic, cubic, etc. feedback terms. 
 
-A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval'. 
+A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval`. 
 Here we use the function to define both the LQR and PPR controllers, along with an "open-loop" controller corresponding to the uncontrolled system: 
 ```
 uLQR = @(z) (kronPolyEval(K, z, 1));
@@ -264,7 +264,7 @@ uPPR7 = @(z) (kronPolyEval(K, z, 7));
 ```
 
 Using this format, we can easily simulate the closed-loop performance of the different controllers. 
-Define the system dynamics $\dot{x} = f(x) + g(x)u $ using anonymous functions:
+Define the system dynamics $\dot{x} = f(x) + g(x)u$ using anonymous functions:
 ```
 F = @(x) kronPolyEval(f, x);
 G = @(x) (g{1} + kronPolyEval(g(2:end), x));
