@@ -34,24 +34,24 @@ fprintf('Running Example 11\n')
 
 %% Get model
 m = 1; L = 10; gravity = 9.81;
-[f, g, ~] = getSystem11(nFterms, m, L);
+[f, g, ~, FofXU] = getSystem11(nFterms, m, L);
 
 %% Open-loop phase portrait
 % plotPhasePortrait(1, {[0, 0]})
 
-%% Value function plots
+%% Value function & HJB Residual plots
 fprintf('Simulating...')
 %  Compute the polynomial approximations to the past future energy function
 % q = {0,0,sparse(linspace(1,2^3,2),1,0),sparse(linspace(1,2^4,2),1,100)}; r = {1,zeros(1,2)+0.0};
 q = 0; r = 1;
 options.verbose = true; options.r = reducedOrder; tic
-[v, GainsPPR, ~] = ppr(f, g, q, r, degree, options);
+[v, K, ~] = ppr(f, g, q, r, degree, options);
 fprintf("completed ppr() in %2.2f seconds. \n", toc)
 
 nX = 301; nY = nX; xLim = pi; yLim = 5;
 xPlot = linspace(-xLim, xLim, nX); yPlot = linspace(-yLim, yLim, nY); [X, Y] = meshgrid(xPlot, yPlot);
 
-HJBResidual = zeros(nY, nX); valueFunction = zeros(nY, nX);
+HJBResidual = zeros(nY, nX); valueFunction = zeros(nY, nX); 
 
 for i = 1:nY
     for j = 1:nX
@@ -72,10 +72,10 @@ load(fullfile('utils', 'YlGnBuRescaled.mat')); colormap(flip(YlGnBuRescaled))
 clim([0 4e4])
 drawnow
 
-axis off
-fprintf('Exporting figure to: \n     plots/example11_valueFun_d%i_polynomial%i.pdf\n', degree, nFterms)
-exportgraphics(fig1, sprintf('plots/example11_valueFun_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
-colorbar
+% axis off
+% fprintf('Exporting figure to: \n     plots/example11_valueFun_d%i_polynomial%i.pdf\n', degree, nFterms)
+% exportgraphics(fig1, sprintf('plots/example11_valueFun_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
+% colorbar
 
 fig2 = figure;
 pcolor(X, Y, log10(abs(HJBResidual))); shading interp;
@@ -85,15 +85,41 @@ load('utils\YlGnBuRescaled.mat'); colormap(flip(YlGnBuRescaled))
 clim([-3 9])
 drawnow
 
-axis off
-fprintf('Exporting figure to: \n     plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
-exportgraphics(fig2, sprintf('plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
+% axis off
+% fprintf('Exporting figure to: \n     plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf\n', degree, nFterms)
+% exportgraphics(fig2, sprintf('plots/example11_valueFun-HJB-Error_d%i_polynomial%i.pdf', degree, nFterms), 'ContentType', 'vector', 'BackgroundColor', 'none');
 
 
 %% Closed-loop phase portraits
-plotPhasePortrait(degree, GainsPPR)
+plotPhasePortrait(degree, K)
+
+%% Evaluate region of attraction 
+% In this section I would like to do some estimates of the region of
+% attraction; there are a few approaches: 
+%   1) Using the quadratic approximation of the closed-loop Lyapunov
+%   function, can I prove a region, even if very conservative
+%   2) Using the full approximation of the Lyapunov function, similar to
+%   how I get the residual, can I get the region where the Lyapunov
+%   function properties are satisfied? *** Note, the region D in Khalil Thm
+%   4.1 is not the region of attraction! The largest lyapunov sublevel set
+%   IN D is the estimate. 
+
+% Method 2
 
 end
+
+
+% Helper functions
+function c = estimateRegionOfAttraction(f,g,K,FofXU)
+A_cl = f{1}-g{1}*K{1}; n = length(A_cl);
+
+Q = eye(n);
+P = lyap(A_cl.',Q); % P is positive definite for any positive definite Q
+
+
+end
+
+
 
 function plotPhasePortrait(degree, GainsPPR)
 uPPR = @(z) (kronPolyEval(GainsPPR, z));
@@ -113,12 +139,12 @@ terminate(pyenv);
 open('plots/example11_phasePortrait.pdf')
 end
 
-function res = computeHJBResidual(gravity, L, g, w, degree, x)
+function res = computeHJBResidual(gravity, L, g, v, degree, x)
 
-w = w(1:degree);
+v = v(1:degree);
 
 % constant input matrix B
-res = (0.5 * kronPolyDerivEval(w, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))] ...
-    - 1 / 2 * 0.25 * kronPolyDerivEval(w, x) * g{1} * g{1}.' * kronPolyDerivEval(w, x).';
+res = (0.5 * kronPolyDerivEval(v, x)) * [x(2); 3 * gravity / (2 * L) * sin(x(1))] ...
+    - 1 / 2 * 0.25 * kronPolyDerivEval(v, x) * g{1} * g{1}.' * kronPolyDerivEval(v, x).';
 
 end
