@@ -78,7 +78,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %   However, it is advantageous numerically to treat the two equations
 %   separately, alternating successively solving a term in one and then the
 %   other. We compute solution approximations to the HJB PDEs (1) and (2)
-%   using the method of Al'brekht, i.e. we compute the Taylor expansions:
+%   using the method of Al'brekht [2], i.e. we compute the Taylor expansions:
 %
 %           V(x) = 1/2 ( v₂ᵀ(x ⊗ x) + v₃ᵀ(x ⊗ x ⊗ x) + ... +   vᵈᵀ(... ⊗ x) )
 %           u(x) = K₁ x + K₂(x ⊗ x) +  K₃(x ⊗ x ⊗ x) + ... +  Kᵈ⁻¹(... ⊗ x) )
@@ -102,9 +102,11 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %
 %           Aᵀ V₂ + V₂ A - V₂ B R⁻¹ Bᵀ V₂ + Q = 0,
 %
-%   and K₁ = -R⁻¹ Bᵀ V₂. The remaining vᵢ solve linear systems arising 
-%   from (1), and the remaining Kᵢ solve linear systems arising from 
-%   (2). The details can be found in [1].
+%   and K₁ = -R⁻¹ Bᵀ V₂. The remaining vᵢ solve linear systems arising
+%   from (1), and the remaining Kᵢ solve linear systems arising from
+%   (2). The details can be found in [1]. The theoretical results can be
+%   found in [2,3]. This work is heavily inspired by and builds on the
+%   works [4,5,6].
 %
 %   Requires the following functions from the KroneckerTools repository:
 %      KroneckerSumSolver
@@ -118,6 +120,26 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %   Reference: [1] N. A. Corbin and B. Kramer, "Computing solutions to the
 %               polynomial-polynomial regulator problem,” in 2024 63rd IEEE
 %               Conference on Decision and Control, Dec. 2024
+%              [2] E. G. Al’brekht, “On the optimal stabilization of
+%               nonlinear systems," Journal of Applied Mathematics and
+%               Mechanics, vol. 25, no. 5, pp. 1254–1266, Jan. 1961, doi:
+%               10.1016/0021-8928(61)90005-3
+%              [3] D. L. Lukes, “Optimal regulation of nonlinear dynamical
+%               systems,” SIAM Journal on Control, vol. 7, no. 1, pp.
+%               75–100, Feb. 1969, doi: 10.1137/0307007
+%              [4] A. Krener, C. Aguilar, and T. Hunt, “Series solutions of
+%               HJB equations,” Mathematical System Theory—Festschrift in
+%               Honor of Uwe Helmke on the Occasion of his Sixtieth
+%               Birthday, pp. 247–260, 2013
+%              [5] J. Borggaard and L. Zietsman, “The quadratic-quadratic
+%               regulator problem: approximating feedback controls for
+%               quadratic-in-state nonlinear systems,” in 2020 American
+%               Control Conference (ACC), Jul. 2020, pp. 818–823. doi:
+%               10.23919/ACC45564.2020.9147286
+%              [6] J. Borggaard and L. Zietsman, “On approximating
+%               polynomial-quadratic regulator problems,” IFAC-PapersOnLine,
+%               vol. 54, no. 9, pp. 329–334, 2021, doi:
+%               10.1016/j.ifacol.2021.06.090.
 %
 %  Part of the PPR repository.
 %%
