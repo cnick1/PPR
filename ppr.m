@@ -1,13 +1,13 @@
 function [v,K,options] = ppr(f, g, q, r, degree, options)
-%ppr  Compute a polynomial approximation to the value function for a polynomial
-% control-affine dynamical system.
+%ppr Compute a polynomial approximation to the optimal feedback law
+%    and value function for a polynomial control-affine dynamical system.
 %
 %   Usage: [v, K] = ppr(f, g, q, r, degree)
 %
-%       PPR Controller can be computed as [~, K] = ppr(f, g, q, R, degree)
+%       PPR controller can be computed as [~, K] = ppr(f, g, q, R, degree)
 %           Recommended implementation of PPR controllers for simulations
 %           is to define the dynamics and controller using the kronPolyEval
-%           function: 
+%           function:
 %               uPPR = @(x) (kronPolyEval(K, x));
 %               F = @(x) kronPolyEval(f, x);
 %               G = @(x) (g{1} + kronPolyEval(g(2:end), x));
@@ -16,12 +16,12 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           In some cases, it is more efficient or more accurate to program
 %           F(x) and G(x) differently, e.g. instead of using the polynomial
 %           approximation given by the cell arrays f,g, sometimes the full
-%           nonlinear functions are known, e.g. sin(x), etc. 
-%       
+%           nonlinear functions are known, e.g. sin(x), etc.
+%
 %       H∞ balancing energy functions can be computed as
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree);
 %           [w] = ppr(f, g, h2q(h), 1/eta, degree);
-%       
+%
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
 %                 for the drift and input.
@@ -48,35 +48,63 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           - fr,gr,qr: reduced dynamics; if for example the past energy
 %             function has already been computed, instead of recomputing the
 %             reduced dynamics, they can be passed in directly.
-%           - eta: H-infinity balancing parameter. Defaults to open-loop balacing
+%           - eta: H-infinity balancing parameter. Defaults to open-loop balancing
 %                 (eta = 0).
-%
 %
 %   Output:
 %       v       - cell array containing the polynomial value function coefficients
-%       K       - cell array containing the polynomial (sub)optimal gain coefficients
+%       K       - cell array containing the polynomial optimal gain coefficients
 %       options - struct with additional outputs, e.g. reduced-order dynamics if they are computed
 %
-%   Background: Computes a degree d polynomial approximation to the value function
 %
-%          V(x) = 1/2 ( v{2}'*(x⊗x) + ... + v{d}'*(...⊗x) )
+%   Description: We seek a solution to the optimal control problem
 %
-%   for the polynomial control-affine system
+%           minᵤ   J(x,u) = ½∫ xᵀ Q(x) x + uᵀ R(x) u dt
+%           s.t.    ẋ = f(x) + g(x) u,   x(0) = x₀
 %
-%    \dot{x} = Ax + F2*(x⊗x) + F3*(x⊗x⊗x) + ...
-%              + Bu + G1*(x⊗u) + G2*(x⊗x⊗u) + ...
+%   The solution is given by the solution to the HJB PDEs
 %
-%   v{2} = vec(V2) = V2(:) solves the Algebraic Riccati Equation
+%       (1)  0 = 𝜕ᵀV(x)/𝜕x (f(x) + g(x) u) + ½ xᵀ Q(x) x + ½ uᵀ(x) R(x) u(x)
+%       (2)  0 = R(x) u(x) + gᵀ(x) 𝜕V(x)/𝜕x
 %
-%    A'*V2 + V2*A - V2*B*R^(-1)*B'*V2 + Q = 0,
+%   In theory, the second HJB PDE can be solved for the optimal control in
+%   terms of the gradient of the value function, which can then be used to
+%   eliminate u(x) from the first HJB PDE so that it becomes independent of
+%   u(x) and only depends on V(x):
 %
-%   and the remaining v{i} solve linear systems arising from the
-%   Hamilton-Jacobi-Bellman Partial Differential Equation. Details are in [1].
+%        u(x) = -R⁻¹(x) gᵀ(x) 𝜕V(x)/𝜕x
+%           0 = 𝜕ᵀV(x)/𝜕x f(x) - ½ 𝜕ᵀV(x)/𝜕x g(x) R⁻¹(x) gᵀ(x) 𝜕V(x)/𝜕x + ½ xᵀ Q(x) x
 %
-%   TODO:
-%    - Add documentation on how to use this to return an optimal control
-%    - Add documentation about the cost function that is being minimized
+%   However, it is advantageous numerically to treat the two equations
+%   separately, alternating successively solving a term in one and then the
+%   other. We compute solution approximations to the HJB PDEs (1) and (2)
+%   using the method of Al'brekht, i.e. we compute the Taylor expansions:
 %
+%           V(x) = 1/2 ( v₂ᵀ(x ⊗ x) + v₃ᵀ(x ⊗ x ⊗ x) + ... +   vᵈᵀ(... ⊗ x) )
+%           u(x) = K₁ x + K₂(x ⊗ x) +  K₃(x ⊗ x ⊗ x) + ... +  Kᵈ⁻¹(... ⊗ x) )
+%
+%   based on the Taylor expansions for the dynamics, written as
+%
+%           ẋ = A x + F₂ (x ⊗ x) + F₃ (x ⊗ x ⊗ x) + ...
+%               + B u + G₁ (x ⊗ u) + G₂ (x ⊗ x ⊗ u) + ...
+%           y = C x + H₂ (x ⊗ x) + ...
+%
+%   and the Taylor expansion of the cost, written in a similar form as
+%
+%           J(x,u) = ½∫ xᵀ Q x + uᵀ R u + q₃ᵀ(x ⊗ x ⊗ x) + ...
+%                       + xᵀr₁ᵀ(u ⊗ u) + ... dt
+%
+%   Inserting all these polynomial expressions into the HJB PDEs (1) and (2)
+%   leads to equations for the value function coefficients v₂, v₃,..., vᵈ
+%   and the optimal feedback law gain coefficients K₁, K₂, K₃,..., Kᵈ⁻¹.
+%   The first coefficients are the LQR solutions; v₂ = vec(V₂) = V₂(:)
+%   solves the Algebraic Riccati Equation
+%
+%           Aᵀ V₂ + V₂ A - V₂ B R⁻¹ Bᵀ V₂ + Q = 0,
+%
+%   and K₁ = -R⁻¹ Bᵀ V₂. The remaining vᵢ solve linear systems arising 
+%   from (1), and the remaining Kᵢ solve linear systems arising from 
+%   (2). The details can be found in [1].
 %
 %   Requires the following functions from the KroneckerTools repository:
 %      KroneckerSumSolver
@@ -87,9 +115,9 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %
 %   License: MIT
 %
-%   Reference: [1] N. A. Corbin and B. Kramer, “The polynomial-polynomial regulator:
-%              computing feedback for polynomially nonlinear systems with polynomial
-%              performance indexes,” 2023.
+%   Reference: [1] N. A. Corbin and B. Kramer, "Computing solutions to the
+%               polynomial-polynomial regulator problem,” in 2024 63rd IEEE
+%               Conference on Decision and Control, Dec. 2024
 %
 %  Part of the PPR repository.
 %%
