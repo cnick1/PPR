@@ -8,7 +8,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           Recommended implementation of PPR controllers for simulations
 %           is to define the dynamics and controller using the kronPolyEval
 %           function:
-%               uPPR = @(x) (kronPolyEval(K, x));
+%               uPPR = @(x) kronPolyEval(K, x);
 %               F = @(x) kronPolyEval(f, x);
 %               G = @(x) (g{1} + kronPolyEval(g(2:end), x));
 %           The system can then be simulated for example using ode45:
@@ -350,7 +350,8 @@ if (degree > 2)
                     i = k+1 - p_idx - q_idx;
                     if i==k; continue; end                % Skip the LHS term that is already accounted for
                     if i<2; break; end                    % Only run while we have V_i's left
-                    b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx});
+                    % b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx}); % Old way, should be identical but requires a symmetry argument. New way is more direct
+                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx))); % New way that matches the identity
                 end
             end
         end
