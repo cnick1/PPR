@@ -1,7 +1,7 @@
-function [f, g, h, D, y] = getSystem9(eps, N, y0)
+function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
 %getSystem9 Returns a cubic Allen-Cahn model using Chebychev spatial discretization [1].
 %
-%   Usage:  [f,g,h,D,y] = getSystem9(eps, N, y0)
+%   Usage:  [f,g,h,D,y,vref] = getSystem9(eps, N, y0)
 %
 %   Inputs:        eps - Diffusion coefficient
 %                    N - number of Chebychev nodes
@@ -11,6 +11,7 @@ function [f, g, h, D, y] = getSystem9(eps, N, y0)
 %                        for the drift, input, and output
 %                    D - differentiation matrix
 %                    y - spatial domain
+%                 vref - reference solution shifted to origin
 %
 %   Description: The Allen-Cahn equation is
 %                   u_t = eps*u_xx+u-u^3, u(-1)=-1, u(1)=1

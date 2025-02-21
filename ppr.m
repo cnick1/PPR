@@ -350,8 +350,7 @@ if (degree > 2)
                     i = k+1 - p_idx - q_idx;
                     if i==k; continue; end                % Skip the LHS term that is already accounted for
                     if i<2; break; end                    % Only run while we have V_i's left
-                    % b = b - i * vec(reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)).' * K{q_idx}); % Old way, should be identical but requires a symmetry argument. New way is more direct
-                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx))); % New way that matches the identity
+                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx))); 
                 end
             end
         end
