@@ -415,8 +415,13 @@ if (degree > 2)
             if p<1; break; end                               % Only run while we have K_p's left
             
             % Naive way
-            K{k-1} = K{k-1} - reshape(r{q_idx+1}.',m*n^q_idx,m).'*kron(K{p},speye(n^q_idx));
-            % TODO: replace ^ with efficient way
+            % K{k-1} = K{k-1} - reshape(r{q_idx+1}.',m*n^q_idx,m).'*kron(K{p},speye(n^q_idx));
+            
+            % Efficient way
+            Rq = reshape(r{q_idx+1}.',m*n^q_idx,m); % Reshape doesn't copy, just creates pointer
+            for j=1:m 
+                K{k-1}(j,:) = K{k-1}(j,:) - vec(reshape(Rq(:,j),n^q_idx,m)*K{p}).';
+            end
         end
         
         % Now multiply by R0^(inv)
