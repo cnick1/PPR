@@ -1,33 +1,30 @@
-function [f, g, h] = getSystem8(numElements, elementOrder)
-%getSystem8  Generates a cubic finite element heat equation model system 
-%   The system is a finite element model for a nonlinear heat equation, i.e.
-%   a reaction-diffusion equation. The function returns a finite element
-%   model with either linear or quadratic elements (elementOrder 1 or 2). 
-%   The state space dimension is n=numElements-1 for linear elements or
-%   n=2*numElements-1 for quadratic elements, due to the fixed end boundary
-%   conditions.
+function [f, g, h] = getSystem8(numElements, lambda)
+%getSystem8  Generates a cubic finite element heat equation model system
+%   The system is a finite element model for a nonlinear heat equation,
+%   i.e. a reaction-diffusion equation. The function returns a finite
+%   element model with linear elements. (Note: A previous version used to
+%   have quadratic elements partially implemented.) The state-space
+%   dimension is n=numElements-1 due to the fixed end boundary conditions.
 %
 %   Usage:   [f,g,h] = getSystem8()
-%         or [f,g,h] = getSystem8(numElements,elementOrder)
 %
 %   Inputs:
 %       numElements    - number of elements to discretize the domain with
 %                        (default = 4)
-%       elementOrder   - select either:
-%                          • 1 = linear elements (default)
-%                          • 2 = quadratic elements (not fully implemented)
+%       lambda         - coefficient on the reaction term; drives
+%                        instability for lambda > 0
 %
 %   Outputs:    f,g,h  - Cell arrays containing the polynomial coefficients
 %                        for the drift, input, and output
 %
 %   Description: The eaction-diffusion model used in [1] from [2-4] is a
-%   represented by the nonlinear heat equation PDE 
+%   represented by the nonlinear heat equation PDE
 %
 %     uₜ(x,t) = uₓₓ(x,t) + uₓ(x,t) + 1/8 u(x,t) + u(x,t)³
 %     u(0,t) = 0                     (Dirichlet BC)
 %     u(1,t) = 0                     (Dirichlet BC)
-% 
-%   which we augment with a control input. After FEM discretization, the 
+%
+%   which we augment with a control input. After FEM discretization, the
 %   finite element equations can be written as
 %
 %     M ẋ + K(x) x = B(x) u,
@@ -60,19 +57,17 @@ function [f, g, h] = getSystem8(numElements, elementOrder)
 %%
 vec = @(X) X(:);
 if nargin < 2
-    elementOrder = 1;
+    lambda = 1/8;
     if nargin < 1
         numElements = 4;
     end
 end
 
-if elementOrder == 2; error("Not fully implemented!"); end
-
 %% Prepare linear domain mesh parameters
 nel = numElements;            % number of elements
-nng = elementOrder * nel + 1; % number of nodes
+nng = nel + 1;                % number of nodes
 nvpn = 1;                     % number of variables per node
-nnpe = elementOrder + 1;      % number of nodes per element
+nnpe = 2;                     % number of nodes per element
 nvpe = nnpe * nvpn;           % number of variables per element
 nvg = nng * nvpn;             % number of variables in global mesh
 
@@ -82,101 +77,80 @@ nvg = nng * nvpn;             % number of variables in global mesh
 L = 30;                       % wire length
 gamma = 1;                    % mass property
 p = 1;                        % nondimensionalized diffusion coefficient
-q = -1/8;                     % -λ, to do with heat generation due to electrical resistance
+q = -lambda;                  % -λ, to do with heat generation due to electrical resistance
 
 %% Generate linear "mesh"
 xg = linspace(0, L, nng);     % node locations
 he = xg(nnpe) - xg(1);        % element length
 
-%% Assemble linear global matrices (mass and stiffness)
-% Define mass matrix for one element
-if elementOrder == 1
-    Me = he / 6 * ...
-        [2, 1;
-        1, 2];
-    
-    % Define stiffness matrix for one element
-    K1e = 1 / he * [1, -1;
-        -1, 1] ...
-        + q * he / 6 * [2, 1;
-        1, 2] ...
-        +1/2 * [-1 1;
-        -1 1];
-elseif elementOrder == 2
-    Me = he / 30 * ...
-        [4, 2, -1;
-        2, 16, 2;
-        -1, 2, 4];
-    
-    % Define stiffness matrix for one element
-    K1e = 1 / (3 * he) * [7, -8, 1;
-        -8, 16, -8;
-        1, -8, 7] ...
-        - he / 240 * [4, 2, -1;
-        2, 16, 2;
-        -1, 2, 4];
-end
-% Initialize and stack/assemble global matrix
-Mg = sparse(nvg, nvg);
-K1g = sparse(nvg, nvg);
+%% Generate element matrices Me, Ke, and Re and Assemble global system Mg, Kg, Rg
+% Define element matrix components
+L0 = he/6 * [2, 1;
+    1, 2];
 
-if elementOrder == 1
-    for ii = 1:nel
-        Mg(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) = Mg(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) + Me;
-        K1g(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) = K1g(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) + K1e;
-    end
-elseif elementOrder == 2
-    for i = 1:nel
-        ii = 2 * i - 1;
-        Mg(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) = Mg(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) + Me;
-        K1g(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) = K1g(ii:(ii + nvpe - 1), ii:(ii + nvpe - 1)) + K1e;
-    end
+L1 = 1/he * [1, -1;
+    -1, 1];
+
+L2 = 1/2*[-1, 1;
+    -1, 1];
+
+% Define element mass and stiffness matrices
+Me = gamma*L0;
+K1e = p*L1 + q*L0 + L2;
+
+% Initialize and stack/assemble global matrix
+Mg = zeros(nvg, nvg);
+K1g = zeros(nvg, nvg);
+
+for ie = 1:nel
+    nodes = ie:(ie + nvpe - 1);
+
+    % Assemble element matrices Me, Ke into global matrix Mg, Kg
+    Mg(nodes, nodes)  = Mg(nodes, nodes)  + Me;
+    K1g(nodes, nodes) = K1g(nodes, nodes) + K1e;
 end
+
 
 %% Assemble quadratic global matrix
 % Form all zero quadratic global matrix directly
-K2g = sparse(nvg, nvg ^ 2);
+K2g = sparse(nvg, nvg^2);
 
 %% Assemble cubic global matrix
 % Define stiffness matrix for one element
-if elementOrder == 1
-    K3e = -he / 20 * [4, 3, 0, 2, 0, 0, 0, 1;
-        1, 2, 0, 3, 0, 0, 0, 4];
-elseif elementOrder == 2
-    K3e = -he / 1260 * ...
-        [92, 96, -21, 0, 96, -24, 0, 0, 6, 0, 0, 0, 0, 32, -48, 0, 0, -12, 0, 0, 0, 0, 0, 0, 0, 0, -7;
-        32, 96, -12, 0, 96, -96, 0, 0, -12, 0, 0, 0, 0, 512, 96, 0, 0, 96, 0, 0, 0, 0, 0, 0, 0, 0, 32;
-        -7, -12, 6, 0, -48, -24, 0, 0, -21, 0, 0, 0, 0, 32, 96, 0, 0, 96, 0, 0, 0, 0, 0, 0, 0, 0, 92];
-end
+K3e = -he/20 * [4, 3, 0, 2, 0, 0, 0, 1;
+    1, 2, 0, 3, 0, 0, 0, 4];
 
 % Initialize and stack/assemble global matrix
-K3g = sparse(nvg, nvg ^ 3);
+K3g = sparse(nvg, nvg^3);
 
-if elementOrder == 1
-    for i = 0:nel - 1 % start from zero so you don't have to subtract 1 every time
-        ii = i * nvpn + 1;
-        idxs = (nvg ^ 2 + nvg + 1) * i * nvpn ... % Starting index shift depending on element iteration
-            + vec(( ...
-            vec(([1:nvpe] + [0:nvg:nvg * (nvpe - 1)]')')' ... % (basically the quadratic indices)
-            + [0:nvg ^ 2:nvg ^ 2 * (nvpe - 1)]' ... % Add secondary skips into sequence (add row to column and then vec)
-            )')';
-        
-        % "stack" element matrices into global matrix
-        K3g(ii:(ii + nvpe - 1), idxs) = K3g(ii:(ii + nvpe - 1), idxs) + K3e;
-    end
-elseif elementOrder == 2
-    for i = 1:nel
-        ii = 2 * i - 1;
-        idxs = (nvg ^ 2 + nvg + 1) * (i - 1) * nvpn * 2 ... % Starting index shift depending on element iteration
-            + vec(( ...
-            vec(([1:nvpe] + [0:nvg:nvg * (nvpe - 1)]')')' ... % (basically the quadratic indices)
-            + [0:nvg ^ 2:nvg ^ 2 * (nvpe - 1)]' ... % Add secondary skips into sequence (add row to column and then vec)
-            )')';
-        
-        % "stack" element matrices into global matrix
-        K3g(ii:(ii + nvpe - 1), idxs) = K3g(ii:(ii + nvpe - 1), idxs) + K3e;
-    end
+for ie = 1:nel
+    i = ie - 1;
+    % Construct nodes and cnodes: nodes contains the indices for the
+    % element nodes w.r.t. the global nodes. This is to map the element
+    % indices to the global variable u. Similarly, nodes3 maps the indices
+    % for the element nodes to the cubic variable (u⊗u⊗u). nodes3 is in
+    % particular a little tricky, as we need to figure out:
+    %   1) the skip due to going from element 1, 2, 3, i.e. the skip
+    %      corresponding to ie increasing in the loop 
+    %       (for the linear variable, we just go up by 1 each time, 
+    %        but for the cubic variable we need to go up by chunks)
+    %   2) the skips due to global nodes that are not in the element 
+    %              (for the linear variable, all the  
+    %              element nodes are grouped together)
+    % Both of these skips are somewhat recursive, in that the skips for
+    % (u⊗u⊗u) involve the skips needed for (u⊗u), etc. A commonly used
+    % trick for this process is to add a column vector and a row vector to 
+    % get all the combinations.
+    nodes = ie:(ie + nvpe - 1); % node numbers in u
+
+    nodes3 = (nvg^2 + nvg + 1) * i  ... % shift (1) in starting index for on element iteration
+        + vec(vec([1 2]' + [0 nvg]) ... % shift (2); [0 nvg] part basically does the quadratic  
+        + [0 nvg^2]);                   % shifts, which is then added to [0 nvg^2] for the cubic shifts       
+
+    % "stack" element matrices into global matrix
+    K3g(nodes, nodes3) = K3g(nodes, nodes3) + K3e;
 end
+
 
 %% RHS
 % TODO
@@ -197,7 +171,7 @@ freeDOFs = setdiff(1:nvg, fixedDOFs);
 
 % Reduced system method
 K1g = K1g(freeDOFs, freeDOFs);
-Mg = Mg(freeDOFs, freeDOFs);
+Mg  =  Mg(freeDOFs, freeDOFs);
 RB0 = RB0(freeDOFs, :);
 
 % K2G could clean up
@@ -221,21 +195,20 @@ n = length(Mg);
 
 McholL = chol(Mg).'; % Use Cholesky factor for inverting rather than inv()
 
+% Construct F₁, F₂, & F₃
 F1 = -McholL.' \ (McholL \ K1g);
+F2 = -McholL.' \ (McholL \ K2g);
+F3 = -McholL.' \ (McholL \ K3g);
 
-G0 = McholL.' \ (McholL \ RB0);
-
+% Construct B & C
+B = McholL.' \ (McholL \ RB0);
 C = RB0.';
 
-% Construct N₂
-F2 = -McholL.' \ (McholL \ K2g);
 
-% Construct N₃
-F3 = -McholL.' \ (McholL \ K3g);
 
 %% Format outputs
 f = {full(F1), F2, F3};
-g = {full(G0)};
+g = {full(B)};
 h = {full(C)};
 
 end
