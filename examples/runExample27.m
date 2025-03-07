@@ -4,17 +4,16 @@ function runExample27()
 %   Usage:  runExample27()
 %
 %   Description: The model, inspired by [1], describes an unstable heat
-%   equation problem modeling heat generated in a resistive electrical
-%   wire. The resulting model takes the form
+%   equation problem. The model takes the form
 %
-%     uₜ(x,t) = uₓₓ(x,t) + λ u(x,t)
+%     uₜ(x,t)  = ε uₓₓ(x,t) + λ u(x,t) + μ u(x,t)³
 %     uₓ(0,t) = 0                     (Neumann BC)
 %     uₓ(1,t) = u(t)                  (Neumann boundary control input)
 %
 %   where one end is insulated and one end is subject to Neumann boundary
 %   control. The FEM model can be written (after multiplying by M⁻¹) as
 %
-%       ẋ = A x + B u
+%       ẋ = A x + F₃(x⊗x⊗x) + B u
 %       y = C x
 %
 %   for which we can compute a controller u(x) = K(x) using PPR.
@@ -31,14 +30,16 @@ function runExample27()
 fprintf('Running Example 27\n')
 
 % Get dynamics
-n = 100;
-[f, g, ~, xg] = getSystem27(n-1,3);
-F = @(x) f{1}*x; G = @(x) g{1};
+n = 20;
+[f, g, ~, xg] = getSystem27(n-1,1,1,1);
+F = @(x) kronPolyEval(f, x); G = @(x) g{1};
+% F = @(x) f{1}*x; G = @(x) g{1};
 
 % Get value function/controller
-q = 1; R = 1; degree = 2;
+q = 0.5; R = 1; degree = 4;
 [~, K] = ppr(f, g, q, R, degree);
 
+uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
 
 % To compare with back-stepping controller from [1]
@@ -58,31 +59,39 @@ uPPR = @(x) kronPolyEval(K, x, degree-1);
 % x0 = 1 - 11*xg.^2 + 18* xg.^3 - 8*xg.^4;
 % x0 = 1 - 15*xg.^2 + 26* xg.^3 - 12*xg.^4;
 % x0 = 1 - 13.5*xg.^2 + 14* xg.^3 - 1.5*xg.^10;
-x0 = 1 - 12*xg.^2 + 12* xg.^3 - 1*xg.^12;
-tmax = 1; t = 0:0.0002:tmax; % specify for plotting
+% x0 = 1 - 12*xg.^2 + 12* xg.^3 - 1*xg.^12;
+x0 = 1.1 + 0.*xg;
+tmax = 5; t = 0:0.1:tmax; % specify for plotting
 
-[t, XUNC] = ode45(@(t, x) F(x)                 , t, x0);
+[~, XUNC] = ode45(@(t, x) F(x)                 , t, x0);
+[~, XLQR] = ode45(@(t, x) F(x) + G(x) * uLQR(x), t, x0);
 [t, XPPR] = ode45(@(t, x) F(x) + G(x) * uPPR(x), t, x0);
 
 
 %% Plot solution
 figure
 % figure('Position',[474.3333 340.3333 925.3333 300.6667]);
-subplot(2,1,1)
-mesh(xg(1:2:end),t(1:100:end),XUNC(1:100:end,1:2:end));
-grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]);
+subplot(3,1,1)
+mesh(xg,t(1:size(XUNC,1)),XUNC);
+grid on, axis([0 1 0 tmax -1.125 1.125]), view(145,35), colormap([0 0 0]);
 xlabel x, ylabel t, zlabel u(x,t), title Uncontrolled; drawnow
 
 % figure('Position',[474.3333 340.3333 925.3333 300.6667]);
-subplot(2,1,2)
-mesh(xg(1:2:end),t(1:100:end),XPPR(1:100:end,1:2:end));
-grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]);
+subplot(3,1,2)
+mesh(xg,t(1:size(XLQR,1)),XLQR);
+grid on, axis([0 1 0 tmax -1.125 1.125]), view(145,35), colormap([0 0 0]);
+xlabel x, ylabel t, zlabel u(x,t), title LQR; drawnow
+
+
+subplot(3,1,3)
+mesh(xg,t,XPPR);
+grid on, axis([0 1 0 tmax -1.125 1.125]), view(145,35), colormap([0 0 0]);
 xlabel x, ylabel t, zlabel u(x,t), title PPR; drawnow
 
 
 % figure
 % % Animate
-% for i=1:100:length(t)
+% for i=1:10:length(t)
 %     plot(xg,X(i,:));
 %     xlim([0 1]); ylim([-1 1]); drawnow
 % end

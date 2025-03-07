@@ -10,17 +10,17 @@ function [f, g, h] = getSystem8(numElements, lambda)
 %
 %   Inputs:
 %       numElements    - number of elements to discretize the domain with
-%                        (default = 4)
+%                                                           (default =  4 )
 %       lambda         - coefficient on the reaction term; drives
-%                        instability for lambda > 0
-%
+%                        instability for lambda > 0         (default = 1/8)
+%                                                            
 %   Outputs:    f,g,h  - Cell arrays containing the polynomial coefficients
 %                        for the drift, input, and output
 %
-%   Description: The eaction-diffusion model used in [1] from [2-4] is a
+%   Description: The reaction-diffusion model used in [1] from [2-4] is a
 %   represented by the nonlinear heat equation PDE
 %
-%     uₜ(x,t) = uₓₓ(x,t) + uₓ(x,t) + 1/8 u(x,t) + u(x,t)³
+%     uₜ(x,t) = uₓₓ(x,t) + uₓ(x,t) + λ u(x,t) + u(x,t)³
 %     u(0,t) = 0                     (Dirichlet BC)
 %     u(1,t) = 0                     (Dirichlet BC)
 %
@@ -92,7 +92,7 @@ L1 = 1/he * [1, -1;
     -1, 1];
 
 L2 = 1/2*[-1, 1;
-    -1, 1];
+    -1, 1]; % If i remember correctly this is for the uₓ term
 
 % Define element mass and stiffness matrices
 Me = gamma*L0;
@@ -101,7 +101,6 @@ K1e = p*L1 + q*L0 + L2;
 % Initialize and stack/assemble global matrix
 Mg = zeros(nvg, nvg);
 K1g = zeros(nvg, nvg);
-
 for ie = 1:nel
     nodes = ie:(ie + nvpe - 1);
 
@@ -193,15 +192,15 @@ K3g = K3g(freeDOFs, freeDOFsCubed);
 %% Convert to state-space representation
 n = length(Mg);
 
-McholL = chol(Mg).'; % Use Cholesky factor for inverting rather than inv()
+Mchol = chol(Mg).'; % Use Cholesky factor for inverting rather than inv()
 
 % Construct F₁, F₂, & F₃
-F1 = -McholL.' \ (McholL \ K1g);
-F2 = -McholL.' \ (McholL \ K2g);
-F3 = -McholL.' \ (McholL \ K3g);
+F1 = -Mchol.' \ (Mchol \ K1g);
+F2 = -Mchol.' \ (Mchol \ K2g);
+F3 = -Mchol.' \ (Mchol \ K3g);
 
 % Construct B & C
-B = McholL.' \ (McholL \ RB0);
+B = Mchol.' \ (Mchol \ RB0);
 C = RB0.';
 
 
