@@ -3,19 +3,19 @@ function runExample27()
 %
 %   Usage:  runExample27()
 %
-%   Description: The model, inspired by [1], described an unstable heat
+%   Description: The model, inspired by [1], describes an unstable heat
 %   equation problem modeling heat generated in a resistive electrical
-%   wire. The resulting model takes the form 
-% 
-%     u_t(x,t) = u_xx(x,t) + λ u(x,t)
-%     u_x(0,t) = 0                     (Neumann BC)
-%     u_x(1,t) = u(t)                  (Neumann boundary control input)
+%   wire. The resulting model takes the form
+%
+%     uₜ(x,t) = uₓₓ(x,t) + λ u(x,t)
+%     uₓ(0,t) = 0                     (Neumann BC)
+%     uₓ(1,t) = u(t)                  (Neumann boundary control input)
 %
 %   where one end is insulated and one end is subject to Neumann boundary
-%   control. The FEM model can be written (after multiplying by M⁻¹) as 
+%   control. The FEM model can be written (after multiplying by M⁻¹) as
 %
 %       ẋ = A x + B u
-%       y = C x 
+%       y = C x
 %
 %   for which we can compute a controller u(x) = K(x) using PPR.
 %
@@ -29,10 +29,9 @@ function runExample27()
 %   Part of the PPR repository.
 %%
 fprintf('Running Example 27\n')
-clc; 
 
 % Get dynamics
-n = 100; 
+n = 100;
 [f, g, ~, xg] = getSystem27(n-1,3);
 F = @(x) f{1}*x; G = @(x) g{1};
 
@@ -46,9 +45,9 @@ uPPR = @(x) kronPolyEval(K, x, degree-1);
 % a = 0.95*pi/2; alpha = 3;
 % uBS = @(x) -(alpha + a*tan(a))*x(end) - (alpha*a*tan(a) + a^2/cos(a)^2)*trapz(xg,x);
 
-%% Simulate and compute control costs
-% alpha = 4; d = -8; 
-% alpha = 12; d = -1; 
+%% Simulate closed-loop system
+% alpha = 4; d = -8;
+% alpha = 12; d = -1;
 % b = [1 1;2 3]\[-1-d;-alpha*d]; c=b(2);b=b(1);
 % x0 = 1 + b*xg.^2 + c*xg.^3 + d*xg.^alpha;
 % figure;plot(xg,x0)
@@ -66,17 +65,18 @@ tmax = 1; t = 0:0.0002:tmax; % specify for plotting
 [t, XPPR] = ode45(@(t, x) F(x) + G(x) * uPPR(x), t, x0);
 
 
+%% Plot solution
 figure
-% figure('Position',[474.3333 340.3333 925.3333 300.6667]); 
+% figure('Position',[474.3333 340.3333 925.3333 300.6667]);
 subplot(2,1,1)
 mesh(xg(1:2:end),t(1:100:end),XUNC(1:100:end,1:2:end));
-grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]); 
+grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]);
 xlabel x, ylabel t, zlabel u(x,t), title Uncontrolled; drawnow
 
-% figure('Position',[474.3333 340.3333 925.3333 300.6667]); 
+% figure('Position',[474.3333 340.3333 925.3333 300.6667]);
 subplot(2,1,2)
 mesh(xg(1:2:end),t(1:100:end),XPPR(1:100:end,1:2:end));
-grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]); 
+grid on, axis([0 1 0 tmax -1 1]), view(145,35), colormap([0 0 0]);
 xlabel x, ylabel t, zlabel u(x,t), title PPR; drawnow
 
 

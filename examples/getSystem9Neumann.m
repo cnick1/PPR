@@ -4,19 +4,19 @@ function [f, g, Q, D2, y] = getSystem9Neumann(eps, n)
 %   Usage:  [f,g,Q,D,y] = getSystem9Neumann(eps, N, y0)
 %
 %   Background: The Allen-Cahn equation is
-%                   u_t = eps*u_xx+u-u^3, u_x(-1)=0, u_x(1)=0
+%                   uₜ = eps*uₓₓ+u-u³, uₓ(-1)=0, uₓ(1)=0
 %       The spatial domain is discretized using Chebychev points, and the
-%       spatial derivative becomes u_x = D*u with differentiation matrix D.
+%       spatial derivative becomes uₓ = D*u with differentiation matrix D.
 %       The spatial domain x and differentiation matrix D are given by the
 %       cheb() function from [1]. The system has equilibrium solutions
-%       u(x) = -1, 0, 1, which all satisfy the Neumann boundary conditions. 
+%       u(x) = -1, 0, 1, which all satisfy the Neumann boundary conditions.
 %       The family of steady-state solutions given by u(x) = tanh((x-x0)/sqrt(2*eps))
-%       also form equilibrium solutions. 
-%       
-%       Upon discretization, the model is
-%                   u_t = eps*D^2*u+u-u^3
+%       also form equilibrium solutions.
 %
-%           -> A = eps*D^2 + I
+%       Upon discretization, the model is
+%                   uₜ = eps*D²*u+u-u³
+%
+%           -> A = eps*D² + I
 %       The equilibrium at the origin is the unstable u(x)=0, so we seek to
 %       stabilize it.
 %
@@ -60,16 +60,16 @@ f{3} = sparse(1:n,linspace(1,n^3,n),-1);
 omega_left = -0.5;omega_right = 0.2;
 B = double(y>=omega_left & y<=omega_right).*(y-omega_left) + double(y>omega_right).*(omega_right-omega_left);
 B = D*B;
-B = B(2:N); 
+B = B(2:N);
 
-g = B; 
+g = B;
 y = y(2:N);
 
 %% Cost state penalty matrix x.'Qx
 G0 = D(1:N,1:N)';
 wxi = G0\eye(N,1);
 wxi = wxi(2:N) + wxi(1)*s_bound(1,:)';
-Q = diag(wxi); 
+Q = diag(wxi);
 
 end
 

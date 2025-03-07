@@ -14,9 +14,9 @@ function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
 %                 vref - reference solution shifted to origin
 %
 %   Description: The Allen-Cahn equation is
-%                   u_t = eps*u_xx+u-u^3, u(-1)=-1, u(1)=1
+%                   uₜ = eps*uₓₓ+u-u³, u(-1)=-1, u(1)=1
 %       The spatial domain is discretized using Chebychev points, and the
-%       spatial derivative becomes u_x = D*u with differentiation matrix D.
+%       spatial derivative becomes uₓ = D*u with differentiation matrix D.
 %       The spatial domain x and differentiation matrix D are given by the
 %       cheb() function from [1]. The system has equilibrium solutions
 %       u(x) = -1, 0, 1; however, these don't satisfy the boundary
@@ -24,13 +24,13 @@ function [f, g, h, D, y, vref] = getSystem9(eps, N, y0)
 %       steady-state of the system: u(x) = tanh((x-x0)/sqrt(2*eps)).
 %
 %       Upon discretization, the model is
-%                   u_t = eps*D^2*u+u-u^3
+%                   uₜ = eps*D²*u+u-u³
 %
-%           -> A = eps*D^2 + I
+%           -> A = eps*D² + I
 %       But the equilibrium at the origin is the unstable u(x)=0. We shift
 %       the equilibrium u_ref = tanh((x-x0)/sqrt(2*eps)) to the origin,
 %       giving a new A matrix and introducing a quadratic drift component
-%       F2 as well. u^3 can be written as F3*kron(u,kron(u,u)).
+%       F2 as well. u³ can be written as F3*kron(u,kron(u,u)).
 %
 %       The model and code is based on p34.m from [1].
 %

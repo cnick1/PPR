@@ -1,4 +1,4 @@
-function [w] = runExample8(exportData, x0)
+function runExample8(x0)
 %runExample8 Runs the finite element heat equation example to demonstrate
 %            convergence and scalability.
 %
@@ -9,10 +9,6 @@ function [w] = runExample8(exportData, x0)
 %       exportData      - Boolean variable to determine if
 %                         plots/data are exported
 %       x0              - Initial condition
-%
-%   Outputs:
-%       v,w             - Coefficients of the past and future energy
-%                         function approximations, respectively
 %
 %   The value of eta is set below.
 %
@@ -30,19 +26,16 @@ function [w] = runExample8(exportData, x0)
 %               Journal of Differential Equations, vol. 208, no. 1, pp.
 %               176–193, Jan. 2005, doi: 10.1016/j.jde.2004.02.016
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %%
+fprintf('Running Example 8\n')
 
-if nargin < 2
-    if nargin < 1
-        exportData = false;
-    end
+if nargin < 1    
     x0 = 1e-5;
 end
-
+exportData = false;
 eta = 0.5;
 
-fprintf('Running Example 8\n')
 
 %%
 %  Computational performance of the energy function approximations.
@@ -67,7 +60,7 @@ for numEl = numEls
 
     [f, g, h] = getSystem8(numEl);
 
-    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta, degree); end, tt = toc / nTest;
+    tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
 
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
@@ -95,7 +88,7 @@ if exportData
 
         [f, g, h] = getSystem8(numEl);
 
-        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta, degree); end, tt = toc / nTest;
+        tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
 
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
@@ -156,7 +149,7 @@ for numEl = numEls
 
     [f, g, h] = getSystem8(numEl);
 
-    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta, degree); end, tt = toc / nTest;
+    tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
 
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
@@ -185,7 +178,7 @@ if exportData
 
         [f, g, h] = getSystem8(numEl);
 
-        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta, degree); end, tt = toc / nTest;
+        tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
 
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
@@ -276,7 +269,7 @@ end
 %
 %     % Future
 %     tic; for i = 1:nTest,
-%         [w] = approxFutureEnergy(f, g, h, eta, degree);
+%         [w] = ppr(f, g, h2q(h), 1/eta, degree);
 %     end, tt = toc / nTest;
 %
 %     fprintf(fileID, '%8.2e  & ', tt);
@@ -310,7 +303,7 @@ end
 %
 %         % Future
 %         tic; for i = 1:nTest,
-%             [w] = approxFutureEnergy(f, g, h, eta, degree);
+%             [w] = ppr(f, g, h2q(h), 1/eta, degree);
 %         end, tt = toc / nTest;
 %
 %         fprintf(fileID, '%8.2e  & ', tt);
