@@ -22,33 +22,43 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           [v] = ppr(f, g, cellfun(@(x) x * (-eta), h2q(h), 'un', 0), -1, degree);
 %           [w] = ppr(f, g, h2q(h), 1/eta, degree);
 %
+%       For dynamics in descriptor form with an invertible mass matrix E,
+%           sparsity can be leveraged by passing the mass matrix E as an
+%           optional argument. 
+%               options.E = [mass matrix];
+%               [v, K] = ppr(f, g, q, r, degree, options)
+%           In this case, the value function is computed for a transformed 
+%           coordinate system z = E*x, so to evaluate it one would call 
+%               V = @(x) kronPolyEval(v, E*x);
+%
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
 %                 for the drift and input.
 %       q       - cell arrays containing the polynomial coefficients for the
 %                 state penalty in the cost. At minimum q{2} = Q(:) where Q is
-%                 the quadratic weighting, i.e. x.'*Q*x (can optionally pass Q
+%                 the quadratic weighting, i.e. xᵀ Q x (can optionally pass Q
 %                 matrix directly in this case)
 %       r       - cell arrays containing the polynomial coefficients for the
 %                 control penalty in the cost. At minimum r{1} = R where R is
-%                 the quadratic weighting, i.e. u.'*R*u (can optionally pass R
+%                 the quadratic weighting, i.e. uᵀ R u (can optionally pass R
 %                 matrix directly in this case)
 %       degree  - desired degree of the computed value function. A degree d
 %                 energy function uses information from f,g,q up-to degree d-1.
 %                 The default choice of d is lf+1, where lf is the degree of
 %                 the drift.
 %       options - struct containing additional options:
-%           - verbose: print runtime information
+%           • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u
+%           • verbose: print runtime information
 %         * The next set of options are used for accelerating the computations.
 %           We can use linear balanced truncation to compute a reduced-order model
 %           of dimension r, and then use the reduced dynamics to compute the energy
 %           functions in r dimensions rather than n; this can present a huge
 %           computational speedup.
-%           - r: dimension "r" of reduced order model. (Defaults to n)
-%           - fr,gr,qr: reduced dynamics; if for example the past energy
+%           • r: dimension "r" of reduced order model. (Defaults to n)
+%           • fr,gr,qr: reduced dynamics; if for example the past energy
 %             function has already been computed, instead of recomputing the
 %             reduced dynamics, they can be passed in directly.
-%           - eta: H-infinity balancing parameter. Defaults to open-loop balancing
+%           • eta: H-infinity balancing parameter. Defaults to open-loop balancing
 %                 (eta = 0).
 %
 %   Output:
@@ -154,6 +164,8 @@ end
 
 if ~isfield(options,'verbose'); options.verbose = false; end
 if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
+if ~isfield(options,'E'); options.E = []; end
+E = full(options.E); 
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f) % polynomial drift
@@ -217,14 +229,14 @@ if ~iscell(r) && length(r) == 1
     end
 else
     try
-        chol(r);
+        chol(r{1});
         % disp('R is positive definite.')
         RPosDef = 1; % Case 1
     catch
         % disp('R is negative definite.')
         RPosDef = 2; % Case 2
     end
-    Rinv = inv(r); % TODO: Yikes
+    Rinv = inv(r{1}); % TODO: Yikes
 end
 
 if iscell(r) % Polynomial control penalty
@@ -261,19 +273,19 @@ end
 %% V2, Degree 2 coefficient (k=2 case)
 switch RPosDef
     case 1 % Positive definite R
-        V2 = icare(A, B, Q, R);
+        V2 = icare(A, B, Q, R, [], E);
     case 2 % Negative definite R
         if isscalar(R) && R == -1 && isscalar(Q) && Q == 0 % Computing open-loop controllability energy function; use lyap
-            V2 = inv(lyap(A,(B*B.')));
+            V2 = inv(lyap(A,(B*B.'),[],E));
         else % at least one case is when computing past energy function
-            V2 = icare(A, B, Q, R, 'anti'); % alternatively -icare(-A, -B, Q, R);
+            V2 = icare(A, B, Q, R, [], E, 'anti'); % alternatively -icare(-A, -B, Q, R);
         end
         if (isempty(V2) && options.verbose)
             warning('ppr: icare couldn''t find a stabilizing solution; trying the hamiltonian')
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
     case 3  % Computing open-loop observability energy function; use lyap
-        V2 = lyap(A.', Q);
+        V2 = lyap(A', Q, [], E');
 end
 
 if (isempty(V2))
@@ -282,13 +294,16 @@ end
 
 %  Check the residual of the Riccati/Lyapunov equation
 if (options.verbose)
-    RES = A' * V2 + V2 * A - (V2 * B) * Rinv * (B' * V2) + Q;
+    if isempty(E); RES = A' * V2     +      V2 * A - (    V2 * B) * Rinv * (B' * V2    ) + Q; 
+    else;          RES = A' * V2 * E + E' * V2 * A - (E' *V2 * B) * Rinv * (B' * V2 * E) + Q; end
     fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf')); clear RES
 end
 
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
-K1 = -Rinv*B.'*V2; K{1} = K1;
+if isempty(E); K1 = -Rinv*B.'*V2; 
+else;          K1 = -Rinv*B.'*V2*E; end
+K{1} = K1;
 
 if useReducedOrderModel
     options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
@@ -310,7 +325,12 @@ end
 if (degree > 2)
     % Set up the generalized Lyapunov solver (LHS coefficient matrix)
     [Acell{1:degree}] = deal((A + B * K{1}).');
-    GaVb = memoize(@(a, b, v) g{a + 1}.' * sparse(reshape(v{b}, n, n^(b-1)))); % Memoize evaluation of GaVb
+    % GaVb = memoize(@(a, b, v) g{a + 1}.' * sparse(reshape(v{b}, n, n^(b-1)))); % Memoize evaluation of GaVb (I had it cast to sparse for some reason, not sure why)
+    if isempty(E)
+        GaVb = memoize(@(a, b, v) g{a + 1}.' * reshape(v{b}, n, n^(b-1))); % Memoize evaluation of GaVb
+    else
+        GaVb = memoize(@(a, b, v) g{a + 1}.' * kroneckerRight(reshape(v{b}, n, n^(b-1)),options.E)); % Memoize evaluation of GaVb with E matrix
+    end
     
     for k = 3:degree
         %% Compute the value function coefficient
@@ -321,16 +341,17 @@ if (degree > 2)
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial drift dynamics
             % Here we add the f(x) terms. The range for possible i's is
-            % 2:k-1, since v_k is in the left-hand-side terms. However, not all of
-            % these i's have corresponding F_p's that exist. For example, maybe only
-            % F_2 and F_3 exist, in which case only the last two i's, [k-2, k-1], are
+            % 2:k-1, since vₖ is in the left-hand-side terms. However, not all of
+            % these i's have corresponding Fₚ's that exist. For example, maybe only
+            % F₂ and F₃ exist, in which case only the last two i's, [k-2, k-1], are
             % required. Indexing on the i's backwards and checking if we have run out
-            % of F_p's allows us to do this easily.
+            % of Fₚ's allows us to do this easily.
             
-            for i = flip(2:k-1)                           % Theoretical sum limits for V_i's; index backwards in i so that p indexes forwards
+            for i = flip(2:k-1)                           % Theoretical sum limits for Vᵢ's; index backwards in i so that p indexes forwards
                 p = k + 1 - i;
                 if p > lf; break; end                     % Only run while we have F_p's left
-                b = b - LyapProduct(f{p}.', v{i}, i);
+                
+                b = b - LyapProduct(f{p}.', v{i}, i, E);
             end
         end
         
@@ -342,15 +363,15 @@ if (degree > 2)
             % for i's is 2:k-1, and the range for possible p's is 0:lg. However, the q=1
             % and p=0 term belongs on the left-hand-side, so we need to skip that term
             % with a continue statement. And since q and p index forwards, i indexes
-            % backwards (at most from k), but once i reaches i<2 we run out of V_i's,
+            % backwards (at most from k), but once i reaches i<2 we run out of Vᵢ's,
             % so we need a break statement.
             
             for q_idx = 1:k-2                             % Theoretical sum limits for K_q's
                 for p_idx = 0:lg                          % Theoretical sum limits for G_p's
                     i = k+1 - p_idx - q_idx;
                     if i==k; continue; end                % Skip the LHS term that is already accounted for
-                    if i<2; break; end                    % Only run while we have V_i's left
-                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx))); 
+                    if i<2; break; end                    % Only run while we have Vᵢ's left
+                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)));
                 end
             end
         end
@@ -361,7 +382,7 @@ if (degree > 2)
         end
         
         %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
-        % Here we add the u(x)'R(x)u(x) terms. The sum is over indices satisfying
+        % Here we add the u(x)ᵀR(x)u(x) terms. The sum is over indices satisfying
         % i+p+q=k. Note, the r cell array does not use zero indexing. The range for
         % possible i's is 0:lr. The theoretical range for p's and q's would be
         % 1:k-1, but the k-1 term hasn't been computed yet! It turns out these terms
@@ -387,7 +408,7 @@ if (degree > 2)
         end
         
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now solve and symmetrize! %%%%%%%%%%%%%%%%%%%%%%
-        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k);
+        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, options.E);
         [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
         
         %% Now compute the gain coefficient
@@ -419,12 +440,12 @@ if (degree > 2)
             
             % Efficient way
             Rq = reshape(r{q_idx+1}.',m*n^q_idx,m); % Reshape doesn't copy, just creates pointer
-            for j=1:m 
+            for j=1:m
                 K{k-1}(j,:) = K{k-1}(j,:) - vec(reshape(Rq(:,j),n^q_idx,m)*K{p}).';
             end
         end
         
-        % Now multiply by R0^(inv)
+        % Now multiply by R₀⁻¹
         K{k-1} = Rinv*K{k-1};
     end
 end
@@ -466,7 +487,7 @@ function [ft, gt] = linearTransformDynamics(f, g, T)
 % if ~iscell(h); h = {h}; end
 
 [n, r] = size(T);
-[~,m] = size(g{1});
+[~, m] = size(g{1});
 
 ft = cell(size(f)); gt = cell(size(g));
 
