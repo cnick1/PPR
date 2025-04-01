@@ -24,11 +24,11 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %
 %       For dynamics in descriptor form with an invertible mass matrix E,
 %           sparsity can be leveraged by passing the mass matrix E as an
-%           optional argument. 
+%           optional argument.
 %               options.E = [mass matrix];
 %               [v, K] = ppr(f, g, q, r, degree, options)
-%           In this case, the value function is computed for a transformed 
-%           coordinate system z = E*x, so to evaluate it one would call 
+%           In this case, the value function is computed for a transformed
+%           coordinate system z = E*x, so to evaluate it one would call
 %               V = @(x) kronPolyEval(v, E*x);
 %
 %   Inputs:
@@ -152,6 +152,8 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %               10.1016/j.ifacol.2021.06.090.
 %
 %  Part of the PPR repository.
+%
+%  See also: KroneckerSumSolver, kronMonomialSymmetrize, LyapProduct
 %%
 
 % Create a vec function for readability
@@ -165,13 +167,14 @@ end
 if ~isfield(options,'verbose'); options.verbose = false; end
 if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 if ~isfield(options,'E'); options.E = []; end
-E = full(options.E); 
+if ~isfield(options,'solver'); options.solver = []; end
+E = full(options.E);
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f) % polynomial drift
     A = full(f{1});
     lf = length(f);
-    
+
     if (nargin < 5)
         degree = lf+1;
     end
@@ -198,7 +201,7 @@ if iscell(q) % Polynomial state penalty
         Q = q{2};
     end
     lq = length(q) - 1;
-    
+
     % If q's are scalars, use 'identity' tensors
     for i=3:length(q)
         if isscalar(q{i})
@@ -246,14 +249,14 @@ if iscell(r) % Polynomial control penalty
         R = r{1};
     end
     lr = length(r) - 1;
-    
+
     % If r's are scalars, use 'identity' tensors
     for i=2:length(r)
         if isscalar(r{i})
             % Naive way
             % temp = sparse(m^2,n^(i-1)); temp(:,linspace(1,n^(i-1),n)) = repmat(vec(speye(m)),1,n);
             % r{i} = r{i}*temp; % Like an identity matrix but a tensor, vectorized
-            
+
             % More efficient way: rows=linspace(1,m^2,m), columns=linspace(1,n^(i-1),n), so use
             % repmat to duplicate rows n times and columns m times, forming all possible combinations.
             r{i} = r{i}*sparse(repmat(linspace(1,m^2,m),1,n),repmat(linspace(1,n^(i-1),n),m,1),1);
@@ -294,25 +297,25 @@ end
 
 %  Check the residual of the Riccati/Lyapunov equation
 if (options.verbose)
-    if isempty(E); RES = A' * V2     +      V2 * A - (    V2 * B) * Rinv * (B' * V2    ) + Q; 
+    if isempty(E); RES = A' * V2     +      V2 * A - (    V2 * B) * Rinv * (B' * V2    ) + Q;
     else;          RES = A' * V2 * E + E' * V2 * A - (E' *V2 * B) * Rinv * (B' * V2 * E) + Q; end
     fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf')); clear RES
 end
 
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
-if isempty(E); K1 = -Rinv*B.'*V2; 
+if isempty(E); K1 = -Rinv*B.'*V2;
 else;          K1 = -Rinv*B.'*V2*E; end
 K{1} = K1;
 
 if useReducedOrderModel
     options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
     options = getReducedOrderModel(f,g,options);
-    
+
     % Now replace f,g,q with fr,gr,qr
     f = options.fr; g = options.gr; q = options.qr; r = options.Rr; n = options.r;
     A = f{1}; B = g{1};
-    
+
     V2f = V2; K1f = K{1};
     V2 = options.Tib.'*V2*options.Tib;
     v{2} = vec(V2); K{1} = K1f*options.Tib;
@@ -331,13 +334,13 @@ if (degree > 2)
     else
         GaVb = memoize(@(a, b, v) g{a + 1}.' * kroneckerRight(reshape(v{b}, n, n^(b-1)),options.E)); % Memoize evaluation of GaVb with E matrix
     end
-    
+
     for k = 3:degree
         %% Compute the value function coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         b = 0; % Initialize b
         K{k-1} = zeros(m,n^(k-1)); % Initialize K
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial drift dynamics
             % Here we add the f(x) terms. The range for possible i's is
@@ -346,15 +349,15 @@ if (degree > 2)
             % F₂ and F₃ exist, in which case only the last two i's, [k-2, k-1], are
             % required. Indexing on the i's backwards and checking if we have run out
             % of Fₚ's allows us to do this easily.
-            
+
             for i = flip(2:k-1)                           % Theoretical sum limits for Vᵢ's; index backwards in i so that p indexes forwards
                 p = k + 1 - i;
                 if p > lf; break; end                     % Only run while we have F_p's left
-                
+
                 b = b - LyapProduct(f{p}.', v{i}, i, E);
             end
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if R ~= 0
             % Here we add the g(x)u(x) terms. The sum is over indexes satisfying
@@ -365,7 +368,7 @@ if (degree > 2)
             % with a continue statement. And since q and p index forwards, i indexes
             % backwards (at most from k), but once i reaches i<2 we run out of Vᵢ's,
             % so we need a break statement.
-            
+
             for q_idx = 1:k-2                             % Theoretical sum limits for K_q's
                 for p_idx = 0:lg                          % Theoretical sum limits for G_p's
                     i = k+1 - p_idx - q_idx;
@@ -375,12 +378,12 @@ if (degree > 2)
                 end
             end
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%% Add state penalty components (Q(x)) %%%%%%%%%%%%%%%%%%%%%%
         if k <= lq + 1                                    % Simply check if q{k} exists
             b = b - q{k};
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
         % Here we add the u(x)ᵀR(x)u(x) terms. The sum is over indices satisfying
         % i+p+q=k. Note, the r cell array does not use zero indexing. The range for
@@ -396,7 +399,7 @@ if (degree > 2)
                 if q_idx<1; break; end                   % Only run while we have K_q's left
                 % Naive way
                 % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx}));
-                
+
                 % Efficient way
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
@@ -406,11 +409,11 @@ if (degree > 2)
                 end
             end
         end
-        
-        %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now solve and symmetrize! %%%%%%%%%%%%%%%%%%%%%%
-        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, options.E);
-        [v{k}] = kronMonomialSymmetrize(v{k}, n, k);
-        
+
+        %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now symmetrize and solve! %%%%%%%%%%%%%%%%%%%%%%
+        b = kronMonomialSymmetrize(b, n, k);
+        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, options.E, [], options.solver);
+
         %% Now compute the gain coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Here we add the terms due to the gradient of the value function. The
@@ -425,7 +428,7 @@ if (degree > 2)
             if j<2; break; end                               % Only run while we have V_j's left
             K{k-1} = K{k-1} - j/2*reshape(GaVb(q_idx,j, v), m, n^(k-1));
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%%%
         % Here we add the terms due to the nonlinear control penalty R(x). The
         % theoretical range for q would be 0:lr, but the q=0 term goes on the
@@ -434,17 +437,17 @@ if (degree > 2)
         for q_idx = 1:lr                                     % Theoretical sum limits for r_i's
             p = k-1 - q_idx;
             if p<1; break; end                               % Only run while we have K_p's left
-            
+
             % Naive way
             % K{k-1} = K{k-1} - reshape(r{q_idx+1}.',m*n^q_idx,m).'*kron(K{p},speye(n^q_idx));
-            
+
             % Efficient way
             Rq = reshape(r{q_idx+1}.',m*n^q_idx,m); % Reshape doesn't copy, just creates pointer
             for j=1:m
                 K{k-1}(j,:) = K{k-1}(j,:) - vec(reshape(Rq(:,j),n^q_idx,m)*K{p}).';
             end
         end
-        
+
         % Now multiply by R₀⁻¹
         K{k-1} = Rinv*K{k-1};
     end
@@ -533,13 +536,13 @@ switch options.method
     case 'eigsOfV2'
         [options.Tib, Xi] = eigs(options.V2,options.r);
         options.TibInv = options.Tib.';
-        
+
         if options.verbose
             figure; semilogy(diag(Xi))
             hold on; xline(options.r)
             drawnow
         end
-        
+
     case 'balancing'
         fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
         error("Need to complete this")
@@ -547,9 +550,9 @@ switch options.method
         % V2 = R*R.', W2 = L*L.'
         Lchol = lyapchol(A,B); % CHECK THIS
         Rchol = lyapchol(A.',C); % CHECK THIS
-        
+
         [U, Xi, V] = svd(Lchol.'*Rchol); % from Theorem 2
-        
+
         if options.verbose
             figure; semilogy(diag(Xi))
             hold on; xline(options.r)
@@ -559,11 +562,11 @@ switch options.method
         Xi = Xi(1:options.r,1:options.r);
         V = V(:,1:options.r);
         U = U(:,1:options.r);
-        
+
         % Define balancing transformation (internally balanced)
         Tib = V * diag(diag(Xi).^(-1/2));
         TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
-        
+
     case 'precomputed'
         % Assume T is already given in options.Tib
         if ~isfield(options,'TibInv')
