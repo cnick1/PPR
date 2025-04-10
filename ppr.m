@@ -313,7 +313,7 @@ if useReducedOrderModel
     options = getReducedOrderModel(f,g,options);
 
     % Now replace f,g,q with fr,gr,qr
-    f = options.fr; g = options.gr; q = options.qr; r = options.Rr; n = options.r;
+    f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.r;
     A = f{1}; B = g{1};
 
     V2f = V2; K1f = K{1};
@@ -332,7 +332,7 @@ if (degree > 2)
     if isempty(E)
         GaVb = memoize(@(a, b, v) g{a + 1}.' * reshape(v{b}, n, n^(b-1))); % Memoize evaluation of GaVb
     else
-        GaVb = memoize(@(a, b, v) g{a + 1}.' * kroneckerRight(reshape(v{b}, n, n^(b-1)),options.E)); % Memoize evaluation of GaVb with E matrix
+        GaVb = memoize(@(a, b, v) g{a + 1}.' * kroneckerRight(reshape(v{b}, n, n^(b-1)),E)); % Memoize evaluation of GaVb with E matrix
     end
 
     for k = 3:degree
@@ -409,7 +409,7 @@ if (degree > 2)
 
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now symmetrize and solve! %%%%%%%%%%%%%%%%%%%%%%
         b = kronMonomialSymmetrize(b, n, k);
-        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, options.E, [], options.solver);
+        [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, E, [], options.solver);
 
         %% Now compute the gain coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -532,7 +532,7 @@ for k = 2:length(options.q)
     if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = kroneckerRight(options.q{k},options.T); 
+        options.qr{k} = kroneckerRight(options.q{k}.',options.T).'; 
     end
 end
 
@@ -542,11 +542,28 @@ for k = 2:length(options.R)
     if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = kroneckerRight(options.R{k},options.T); 
+        options.Rr{k} = kroneckerRight(options.R{k}.',options.T).'; 
     end
 end
+
+%% Transform E
+if ~isempty(options.E)
+    %% Transform E
+    options.Er = options.TInv*options.E*options.T;
+
+    %% Put in standard state-space form
+    % Since the reduced system is dense anyways, we can invert Er and put
+    % in standard state-space form to use more efficient Lyapunov solvers
+
+    % Transform f(x)
+    for k = 1:length(f)
+        options.fr{k} = options.Er\options.fr{k};
+    end
+
+    % Transform g(x)
+    for k = 1:length(g)
+        options.gr{k} = options.Er\options.gr{k};
+    end
 end
-
-
-
-
+options.Er = []; % ROM is always in standard form
+end
