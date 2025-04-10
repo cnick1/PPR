@@ -460,9 +460,9 @@ end
 end
 
 function options = getReducedOrderModel(f,g,options)
-%getReducedOrderModel Get reduced order model
+%getReducedOrderModel Apply linear model reduction to get a ROM
 %
-%   Usage:    options = getReducedOrderModel(options)
+%   Usage:    options = getReducedOrderModel(f,g,options)
 %
 %   Inputs:
 %       options -
@@ -489,6 +489,8 @@ switch options.method
         if options.verbose
             figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
         end
+
+    % Could have other cases like Balanced Truncation, POD, etc.
 end
 
 % Transform dynamics using the linear (reduced) transformation T
@@ -499,11 +501,7 @@ options.fr = cell(size(f)); options.gr = cell(size(g));
 
 % Transform f(x)
 for k = 1:length(f)
-    options.fr{k} = zeros(n,r^k);
-    for j = 1:n
-        options.fr{k}(j,:) = options.fr{k}(j,:) + calTTv({options.T}, k, k, f{k}(j,:).').';
-    end
-    options.fr{k} = options.TInv*options.fr{k}; % Could rewrite to use TInv
+    options.fr{k} = options.TInv*kroneckerRight(f{k},options.T); 
 end
 
 % Transform g(x)
