@@ -216,7 +216,7 @@ else
 end
 
 % Check if R is positive definite, negative definite, or zero
-if ~iscell(r) && length(r) == 1
+if ~iscell(r) && isscalar(r)
     if r > 0
         % disp('R is positive definite.')
         RPosDef = 1; % Case 1
@@ -264,7 +264,7 @@ if iscell(r) % Polynomial control penalty
     end
 else
     % quadratic control penalty with weighting matrix R
-    if length(r) == 1
+    if isscalar(r)
         r = r*eye(m);
     end
     R = r;
@@ -317,8 +317,8 @@ if useReducedOrderModel
     A = f{1}; B = g{1};
 
     V2f = V2; K1f = K{1};
-    V2 = options.Tib.'*V2*options.Tib;
-    v{2} = vec(V2); K{1} = K1f*options.Tib;
+    V2 = options.T.'*V2*options.T;
+    v{2} = vec(V2); K{1} = K1f*options.T;
 end
 if ~isfield(options,'r')
     options.r = size(f{1}, 1);
@@ -397,10 +397,7 @@ if (degree > 2)
                 q_idx = k - p_idx - i;
                 if q_idx==k-1; continue; end             % Skip the k-1 term that cancels with the G(x) terms
                 if q_idx<1; break; end                   % Only run while we have K_q's left
-                % Naive way
-                % b = b - vec(r{i}.' * kron(K{p_idx},K{q_idx}));
 
-                % Efficient way
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
                     bRange = (1:len)+(j-1)*len;
@@ -437,11 +434,6 @@ if (degree > 2)
         for q_idx = 1:lr                                     % Theoretical sum limits for r_i's
             p = k-1 - q_idx;
             if p<1; break; end                               % Only run while we have K_p's left
-
-            % Naive way
-            % K{k-1} = K{k-1} - reshape(r{q_idx+1}.',m*n^q_idx,m).'*kron(K{p},speye(n^q_idx));
-
-            % Efficient way
             Rq = reshape(r{q_idx+1}.',m*n^q_idx,m); % Reshape doesn't copy, just creates pointer
             for j=1:m
                 K{k-1}(j,:) = K{k-1}(j,:) - vec(reshape(Rq(:,j),n^q_idx,m)*K{p}).';
@@ -457,55 +449,13 @@ if useReducedOrderModel
     %% Option 2: leave as reduced and use special data structure
     v{2} = vec(V2f);
     % for k = 3:degree
-    %     v{k} = calTTv({options.TibInv}, k, k, v{k}); % Naive way
+    %     v{k} = calTTv({options.TInv}, k, k, v{k}); % Naive way
     % end
-    v = factoredValueArray(v, options.TibInv);
+    v = factoredValueArray(v, options.TInv);
     K{1} = K1f;
-    K = factoredGainArray(K, options.TibInv);
+    K = factoredGainArray(K, options.TInv);
 end
 
-
-end
-
-
-function [ft, gt] = linearTransformDynamics(f, g, T)
-%transformDynamics Transforms the dynamics f, g by T.
-%
-%   Usage: [ft, gt] = transformDynamics(f, g, T)
-%
-%   Inputs:
-%       f,g - cell arrays containing the polynomial coefficients for
-%               the drift, input in the original coordinates.
-%       T     - linear reduced transformation
-%
-%   Output:
-%       ft,gt - cell arrays containing the polynomial coefficients
-%                  for the transformed drift, input.
-%
-%   Background: Given a transformation T, compute the transformed dynamics.
-%   TODO: Add more details here.
-%
-%   Authors: Nick Corbin, UCSD
-%
-% if ~iscell(h); h = {h}; end
-
-[n, r] = size(T);
-[~, m] = size(g{1});
-
-ft = cell(size(f)); gt = cell(size(g));
-
-for k = 1:length(f)
-    ft{k} = zeros(n,r^k);
-    for j = 1:n
-        ft{k}(j,:) = ft{k}(j,:) + calTTv({T}, k, k, f{k}(j,:).').';
-    end
-    ft{k} = T\ft{k}; % Could rewrite to use TibInv
-end
-
-gt{1} = T\g{1};
-for k = 2:length(g)
-    error("Only implemented linear inputs so far!")
-end
 
 end
 
@@ -527,75 +477,61 @@ function options = getReducedOrderModel(f,g,options)
 %
 
 if isfield(options,'fr')
-    % Already have ROM
-    return;
+    return; % Already have ROM
 end
 if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
 
 switch options.method
     case 'eigsOfV2'
-        [options.Tib, Xi] = eigs(options.V2,options.r);
-        options.TibInv = options.Tib.';
+        [options.T, Xi] = eigs(options.V2,options.r);
+        options.TInv = options.T.';
 
         if options.verbose
-            figure; semilogy(diag(Xi))
-            hold on; xline(options.r)
-            drawnow
-        end
-
-    case 'balancing'
-        fprintf("Computing reduced order dynamics using linear balancing (r = %i, eta = %1.1f)... \n", options.r, options.eta)
-        error("Need to complete this")
-        % Define balancing transformation (internally balanced)
-        % V2 = R*R.', W2 = L*L.'
-        Lchol = lyapchol(A,B); % CHECK THIS
-        Rchol = lyapchol(A.',C); % CHECK THIS
-
-        [U, Xi, V] = svd(Lchol.'*Rchol); % from Theorem 2
-
-        if options.verbose
-            figure; semilogy(diag(Xi))
-            hold on; xline(options.r)
-            drawnow
-        end
-        % Truncate transformation to degree r
-        Xi = Xi(1:options.r,1:options.r);
-        V = V(:,1:options.r);
-        U = U(:,1:options.r);
-
-        % Define balancing transformation (internally balanced)
-        Tib = V * diag(diag(Xi).^(-1/2));
-        TibInv = diag(diag(Xi).^(-1/2)) * U.'*Lchol.';
-
-    case 'precomputed'
-        % Assume T is already given in options.Tib
-        if ~isfield(options,'TibInv')
-            options.TibInv = pinv(options.Tib); % yikes
+            figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
         end
 end
 
-% Transform dynamics using the linear (reduced) transformation Tib
-[options.fr, options.gr] = linearTransformDynamics(f, g, options.Tib);
+% Transform dynamics using the linear (reduced) transformation T
+[n, r] = size(options.T);
+[~, m] = size(g{1});
+
+options.fr = cell(size(f)); options.gr = cell(size(g));
+
+% Transform f(x)
+for k = 1:length(f)
+    options.fr{k} = zeros(n,r^k);
+    for j = 1:n
+        options.fr{k}(j,:) = options.fr{k}(j,:) + calTTv({options.T}, k, k, f{k}(j,:).').';
+    end
+    options.fr{k} = options.TInv*options.fr{k}; % Could rewrite to use TInv
+end
+
+% Transform g(x)
+options.gr{1} = options.TInv*g{1};
+for k = 2:length(g)
+    error("Only implemented linear inputs so far!")
+end
 
 % Transform Q(x)
 for k = 2:length(options.q)
-    if length(options.q{k}) == 1
+    if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = calTTv({options.Tib}, k, k, options.q{k});
+        options.qr{k} = calTTv({options.T}, k, k, options.q{k});
     end
 end
-
 
 % Transform R(x)
 options.Rr{1} = options.R{1};
 for k = 2:length(options.R)
-    if length(options.R{k}) == 1
+    if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = calTTv({options.Tib}, k-1, k-1, options.R{k}.').';
+        options.Rr{k} = calTTv({options.T}, k-1, k-1, options.R{k}.').';
     end
 end
-
 end
+
+
+
 
