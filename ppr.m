@@ -497,35 +497,52 @@ end
 [n, r] = size(options.T);
 [~, m] = size(g{1});
 
-options.fr = cell(size(f)); options.gr = cell(size(g));
+ 
 
-% Transform f(x)
+%% Transform f(x)
+options.fr = cell(size(f));
 for k = 1:length(f)
     options.fr{k} = options.TInv*kroneckerRight(f{k},options.T); 
 end
 
-% Transform g(x)
-options.gr{1} = options.TInv*g{1};
-for k = 2:length(g)
-    error("Only implemented linear inputs so far!")
+%% Transform g(x)
+% Instead of dealing with g(x) matrix directly, deal with g_i(x) vectors so
+% I can use the same code as for f(x). So loop over m input channels, use gttemp,
+% and convert to gr after
+lg = length(g);
+gttemp = cell(lg,m);
+for k = 1:m
+    for i = 1:(lg-1) % this internal code block is identical to above for f(x)
+        gttemp{i+1,k} = options.TInv*kroneckerRight(g{i+1}(:,k:m:end),options.T); % k:m:end needed for converting from g(x)u to sum g_i(x) u_i
+    end
 end
 
-% Transform Q(x)
+% Now convert from g_i(x) vectors back to g(x) matrix
+options.gr{1} = options.TInv*g{1}; % B is not state dependent
+for i=1:(lg-1)
+    options.gr{i+1} = zeros(n,m*n^i);
+    for kk=1:m
+        options.gr{i+1}(:,kk:m:end) = gttemp{i+1,kk};
+    end
+    options.gr{i+1} = options.TInv*options.gr{i+1};
+end
+
+%% Transform Q(x)
 for k = 2:length(options.q)
     if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = calTTv({options.T}, k, k, options.q{k});
+        options.qr{k} = kroneckerRight(options.q{k},options.T); 
     end
 end
 
-% Transform R(x)
+%% Transform R(x)
 options.Rr{1} = options.R{1};
 for k = 2:length(options.R)
     if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = calTTv({options.T}, k-1, k-1, options.R{k}.').';
+        options.Rr{k} = kroneckerRight(options.R{k},options.T); 
     end
 end
 end
