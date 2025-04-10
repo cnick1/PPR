@@ -97,7 +97,6 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %
 %           ẋ = A x + F₂ (x ⊗ x) + F₃ (x ⊗ x ⊗ x) + ...
 %               + B u + G₁ (x ⊗ u) + G₂ (x ⊗ x ⊗ u) + ...
-%           y = C x + H₂ (x ⊗ x) + ...
 %
 %   and the Taylor expansion of the cost, written in a similar form as
 %
@@ -446,11 +445,8 @@ if (degree > 2)
 end
 
 if useReducedOrderModel
-    %% Option 2: leave as reduced and use special data structure
+    % Use special data structure to avoid storing huge coefficients
     v{2} = vec(V2f);
-    % for k = 3:degree
-    %     v{k} = calTTv({options.TInv}, k, k, v{k}); % Naive way
-    % end
     v = factoredValueArray(v, options.TInv);
     K{1} = K1f;
     K = factoredGainArray(K, options.TInv);
@@ -465,13 +461,42 @@ function options = getReducedOrderModel(f,g,options)
 %   Usage:    options = getReducedOrderModel(f,g,options)
 %
 %   Inputs:
-%       options -
+%       f,g     - cell arrays containing the polynomial coefficients
+%                 for the drift and input.
+%       options - struct containing additional quantities to transform:
+%        • q: cell arrays containing the polynomial coefficients for the
+%                 state penalty in the cost. 
+%        • r: cell arrays containing the polynomial coefficients for the
+%                 control penalty in the cost.
+%        • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u.
 %
 %   Output:
-%       options -
+%       options - struct containing transformed (reduced) quantities:
+%        • fr,gr: reduced drift and input.
+%        • qr: reduced state penalty weights.
+%        • Rr: reduced control penalty weights.
+%        • Er: in the reduced form, Er=[] always.
 %
-%   Background:
-%   TODO: Add more details here.
+%   Background: Given a transformation x = Txᵣ, we seek to represent the
+%    dynamics for the control-affine system
+%        Eẋ = f(x) + g(x) u
+%    in the new coordinates as
+%        ẋᵣ = f(xᵣ) + g(xᵣ) u
+%    Applying the transformation yields
+%        ETẋᵣ = f(Txᵣ) + g(Txᵣ) u
+%    and since T is invertible (in this case also unitary) this is equal to
+%        TᵀETẋᵣ = Tᵀf(Txᵣ) + Tᵀg(Txᵣ) u
+%    If E=I, then this is already in standard form. Otherwise, multiplying 
+%    by the inverse of Eᵣ=TᵀET then puts the model in standard form:
+%        ẋᵣ = fᵣ(xᵣ) + gᵣ(xᵣ) u
+%    The coefficients of fᵣ(xᵣ) and gᵣ(xᵣ) in polynomial form can be
+%    obtained from the coefficients of f(x) and g(x), and we have to
+%    transform q(x) and r(x) similarly. The transformation is mainly
+%    applied by repeated Kronecker multiplication with T: 
+%        Eẋ  = A x + F₂ (x ⊗ x) + ... 
+%       ETẋᵣ = A Txᵣ + F₂ (Txᵣ ⊗ Txᵣ) + ... 
+%     TᵀETẋᵣ = TᵀAT xᵣ + TᵀF₂(T⊗T) (xᵣ ⊗ xᵣ) + ... 
+%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ... 
 %
 %   Authors: Nick Corbin, UCSD
 %
