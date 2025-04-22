@@ -567,7 +567,7 @@ for k = 2:length(options.R)
     if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = kroneckerRight(options.R{k}.',options.T).'; 
+        options.Rr{k} = kroneckerRight(options.R{k},options.T); 
     end
 end
 
