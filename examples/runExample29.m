@@ -3,7 +3,7 @@ function runExample29(numElements, r, descriptor)
 %
 %   Usage:  runExample29(numElements)
 %
-%   Inputs: 
+%   Inputs:
 %       numElements - number of finite elements in each direction
 %       r           - reduced-order dimension
 %       descriptor  - boolean, option to leave dynamics in generalized form
@@ -50,7 +50,9 @@ end
 % Get dynamics
 nx = numElements+1; ny = nx;
 n = nx*ny; m = 1;
+fprintf(" Forming FEM model, n=%i ... ",n); tic
 [E, f, g, ~, xyg] = getSystem29(numElements,.75,1,-1);
+fprintf("completed in %2.2f seconds. \n", toc)
 % Insulate all sides, use control only on side CD
 g{1} = g{1}(:,3);
 G = @(x) g{1};
@@ -62,14 +64,14 @@ FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval({sparse(f{1}),f{2},f{3}},x) + g{1} *
 if descriptor
     % Case 1: Descriptor form (sparse)
     options.E = E;
-    fprintf("Computing ppr() solution in descriptor form, n=%i, r=%i, d=%i ... ",n,r,4); tic
+    fprintf(" Computing ppr() solution in descriptor form, n=%i, r=%i, d=%i ... ",n,r,4); tic
 else
     % Case 2: Standard form (dense)
     f{1} = Mchol.'\(Mchol\f{1});
     f{3} = Mchol.'\(Mchol\f{3});
     g{1} = Mchol.'\(Mchol\g{1});
     options.E = []; % Case 3: Standard form solved with E=I
-    fprintf("Computing ppr() solution in standard form, n=%i, r=%i, d=%i ... ",n,r,4); tic
+    fprintf(" Computing ppr() solution in standard form, n=%i, r=%i, d=%i ... ",n,r,4); tic
 end
 
 % Get value function/controller
