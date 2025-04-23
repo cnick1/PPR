@@ -1,4 +1,4 @@
-function runExample29(numElements)
+function runExample29(numElements, r)
 %runExample29 Runs the 2D unsteady nonlinear heat equation FEM control example.
 %
 %   Usage:  runExample29(numElements)
@@ -33,8 +33,11 @@ function runExample29(numElements)
 %   Part of the PPR repository.
 %%
 fprintf('Running Example 29\n')
-if nargin < 1
-    numElements = 8; 
+if nargin < 2
+    if nargin < 1
+        numElements = 8;
+    end
+    r = (numElements+1)^2;
 end
 
 % Get dynamics
@@ -42,7 +45,7 @@ nx = numElements+1; ny = nx;
 n = nx*ny; m = 1;
 [E, f, g, ~, xyg] = getSystem29(numElements,.75,1,-1);
 % Insulate all sides, use control only on side CD
-g{1} = g{1}(:,3); 
+g{1} = g{1}(:,3);
 G = @(x) g{1};
 
 % Pass sparse operators for ode simulation purposes
@@ -53,18 +56,18 @@ descriptor = true;
 if descriptor
     % Case 1: Descriptor form (sparse)
     options.E = E;
-    fprintf("Computing ppr() solution in descriptor form, n=%i, d=%i ... ",n,4); tic
+    fprintf("Computing ppr() solution in descriptor form, n=%i, r=%i, d=%i ... ",n,r,4); tic
 else
     % Case 2: Standard form (dense)
     f{1} = Mchol.'\(Mchol\f{1});
     f{3} = Mchol.'\(Mchol\f{3});
     g{1} = Mchol.'\(Mchol\g{1});
     options.E = eye(n); % Case 3: Standard form solved with E=I
-    fprintf("Computing ppr() solution in standard form, n=%i, d=%i ... ",n,4); tic
+    fprintf("Computing ppr() solution in standard form, n=%i, r=%i, d=%i ... ",n,r,4); tic
 end
 
 % Get value function/controller
-q = .1; R = 1; degree = 4; options.verbose = false; 
+q = .1; R = 1; degree = 4; options.verbose = true; options.r = r;
 [~, K] = ppr(f, g, q, R, degree, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 
@@ -79,40 +82,40 @@ x0 = x0(:);
 tmax = 5; t = 0:0.2:tmax; % specify for plotting
 
 fprintf(" - Simulating open-loop dynamics ... "); tic
-[~, XUNC] = ode45(@(t, x) FofXU(x,   0    ), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XUNC] = ode23(@(t, x) FofXU(x,   0    ), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating LQR closed-loop dynamics ... "); tic
-[~, XLQR] = ode45(@(t, x) FofXU(x, uLQR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XLQR] = ode23(@(t, x) FofXU(x, uLQR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating PPR closed-loop dynamics ... "); tic
-[t, XPPR] = ode45(@(t, x) FofXU(x, uPPR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[t, XPPR] = ode23(@(t, x) FofXU(x, uPPR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
 for i=1:length(t)
-
+    
     Z = reshape(XUNC(i,:),nx,ny);
-
+    
     subplot(2,2,1); grid on;
     [c,h] = contourf(X,Y,Z); clabel(c,h)
     xlabel('x, m'); ylabel('y, m'); axis equal
-
+    
     subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
     xlabel('x, m'); ylabel('y, m');
-
+    
     Z = reshape(XPPR(i,:),nx,ny);
-
+    
     subplot(2,2,3); grid on;
     [c,h] = contourf(X,Y,Z); clabel(c,h)
     xlabel('x, m'); ylabel('y, m'); axis equal
-
+    
     subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
     xlabel('x, m'); ylabel('y, m');
-
+    
     drawnow
 end
 
 %% Plot solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
 tlo = tiledlayout(3,4);ii=0;
-for i=round(linspace(1,size(XUNC,1),4))   
+for i=round(linspace(1,size(XUNC,1),4))
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
@@ -131,8 +134,8 @@ for i=round(linspace(1,size(XPPR,1),4))
     xlabel('x, m'); ylabel('y, m');
 end
 set(h, 'Colormap', turbo, 'CLim', [-1 1])
-cbh = colorbar(h(end)); 
-cbh.Layout.Tile = 'east'; 
+cbh = colorbar(h(end));
+cbh.Layout.Tile = 'east';
 drawnow
 
 end
