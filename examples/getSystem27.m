@@ -88,7 +88,7 @@ nvg = nng * nvpn;          % number of variables in global mesh
 % I am using notation for the model problem (5.1) in Ragab [2]
 L = 1;                     % wire length
 gamma = 1;                 % mass property
-p  = eps;                  %  ε, diffusion coefficient (default to 1)
+p  = eps;                  %  ε, diffusion coefficient 
 q  = -lambda;              % -λ, to do with heat generation due to electrical resistance
 q3 = -mu;                  % -μ, cubic source/reaction term
 
@@ -110,7 +110,7 @@ Ke = p*L1 + q*L0;
 
 % Initialize and stack/assemble global matrix
 Mg = zeros(nvg, nvg);
-Kg = zeros(nvg, nvg);
+K1g = zeros(nvg, nvg);
 Fg = zeros(nvg, 1);
 Rg = zeros(nvg, 1);
 for ie = 1:nel
@@ -118,7 +118,7 @@ for ie = 1:nel
     
     % Assemble element matrices Me, Ke into global matrix Mg, Kg
     Mg(nodes,nodes) = Mg(nodes, nodes) + Me;
-    Kg(nodes,nodes) = Kg(nodes, nodes) + Ke;
+    K1g(nodes,nodes) = K1g(nodes, nodes) + Ke;
 end
 
 %% Assemble quadratic global matrix
@@ -128,7 +128,7 @@ K2g = sparse(nvg, nvg^2);
 %% Assemble cubic global matrix
 % Define stiffness matrix for one element
 L3 = he/20 * [4, 3, 0, 2, 0, 0, 0, 1;
-    1, 2, 0, 3, 0, 0, 0, 4];
+    1, 0, 0, 0, 2, 0, 3, 4];
 
 K3e = q3 * L3;
 
@@ -185,7 +185,7 @@ Rg(end) = Rg(end) + 1; % 1 is just a placeholder for B; signal will be u(t)
 % ode option; the inversion destroys the sparsity.)
 
 Mchol = chol(Mg).'; % Use Cholesky factor for inverting
-A = -Mchol.' \ (Mchol \ Kg);
+A = -Mchol.' \ (Mchol \ K1g);
 % F2 = -Mchol.' \ (Mchol \ K2g);
 F2 = sparse(nvg, nvg^2);
 F3 = sparse(-Mchol.' \ (Mchol \ K3g));

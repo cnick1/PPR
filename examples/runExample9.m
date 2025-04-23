@@ -20,7 +20,7 @@ function runExample9(n, degree, r)
 if nargin < 3
     if nargin < 2
         if nargin < 1
-            n = 33;
+            n = 57;
         end
         degree = 4;
     end

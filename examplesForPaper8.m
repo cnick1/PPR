@@ -6,9 +6,7 @@
 %       working/not working. In the write-up I hardcoded the energy
 %       function values, so there is nothing to export with this example.
 %
-%       Example 11: 2D inverted pendulum. We can choose different degree
-%       approximations to the dynamics, different degree energy functions
-%       to compute, etc.
+%       Example 26: Nondimensionalized 2D inverted pendulum. 
 %
 %       Example 9: Chebychev discretization of Allen-Cahn equation
 %
@@ -18,41 +16,43 @@ setKroneckerToolsPath
 addpath('examples')
 addpath('utils')
 
-%% Example 10: 1D Toy Example
+[~,sys] = memory; RAM = sys.PhysicalMemory.Total/1e9; 
+
+%% Example 10: 1D Toy Example with Transcritical Bifurcation
 % Prints out the closed-loop dynamics of LQR and PPR controllers
 runExample10();
 
-%% Example 11: Inverted Pendulum 
+%% Example 26: 2D Inverted Pendulum 
 % Produces the value function plots, residual plots, and closed-loop phase
-% portrait (by calling external python script)
+% portraits (by calling external python script)
 for nFterms = 1:2:9
-    runExample11(nFterms, nFterms+1);
+    runExample26(nFterms+1);
 end
-% Can run with acceleration using optional third argument to do reduction
-runExample11(9, 10, 1);
 
-% Can play around with RofX and QofX for pendulum example, didn't have much success
-% for nFterms = 1:2:9
-%     runExample11_RofX(nFterms, nFterms+1);
-% end
-
-%% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
-% Allen-Cahn example where we wish to move the interface. This example
-% features comparison with SDRE and the Bass 1966 approach which is like
-% linear-polynomial regulation (sort-of). TT-HJB cannot be applied to this
-% example (TT-HJB is only written for single input).
-close all; clear; clc
-
-% Run cases with different diffusion coefficients
-runExample9(45,4,10)
-% runExample9(129,4,10)
-
-% Run cases with different initial conditions
-runExample9_differentICs(45, 4, 10)
+% Prints out the table of control costs
+runExample26_controlCosts();
 
 %% Example 9: Allen-Cahn equation, Neumann Boundary Conditions
-% clear;clc;close all;
+% Case where we wish to stabilize the origin and compare with other
+% methods, most notably TT-HJB. 
 runExample9_Neumann(14,6,0.5)
 
+%% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
+% Case where we wish to move the interface. TT-HJB cannot be applied to 
+% this example because i) it only is written for single input systems, and
+% ii) it is too high dimensional
+
+if RAM < 20
+    n = 45;          % for running locally     with  16 GB RAM
+else 
+    n = 129;         % for running on Poseidon with 512 GB RAM
+end
+
+% Run cases with different diffusion coefficients
+runExample9(n,4,10)            
+
+% Run cases with different initial conditions
+runExample9_differentICs(n,4,10)
+
 %% Example 22: 4D Pendulum Cart Example
-runExample22();
+% runExample22();
