@@ -1,9 +1,13 @@
-function runExample29(numElements, r)
+function runExample29(numElements, r, descriptor)
 %runExample29 Runs the 2D unsteady nonlinear heat equation FEM control example.
 %
 %   Usage:  runExample29(numElements)
 %
-%   Inputs: numElements - number of finite elements in each direction
+%   Inputs: 
+%       numElements - number of finite elements in each direction
+%       r           - reduced-order dimension
+%       descriptor  - boolean, option to leave dynamics in generalized form
+%                     (default=true)
 %
 %   Description: The model, inspired by [1], describes an unstable heat
 %   equation problem modeling heat generated in a resistive electrical
@@ -33,11 +37,14 @@ function runExample29(numElements, r)
 %   Part of the PPR repository.
 %%
 fprintf('Running Example 29\n')
-if nargin < 2
-    if nargin < 1
-        numElements = 8;
+if nargin < 3
+    descriptor = true;
+    if nargin < 2
+        if nargin < 1
+            numElements = 8;
+        end
+        r = (numElements+1)^2;
     end
-    r = (numElements+1)^2;
 end
 
 % Get dynamics
@@ -52,7 +59,6 @@ G = @(x) g{1};
 Mchol = chol(E).'; % Use Cholesky factor for inverting
 FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval({sparse(f{1}),f{2},f{3}},x) + g{1} * u));
 
-descriptor = true;
 if descriptor
     % Case 1: Descriptor form (sparse)
     options.E = E;
@@ -62,7 +68,7 @@ else
     f{1} = Mchol.'\(Mchol\f{1});
     f{3} = Mchol.'\(Mchol\f{3});
     g{1} = Mchol.'\(Mchol\g{1});
-    options.E = eye(n); % Case 3: Standard form solved with E=I
+    options.E = []; % Case 3: Standard form solved with E=I
     fprintf("Computing ppr() solution in standard form, n=%i, r=%i, d=%i ... ",n,r,4); tic
 end
 
@@ -82,11 +88,11 @@ x0 = x0(:);
 tmax = 5; t = 0:0.2:tmax; % specify for plotting
 
 fprintf(" - Simulating open-loop dynamics ... "); tic
-[~, XUNC] = ode23(@(t, x) FofXU(x,   0    ), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating LQR closed-loop dynamics ... "); tic
-[~, XLQR] = ode23(@(t, x) FofXU(x, uLQR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating PPR closed-loop dynamics ... "); tic
-[t, XPPR] = ode23(@(t, x) FofXU(x, uPPR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
 for i=1:length(t)
