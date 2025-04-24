@@ -60,6 +60,8 @@ G = @(x) g{1};
 % Pass sparse operators for ode simulation purposes
 Mchol = chol(E).'; % Use Cholesky factor for inverting
 FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval({sparse(f{1}),f{2},f{3}},x) + g{1} * u));
+% dFdx = @(t,x) Mchol.'\(Mchol\(jcbn({sparse(f{1}),f{2},f{3}},x,true)));
+dFdx = @(t,x,K) Mchol.'\(Mchol\f{1}+g{1}*K);
 
 if descriptor
     % Case 1: Descriptor form (sparse)
@@ -75,9 +77,9 @@ else
 end
 
 % Get value function/controller
-q = .1; R = 1; degree = 4; options.verbose = true; options.r = r;
+q = .1; R = 1; degree = 4; options.verbose = false; options.r = r;
 [~, K] = ppr(f, g, q, R, degree, options);
-fprintf("completed in %2.2f seconds. \n", toc)
+fprintf(" completed in %2.2f seconds. \n", toc)
 
 uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
@@ -88,13 +90,15 @@ Y = reshape(xyg(:,2),nx,ny);
 x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1;
 x0 = x0(:);
 tmax = 5; t = 0:0.2:tmax; % specify for plotting
-opts=odeset('OutputFcn',@odeprog);
+opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,0));
+% opts=odeset(OutputFcn=@odeprog);
 
-fprintf(" - Simulating open-loop dynamics ... "); tic
+fprintf(" - Simulating open-loop dynamics ... "); global T0; T0 = tic;
 [~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
-fprintf(" - Simulating LQR closed-loop dynamics ... "); tic
+opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,K{1}));
+fprintf(" - Simulating LQR closed-loop dynamics ... "); T0 = tic;
 [~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
-fprintf(" - Simulating PPR closed-loop dynamics ... "); tic
+fprintf(" - Simulating PPR closed-loop dynamics ... "); T0 = tic;
 [t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
@@ -166,7 +170,7 @@ function status = odeprog(t, y, flag)
             nSteps = 50; % Number of blocks in the progress bar
             lastPct = -1;
             lastUpdateTime = 0;
-            fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)\n', repmat(' ',1,nSteps), round(elapsed));
+            fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)', repmat(' ',1,nSteps), round(elapsed));
 
         case ''
             % ODE solver step
@@ -181,8 +185,8 @@ function status = odeprog(t, y, flag)
 
             if needsUpdate || timeSinceLast >= 1
                 bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
-                fprintf(repmat('\b',1,94));
-                fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)\n', bar, round(elapsed), round(eta));
+                fprintf(repmat('\b',1,93));
+                fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)', bar, round(elapsed), round(eta));
                 if needsUpdate
                     lastPct = pct;
                 end
@@ -193,7 +197,7 @@ function status = odeprog(t, y, flag)
             % Finalize
             % elapsed = toc(T0);
             % bar = repmat('-',1,nSteps);
-            fprintf(repmat('\b',1,94));
+            fprintf(repmat('\b',1,93));
             % fprintf(' |%s|  (elapsed: %5i s, remaining:     0 s)\n', bar, round(elapsed));
             clear T0 T1 nSteps lastPct lastUpdateTime
     end
