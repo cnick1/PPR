@@ -88,7 +88,7 @@ Y = reshape(xyg(:,2),nx,ny);
 x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1;
 x0 = x0(:);
 tmax = 5; t = 0:0.2:tmax; % specify for plotting
-opts=odeset('OutputFcn',@odeprog,'Events',@odeabort);
+opts=odeset('OutputFcn',@odeprog);
 
 fprintf(" - Simulating open-loop dynamics ... "); tic
 [~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
