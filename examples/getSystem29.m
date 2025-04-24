@@ -139,7 +139,7 @@ end
 A = -K1g;
 % F2 = -Mchol.' \ (Mchol \ K2g);
 F2 = sparse(nvg, nvg^2);
-F3 = -sparse(K3g);
+F3 = -K3g;
 
 % Now, changing notation a bit, we want to put the system in the form
 %       ̇x = f(x) + g(x) u
