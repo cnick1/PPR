@@ -139,7 +139,8 @@ end
 A = -K1g;
 % F2 = -Mchol.' \ (Mchol \ K2g);
 F2 = sparse(nvg, nvg^2);
-F3 = -K3g;
+% F3 = -K3g;
+F3 = K3g; % made negative at element level, saves a lot of time
 
 % Now, changing notation a bit, we want to put the system in the form
 %       ̇x = f(x) + g(x) u
@@ -282,7 +283,8 @@ Icell = cell(nel, 1);
 Jcell = cell(nel, 1);
 Vcell = cell(nel, 1);
 
-vals = K3e(:);  % assuming K3e is constant per element
+% vals = K3e(:);  % assuming K3e is constant per element
+vals = -K3e(:);  % saves a lot of time to make it negative here
 for ie = 1:nel
     % Local node indices
     nodes = mconn(ie, 1:nnpe);
