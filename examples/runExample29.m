@@ -88,13 +88,14 @@ Y = reshape(xyg(:,2),nx,ny);
 x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1;
 x0 = x0(:);
 tmax = 5; t = 0:0.2:tmax; % specify for plotting
+opts=odeset('OutputFcn',@odeprog,'Events',@odeabort);
 
 fprintf(" - Simulating open-loop dynamics ... "); tic
-[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating LQR closed-loop dynamics ... "); tic
-[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating PPR closed-loop dynamics ... "); tic
-[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0); fprintf("completed in %2.2f seconds. \n", toc)
+[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
 for i=1:length(t)
@@ -149,4 +150,52 @@ drawnow
 end
 
 
+function status = odeprog(t, y, flag)
+    % ODEPROG Custom progress bar for ode solver
+    % Use with odeset: opts = odeset('OutputFcn',@odeprog);
+    persistent T1 nSteps lastPct lastUpdateTime
+    global T0 
+
+    status = false;
+
+    switch flag
+        case 'init'
+            % Initialize progress bar
+            elapsed = toc(T0);
+            T1 = t(end);
+            nSteps = 50; % Number of blocks in the progress bar
+            lastPct = -1;
+            lastUpdateTime = 0;
+            fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)\n', repmat(' ',1,nSteps), round(elapsed));
+
+        case ''
+            % ODE solver step
+            if isempty(t), return; end
+            tNow = t(end);
+            pct = min(100, max(0, 100 * tNow / T1));
+            block = floor(pct / (100/nSteps));
+            elapsed = toc(T0);
+            eta = (elapsed / max(tNow,eps)) * (T1 - tNow); % avoid divide-by-zero
+            needsUpdate = pct - lastPct >= 2 || block == nSteps;
+            timeSinceLast = elapsed - lastUpdateTime;
+
+            if needsUpdate || timeSinceLast >= 1
+                bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
+                fprintf(repmat('\b',1,94));
+                fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)\n', bar, round(elapsed), round(eta));
+                if needsUpdate
+                    lastPct = pct;
+                end
+                lastUpdateTime = elapsed;
+            end
+
+        case 'done'
+            % Finalize
+            % elapsed = toc(T0);
+            % bar = repmat('-',1,nSteps);
+            fprintf(repmat('\b',1,94));
+            % fprintf(' |%s|  (elapsed: %5i s, remaining:     0 s)\n', bar, round(elapsed));
+            clear T0 T1 nSteps lastPct lastUpdateTime
+    end
+end
 
