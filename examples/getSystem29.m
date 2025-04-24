@@ -276,40 +276,35 @@ end
 K2g = sparse(nvg, nvg^2);
 
 %% Assemble cubic global matrix
-% Initialize and stack/assemble global matrix
-K3g = sparse(nvg, nvg^3);
+% Updated this with the help of chatgpt to assemble more efficiently
+% Preallocate cell arrays to store triplet data
+Icell = cell(nel, 1);
+Jcell = cell(nel, 1);
+Vcell = cell(nel, 1);
 
+vals = K3e(:);  % assuming K3e is constant per element
 for ie = 1:nel
-    % Construct nodes and cnodes: nodes contains the indices for the
-    % element nodes w.r.t. the global nodes. This is to map the element
-    % indices to the global variable u. Similarly, nodes3 maps the indices
-    % for the element nodes to the cubic variable (u⊗u⊗u). 
-    % 
-    % For the 2D case, even for bilinear rectangular elements things are
-    % a bit tricky, because now we need to deal with the connectivity
-    % matrix. nodes is the same as was for the linear case: 
-    nodes = mconn(ie,1:nnpe); % note: this is NOT just nodes = ie:(ie + nvpe - 1)
-
-
-    % nodes3 is going to be even trickier. We need to figure out:
-    %   1) the skip due to going from element 1, 2, 3, i.e. the skip
-    %      corresponding to ie increasing in the loop 
-    %       (for the linear variable, we just go up by 1 each time, 
-    %        but for the cubic variable we need to go up by chunks)
-    %   2) the skips due to global nodes that are not in the element 
-    %              (for the linear variable, all the  
-    %              element nodes are grouped together)
-    % Both of these skips are somewhat recursive, in that the skips for
-    % (u⊗u⊗u) involve the skips needed for (u⊗u), etc. A commonly used
-    % trick for this process is to add a column vector and a row vector to 
-    % get all the combinations.
+    % Local node indices
+    nodes = mconn(ie, 1:nnpe);
     nodesm1 = nodes - 1;
     nodes2 = vec(nodes' + nodesm1*nvg).'; 
     nodes3 = vec(nodes2' + nodesm1*nvg^2).';  
 
-    % "stack" element matrices into global matrix
-    K3g(nodes, nodes3) = K3g(nodes, nodes3) + K3e;
+    % Build triplets from local matrix
+    [row_idx, col_idx] = ndgrid(nodes, nodes3);
+
+    Icell{ie} = row_idx(:);
+    Jcell{ie} = col_idx(:);
+    Vcell{ie} = vals;
 end
+
+% Concatenate all triplet data
+I = vertcat(Icell{:});
+J = vertcat(Jcell{:});
+V = vertcat(Vcell{:});
+
+% Assemble global sparse matrix
+K3g = sparse(I, J, V, nvg, nvg^3);
 
 end
 
