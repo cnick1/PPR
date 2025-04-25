@@ -41,9 +41,9 @@ if nargin < 3
     descriptor = true;
     if nargin < 2
         if nargin < 1
-            numElements = 8;
+            numElements = 16;
         end
-        r = (numElements+1)^2;
+        r = 8; %(numElements+1)^2;
     end
 end
 
@@ -59,9 +59,12 @@ G = @(x) g{1};
 
 % Pass sparse operators for ode simulation purposes
 Mchol = chol(E).'; % Use Cholesky factor for inverting
-FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval({sparse(f{1}),f{2},f{3}},x) + g{1} * u));
+f{1} = sparse(f{1});
+% FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval(f,x) + g{1} * u));
+FofXU = @(x,u) Mchol.'\(Mchol\(sparseKronPolyEval(f,x) + g{1} * u));
 % dFdx = @(t,x) Mchol.'\(Mchol\(jcbn({sparse(f{1}),f{2},f{3}},x,true)));
 dFdx = @(t,x,K) Mchol.'\(Mchol\f{1}+g{1}*K);
+f{1} = full(f{1});
 
 if descriptor
     % Case 1: Descriptor form (sparse)
@@ -100,6 +103,7 @@ fprintf(" - Simulating LQR closed-loop dynamics ... "); T0 = tic;
 [~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
 fprintf(" - Simulating PPR closed-loop dynamics ... "); T0 = tic;
 [t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
+
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
 for i=1:length(t)
@@ -201,5 +205,35 @@ function status = odeprog(t, y, flag)
             % fprintf(' |%s|  (elapsed: %5i s, remaining:     0 s)\n', bar, round(elapsed));
             clear T0 T1 nSteps lastPct lastUpdateTime
     end
+end
+
+function [x] = sparseKronPolyEval(f,z)
+%sparseKronPolyEval Evaluates a Kronecker polynomial with sparse optimization
+% Note: This is ONLY for runExample29. It assumes f{2} = 0 and that the function is only cubic
+% Input:
+%   f - coefficients cell array, f{1}, f{2}, f{3}
+%   z - value to calculate the polynomial at (vector)
+%
+% Output:
+%   x = f{1}*z + f{3}*(z ⊗ z ⊗ z)
+%
+% Assumes f{2} is zero
+% Assumes f{3} is sparse and avoids forming kron(z,z,z)
+
+persistent n F3i F3j F3v I1 I2 I3
+if isempty(n)
+    n = length(z);
+    [F3i, F3j, F3v] = find(f{3});
+    [I1, I2, I3] = ind2sub([n n n], F3j);
+end
+
+% Evaluate linear and quadratic terms normally
+x = f{1}*z;
+% x = x + f{2}*kron(z,z); % commented out because f{2}=0
+
+% Efficient sparse evaluation of f{3}*(z⊗z⊗z)
+zprod = z(I1) .* z(I2) .* z(I3);
+x = x + accumarray(F3i, F3v .* zprod, size(x));
+
 end
 
