@@ -60,8 +60,9 @@ G = @(x) g{1};
 % Pass sparse operators for ode simulation purposes
 Mchol = chol(E).'; % Use Cholesky factor for inverting
 f{1} = sparse(f{1});
-% FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval(f,x) + g{1} * u));
-FofXU = @(x,u) Mchol.'\(Mchol\(sparseKronPolyEval(f,x) + g{1} * u));
+% FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval(f,x) + g{1} * u)); % Standard sparse kronPolyEval (needs to recompute sparsity pattern every time)
+% FofXU = @(x,u) Mchol.'\(Mchol\(kronPolyEval(f,x,3,false) + g{1} * u)); % Standard kronPolyEval (needs to form full x^k even though only a few entries are needed)
+FofXU = @(x,u) Mchol.'\(Mchol\(sparseKronPolyEval(f,x) + g{1} * u)); % Custom kronPolyEval that uses all available speed-ups
 % dFdx = @(t,x) Mchol.'\(Mchol\(jcbn({sparse(f{1}),f{2},f{3}},x,true)));
 dFdx = @(t,x,K) Mchol.'\(Mchol\f{1}+g{1}*K);
 f{1} = full(f{1});
@@ -97,12 +98,12 @@ opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,0));
 % opts=odeset(OutputFcn=@odeprog);
 
 fprintf(" - Simulating open-loop dynamics ... "); global T0; T0 = tic;
-[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
 opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,K{1}));
 fprintf(" - Simulating LQR closed-loop dynamics ... "); T0 = tic;
-[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
+[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
 fprintf(" - Simulating PPR closed-loop dynamics ... "); T0 = tic;
-[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc)
+[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
 
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
@@ -155,71 +156,74 @@ cbh = colorbar(h(end));
 cbh.Layout.Tile = 'east';
 drawnow
 
+clear n F3i F3j F3v I1 I2 I3 T0
+whos f
 end
 
 
 function status = odeprog(t, y, flag)
-    % ODEPROG Custom progress bar for ode solver
-    % Use with odeset: opts = odeset('OutputFcn',@odeprog);
-    persistent T1 nSteps lastPct lastUpdateTime
-    global T0 
+% ODEPROG Custom progress bar for ode solver
+% Use with odeset: opts = odeset('OutputFcn',@odeprog);
+persistent T1 nSteps lastPct lastUpdateTime
+global T0
 
-    status = false;
+status = false;
 
-    switch flag
-        case 'init'
-            % Initialize progress bar
-            elapsed = toc(T0);
-            T1 = t(end);
-            nSteps = 50; % Number of blocks in the progress bar
-            lastPct = -1;
-            lastUpdateTime = 0;
-            fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)', repmat(' ',1,nSteps), round(elapsed));
-
-        case ''
-            % ODE solver step
-            if isempty(t), return; end
-            tNow = t(end);
-            pct = min(100, max(0, 100 * tNow / T1));
-            block = floor(pct / (100/nSteps));
-            elapsed = toc(T0);
-            eta = (elapsed / max(tNow,eps)) * (T1 - tNow); % avoid divide-by-zero
-            needsUpdate = pct - lastPct >= 2 || block == nSteps;
-            timeSinceLast = elapsed - lastUpdateTime;
-
-            if needsUpdate || timeSinceLast >= 1
-                bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
-                fprintf(repmat('\b',1,93));
-                fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)', bar, round(elapsed), round(eta));
-                if needsUpdate
-                    lastPct = pct;
-                end
-                lastUpdateTime = elapsed;
-            end
-
-        case 'done'
-            % Finalize
-            % elapsed = toc(T0);
-            % bar = repmat('-',1,nSteps);
+switch flag
+    case 'init'
+        % Initialize progress bar
+        elapsed = toc(T0);
+        T1 = t(end);
+        nSteps = 50; % Number of blocks in the progress bar
+        lastPct = -1;
+        lastUpdateTime = 0;
+        fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)', repmat(' ',1,nSteps), round(elapsed));
+        
+    case ''
+        % ODE solver step
+        if isempty(t), return; end
+        tNow = t(end);
+        pct = min(100, max(0, 100 * tNow / T1));
+        block = floor(pct / (100/nSteps));
+        elapsed = toc(T0);
+        eta = (elapsed / max(tNow,eps)) * (T1 - tNow); % avoid divide-by-zero
+        needsUpdate = pct - lastPct >= 2 || block == nSteps;
+        timeSinceLast = elapsed - lastUpdateTime;
+        
+        if needsUpdate || timeSinceLast >= 1
+            bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
             fprintf(repmat('\b',1,93));
-            % fprintf(' |%s|  (elapsed: %5i s, remaining:     0 s)\n', bar, round(elapsed));
-            clear T0 T1 nSteps lastPct lastUpdateTime
-    end
+            fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)', bar, round(elapsed), round(eta));
+            if needsUpdate
+                lastPct = pct;
+            end
+            lastUpdateTime = elapsed;
+        end
+        
+    case 'done'
+        % Finalize
+        % elapsed = toc(T0);
+        % bar = repmat('-',1,nSteps);
+        fprintf(repmat('\b',1,93));
+        % fprintf(' |%s|  (elapsed: %5i s, remaining:     0 s)\n', bar, round(elapsed));
+        clear T0 T1 nSteps lastPct lastUpdateTime
+end
 end
 
 function [x] = sparseKronPolyEval(f,z)
-%sparseKronPolyEval Evaluates a Kronecker polynomial with sparse optimization
-% Note: This is ONLY for runExample29. It assumes f{2} = 0 and that the function is only cubic
-% Input:
-%   f - coefficients cell array, f{1}, f{2}, f{3}
-%   z - value to calculate the polynomial at (vector)
+%sparseKronPolyEval Evaluate a Kronecker polynomial with sparse optimization
+% Note: This is ONLY for runExample29:
+%   - Assumes f{2} is zero, f{1} and f{3} are only other coefficients
+%   - Assumes f{3} is sparse and avoids forming kron(z,z,z)
 %
-% Output:
-%   x = f{1}*z + f{3}*(z ⊗ z ⊗ z)
+% Inputs:   f - coefficients cell array, f{1}, f{2}, f{3}
+%           z - value to calculate the polynomial at (vector)
 %
-% Assumes f{2} is zero
-% Assumes f{3} is sparse and avoids forming kron(z,z,z)
+% Output:   x = f{1}*z + f{3}*(z⊗z⊗z)
+%%
 
+% Use persistent variables to only compute sparsity pattern once
+% (major speed-up)
 persistent n F3i F3j F3v I1 I2 I3
 if isempty(n)
     n = length(z);

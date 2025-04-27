@@ -31,7 +31,7 @@ function [E, f, g, h, xyg] = getSystem29(numElements, eps, lambda, mu)
 %                        it dominated by kronPolyEval(), i.e. kron(x,x,...)
 %
 %   Description: The model is a 2D generalization of the 1D model in
-%   getSystem27(), which describes something like a wire that heats up due 
+%   getSystem27(), which describes something like a wire that heats up due
 %   to electrical resistance. The governing PDE is
 %
 %     uₜ(x,y,t) = ε uₓₓ(x,y,t) + ε uᵧᵧ(x,y,t) + λ u(x,y,t) + μ u(x,y,t)³
@@ -50,7 +50,7 @@ function [E, f, g, h, xyg] = getSystem29(numElements, eps, lambda, mu)
 %     y = C x.
 %
 %   which can of course be put in the standard state-space form by
-%   multiplying by the inverse of the mass matrix. 
+%   multiplying by the inverse of the mass matrix.
 %
 %   Reference: [1] J. N. Reddy, An introduction to nonlinear finite element
 %              analysis. Oxford University Press, 2004,
@@ -121,11 +121,11 @@ end
 [Mg,K1g,K2g,K3g,Fg,Rg] = applyBoundaryConditions(Mg,K1g,K2g,K3g,Fg,Rg,mconn,xyg,nx,ny,a,b,nel);
 
 %% Put into standard control system form
-% The current ODE we have for the global system is 
+% The current ODE we have for the global system is
 %       Mg u̇ + K1g u + K3g (u ⊗ u ⊗ u) = Fg + Rg.
-% We wish to put this in the descriptor state-space form for polynomial 
+% We wish to put this in the descriptor state-space form for polynomial
 % control systems:
-%       Eẋ = A x + F₂ (x ⊗ x) + F₃ (x ⊗ x ⊗ x) + B u 
+%       Eẋ = A x + F₂ (x ⊗ x) + F₃ (x ⊗ x ⊗ x) + B u
 %           y = C x
 % Multiplying my M⁻¹ achieves this. The new system will be
 %       ̇Mg u = -Kg u + Fg + Rg
@@ -138,7 +138,8 @@ end
 
 A = -K1g;
 % F2 = -Mchol.' \ (Mchol \ K2g);
-F2 = sparse(nvg, nvg^2);
+% F2 = sparse(nvg, nvg^2);
+F2 = sparseCSR(nvg, nvg^2); % due to how Matlab stores sparse arrays, this is more memory efficient
 % F3 = -K3g;
 F3 = K3g; % made negative at element level, saves a lot of time
 
@@ -274,7 +275,7 @@ end
 
 %% Assemble quadratic global matrix
 % Form all zero quadratic global matrix directly
-K2g = sparse(nvg, nvg^2);
+K2g = sparseCSR(nvg, nvg^2);
 
 %% Assemble cubic global matrix
 % Updated this with the help of chatgpt to assemble more efficiently
@@ -289,12 +290,12 @@ for ie = 1:nel
     % Local node indices
     nodes = mconn(ie, 1:nnpe);
     nodesm1 = nodes - 1;
-    nodes2 = vec(nodes' + nodesm1*nvg).'; 
-    nodes3 = vec(nodes2' + nodesm1*nvg^2).';  
-
+    nodes2 = vec(nodes' + nodesm1*nvg).';
+    nodes3 = vec(nodes2' + nodesm1*nvg^2).';
+    
     % Build triplets from local matrix
     [row_idx, col_idx] = ndgrid(nodes, nodes3);
-
+    
     Icell{ie} = row_idx(:);
     Jcell{ie} = col_idx(:);
     Vcell{ie} = vals;
@@ -306,7 +307,7 @@ J = vertcat(Jcell{:});
 V = vertcat(Vcell{:});
 
 % Assemble global sparse matrix
-K3g = sparse(I, J, V, nvg, nvg^3);
+K3g = sparseCSR(I, J, V, nvg, nvg^3);
 
 end
 
@@ -409,23 +410,23 @@ function [Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,f,xe,ye)
 a=xe(2)-xe(1); b=ye(4)-ye(1);
 
 L11 = b/(6*a)*[ 2 -2 -1  1;
-               -2  2  1 -1;
-               -1  1  2 -2;
-                1 -1 -2  2];
+    -2  2  1 -1;
+    -1  1  2 -2;
+    1 -1 -2  2];
 L22 = a/(6*b)*[ 2  1 -1 -2;
-                1  2 -2 -1;
-               -1 -2  2  1;
-               -2 -1  1  2];
+    1  2 -2 -1;
+    -1 -2  2  1;
+    -2 -1  1  2];
 L00 = a*b/36*[ 4  2  1  2;
-               2  4  2  1;
-               1  2  4  2;
-               2  1  2  4];
+    2  4  2  1;
+    1  2  4  2;
+    2  1  2  4];
 
 % Cubic stiffness matrix for one element
 L3 = a*b/1200 * sparse([48, 36, 9, 36, 0, 24, 12, 18, 0, 0, 4, 12, 0, 0, 0, 24, 0, 0, 0, 0, 0, 12, 9, 6, 0, 0, 6, 8, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12;
- 12, 24, 6, 9, 0, 36, 18, 12, 0, 0, 6, 8, 0, 0, 0, 6, 0, 0, 0, 0, 0, 48, 36, 9, 0, 0, 24, 12, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 9, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3;
- 3, 6, 4, 6, 0, 9, 12, 8, 0, 0, 9, 12, 0, 0, 0, 9, 0, 0, 0, 0, 0, 12, 24, 6, 0, 0, 36, 18, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 36, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12;
- 12, 9, 6, 24, 0, 6, 8, 12, 0, 0, 6, 18, 0, 0, 0, 36, 0, 0, 0, 0, 0, 3, 6, 4, 0, 0, 9, 12, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 24, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48]);
+    12, 24, 6, 9, 0, 36, 18, 12, 0, 0, 6, 8, 0, 0, 0, 6, 0, 0, 0, 0, 0, 48, 36, 9, 0, 0, 24, 12, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 9, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3;
+    3, 6, 4, 6, 0, 9, 12, 8, 0, 0, 9, 12, 0, 0, 0, 9, 0, 0, 0, 0, 0, 12, 24, 6, 0, 0, 36, 18, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 36, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12;
+    12, 9, 6, 24, 0, 6, 8, 12, 0, 0, 6, 18, 0, 0, 0, 36, 0, 0, 0, 0, 0, 3, 6, 4, 0, 0, 9, 12, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 24, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48]);
 
 
 Me = gamma*L00;
