@@ -173,7 +173,7 @@ E = full(options.E);
 if iscell(f) % polynomial drift
     A = full(f{1});
     lf = length(f);
-
+    
     if (nargin < 5)
         degree = lf+1;
     end
@@ -200,7 +200,7 @@ if iscell(q) % Polynomial state penalty
         Q = q{2};
     end
     lq = length(q) - 1;
-
+    
     % If q's are scalars, use 'identity' tensors
     for i=3:length(q)
         if isscalar(q{i})
@@ -248,14 +248,14 @@ if iscell(r) % Polynomial control penalty
         R = r{1};
     end
     lr = length(r) - 1;
-
+    
     % If r's are scalars, use 'identity' tensors
     for i=2:length(r)
         if isscalar(r{i})
             % Naive way
             % temp = sparse(m^2,n^(i-1)); temp(:,linspace(1,n^(i-1),n)) = repmat(vec(speye(m)),1,n);
             % r{i} = r{i}*temp; % Like an identity matrix but a tensor, vectorized
-
+            
             % More efficient way: rows=linspace(1,m^2,m), columns=linspace(1,n^(i-1),n), so use
             % repmat to duplicate rows n times and columns m times, forming all possible combinations.
             r{i} = r{i}*sparse(repmat(linspace(1,m^2,m),1,n),repmat(linspace(1,n^(i-1),n),m,1),1);
@@ -275,7 +275,27 @@ end
 %% V2, Degree 2 coefficient (k=2 case)
 switch RPosDef
     case 1 % Positive definite R
-        V2 = icare(A, B, Q, R, [], E);
+        if isfield(options,'lrradi') && options.lrradi
+            try
+                try
+                    addpath('../mmess/'); mess_path;
+                catch ME
+                    % if strcmp(ME.identifier,'MESS:path_exists')
+                    %     warning(ME.message)
+                    % end
+                end
+                [Z,K1] = mess_care_lrradi(A, B, options.C, R, E);
+                V2 = Z*Z.'; % redo this with factored matrix class
+            catch ME
+                if ~isfield(options,'C')
+                    error("M-M.E.S.S. solver requires low-rank Q = C'*C; pass in C using options.C")
+                else
+                    error('Something went wrong calling M-M.E.S.S.; did you clone it into the parent directory?')
+                end
+            end
+        else
+            V2 = icare(full(A), full(B), full(Q), full(R), [], full(E));
+        end
     case 2 % Negative definite R
         if isscalar(R) && R == -1 && isscalar(Q) && Q == 0 % Computing open-loop controllability energy function; use lyap
             V2 = inv(lyap(A,(B*B.'),[],E));
@@ -290,12 +310,12 @@ switch RPosDef
         V2 = lyap(A', Q, [], E');
 end
 
-if (isempty(V2))
+if isempty(V2)
     error('ppr: Linear system is not stabilizable')
 end
 
 %  Check the residual of the Riccati/Lyapunov equation
-if (options.verbose)
+if options.verbose
     if isempty(E); RES = A' * V2     +      V2 * A - (    V2 * B) * Rinv * (B' * V2    ) + Q;
     else;          RES = A' * V2 * E + E' * V2 * A - (E' *V2 * B) * Rinv * (B' * V2 * E) + Q; end
     fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf')); clear RES
@@ -303,18 +323,20 @@ end
 
 %  Reshape the resulting quadratic coefficients
 v{2} = vec(V2);
-if isempty(E); K1 = -Rinv*B.'*V2;
-else;          K1 = -Rinv*B.'*V2*E; end
+if ~exist('K1','var')
+    if isempty(E); K1 = -Rinv*B.'*V2;
+    else;          K1 = -Rinv*B.'*V2*E; end
+end
 K{1} = K1;
 
 if useReducedOrderModel
     options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
     options = getReducedOrderModel(f,g,options);
-
+    
     % Now replace f,g,q with fr,gr,qr
     f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.r;
     A = f{1}; B = g{1};
-
+    
     V2f = options.V2; K1f = K{1};
     V2 = options.T.'*V2f*options.T;
     v{2} = vec(V2); K{1} = K1f*options.T;
@@ -333,13 +355,13 @@ if (degree > 2)
     else
         GaVb = memoize(@(a, b, v) g{a + 1}.' * kroneckerRight(reshape(v{b}, n, n^(b-1)),E)); % Memoize evaluation of GaVb with E matrix
     end
-
+    
     for k = 3:degree
         %% Compute the value function coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         b = 0; % Initialize b
         K{k-1} = zeros(m,n^(k-1)); % Initialize K
-
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if lf > 1 % If we have polynomial drift dynamics
             % Here we add the f(x) terms. The range for possible i's is
@@ -348,15 +370,15 @@ if (degree > 2)
             % F₂ and F₃ exist, in which case only the last two i's, [k-2, k-1], are
             % required. Indexing on the i's backwards and checking if we have run out
             % of Fₚ's allows us to do this easily.
-
+            
             for i = flip(2:k-1)                           % Theoretical sum limits for Vᵢ's; index backwards in i so that p indexes forwards
                 p = k + 1 - i;
                 if p > lf; break; end                     % Only run while we have F_p's left
-
+                
                 b = b - LyapProduct(f{p}.', v{i}, i, E);
             end
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         if R ~= 0
             % Here we add the g(x)u(x) terms. The sum is over indexes satisfying
@@ -367,7 +389,7 @@ if (degree > 2)
             % with a continue statement. And since q and p index forwards, i indexes
             % backwards (at most from k), but once i reaches i<2 we run out of Vᵢ's,
             % so we need a break statement.
-
+            
             for q_idx = 1:k-2                             % Theoretical sum limits for K_q's
                 for p_idx = 0:lg                          % Theoretical sum limits for G_p's
                     i = k+1 - p_idx - q_idx;
@@ -377,12 +399,12 @@ if (degree > 2)
                 end
             end
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%%% Add state penalty components (Q(x)) %%%%%%%%%%%%%%%%%%%%%%
         if k <= lq + 1                                    % Simply check if q{k} exists
             b = b - q{k};
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%
         % Here we add the u(x)ᵀR(x)u(x) terms. The sum is over indices satisfying
         % i+p+q=k. Note, the r cell array does not use zero indexing. The range for
@@ -396,7 +418,7 @@ if (degree > 2)
                 q_idx = k - p_idx - i;
                 if q_idx==k-1; continue; end             % Skip the k-1 term that cancels with the G(x) terms
                 if q_idx<1; break; end                   % Only run while we have K_q's left
-
+                
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
                     bRange = (1:len)+(j-1)*len;
@@ -405,11 +427,11 @@ if (degree > 2)
                 end
             end
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now symmetrize and solve! %%%%%%%%%%%%%%%%%%%%%%
         b = kronMonomialSymmetrize(b, n, k);
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, E, [], options.solver);
-
+        
         %% Now compute the gain coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Here we add the terms due to the gradient of the value function. The
@@ -424,7 +446,7 @@ if (degree > 2)
             if j<2; break; end                               % Only run while we have V_j's left
             K{k-1} = K{k-1} - j/2*reshape(GaVb(q_idx,j, v), m, n^(k-1));
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%% Add control penalty components (R(x)) %%%%%%%%%%%%%%%%%%%%%%%%
         % Here we add the terms due to the nonlinear control penalty R(x). The
         % theoretical range for q would be 0:lr, but the q=0 term goes on the
@@ -438,7 +460,7 @@ if (degree > 2)
                 K{k-1}(j,:) = K{k-1}(j,:) - vec(reshape(Rq(:,j),n^q_idx,m)*K{p}).';
             end
         end
-
+        
         % Now multiply by R₀⁻¹
         K{k-1} = Rinv*K{k-1};
     end
@@ -455,7 +477,7 @@ end
 
 end
 
-function options = getReducedOrderModel(f,g,options)
+function options = getReducedOrderModel2(f,g,options)
 %getReducedOrderModel Apply linear model reduction to get a ROM
 %
 %   Usage:    options = getReducedOrderModel(f,g,options)
@@ -465,7 +487,7 @@ function options = getReducedOrderModel(f,g,options)
 %                 for the drift and input.
 %       options - struct containing additional quantities to transform:
 %        • q: cell arrays containing the polynomial coefficients for the
-%                 state penalty in the cost. 
+%                 state penalty in the cost.
 %        • r: cell arrays containing the polynomial coefficients for the
 %                 control penalty in the cost.
 %        • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u.
@@ -484,19 +506,19 @@ function options = getReducedOrderModel(f,g,options)
 %        ẋᵣ = f(xᵣ) + g(xᵣ) u
 %    Applying the transformation yields
 %        ETẋᵣ = f(Txᵣ) + g(Txᵣ) u
-%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce 
-%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then 
+%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce
+%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then
 %    multiply by Eᵣ⁻¹. These are not in general the same, due to the fact
 %    that TᵀT = I but TTᵀ ≠ I. In this function, we do the former option.
 %
 %    The coefficients of fᵣ(xᵣ) and gᵣ(xᵣ) in polynomial form can be
 %    obtained from the coefficients of f(x) and g(x), and we have to
 %    transform q(x) and r(x) similarly. The transformation is mainly
-%    applied by repeated Kronecker multiplication with T: 
-%        ẋ  = E⁻¹A x + E⁻¹F₂ (x ⊗ x) + ... 
-%       Tẋᵣ = E⁻¹A Txᵣ + E⁻¹F₂ (Txᵣ ⊗ Txᵣ) + ... 
-%        ẋᵣ = TᵀE⁻¹AT xᵣ + TᵀE⁻¹F₂(T⊗T) (xᵣ ⊗ xᵣ) + ... 
-%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ... 
+%    applied by repeated Kronecker multiplication with T:
+%        ẋ  = E⁻¹A x + E⁻¹F₂ (x ⊗ x) + ...
+%       Tẋᵣ = E⁻¹A Txᵣ + E⁻¹F₂ (Txᵣ ⊗ Txᵣ) + ...
+%        ẋᵣ = TᵀE⁻¹AT xᵣ + TᵀE⁻¹F₂(T⊗T) (xᵣ ⊗ xᵣ) + ...
+%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ...
 %
 %   Authors: Nick Corbin, UCSD
 %
@@ -511,15 +533,15 @@ switch options.method
         if ~isempty(options.E)
             options.V2 = options.E.'*options.V2*options.E;
         end
-
+        
         [options.T, Xi] = eigs(options.V2,options.r);
         options.TInv = options.T.';
-
+        
         if options.verbose
             figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
         end
-
-    % Could have other cases like Balanced Truncation, POD, etc.
+        
+        % Could have other cases like Balanced Truncation, POD, etc.
 end
 
 % Transform dynamics using the linear (reduced) transformation T
@@ -527,15 +549,15 @@ end
 [~, m] = size(g{1});
 
 if isempty(options.E)
-    E = 1; 
-else 
+    E = 1;
+else
     E = options.E;
-end 
+end
 
 %% Transform f(x)
 options.fr = cell(size(f));
 for k = 1:length(f)
-    options.fr{k} = (options.TInv/E)*kroneckerRight(f{k},options.T); 
+    options.fr{k} = (options.TInv/E)*kroneckerRight(f{k},options.T);
 end
 
 %% Transform g(x)
@@ -565,7 +587,7 @@ for k = 2:length(options.q)
     if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = kroneckerRight(options.q{k}.',options.T).'; 
+        options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
     end
 end
 
@@ -575,7 +597,7 @@ for k = 2:length(options.R)
     if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = kroneckerRight(options.R{k},options.T); 
+        options.Rr{k} = kroneckerRight(options.R{k},options.T);
     end
 end
 
@@ -583,7 +605,7 @@ options.Er = []; % ROM is always in standard form
 end
 
 
-function options = getReducedOrderModel2(f,g,options)
+function options = getReducedOrderModel(f,g,options)
 %getReducedOrderModel2 Apply linear model reduction to get a ROM
 %
 %   Usage:    options = getReducedOrderModel2(f,g,options)
@@ -593,7 +615,7 @@ function options = getReducedOrderModel2(f,g,options)
 %                 for the drift and input.
 %       options - struct containing additional quantities to transform:
 %        • q: cell arrays containing the polynomial coefficients for the
-%                 state penalty in the cost. 
+%                 state penalty in the cost.
 %        • r: cell arrays containing the polynomial coefficients for the
 %                 control penalty in the cost.
 %        • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u.
@@ -612,23 +634,23 @@ function options = getReducedOrderModel2(f,g,options)
 %        ẋᵣ = f(xᵣ) + g(xᵣ) u
 %    Applying the transformation yields
 %        ETẋᵣ = f(Txᵣ) + g(Txᵣ) u
-%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce 
-%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then 
+%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce
+%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then
 %    multiply by Eᵣ⁻¹. These are not in general the same, due to the fact
 %    that TᵀT = I but TTᵀ ≠ I. In this function, we do the latter option,
-%    although this seems to cause issues. Mulitplying by Tᵀ, we get%
+%    although this seems to cause issues. Mulitplying by Tᵀ, we get
 %        TᵀETẋᵣ = Tᵀf(Txᵣ) + Tᵀg(Txᵣ) u
-%    If E=I, then this is already in standard form. Otherwise, multiplying 
+%    If E=I, then this is already in standard form. Otherwise, multiplying
 %    by the inverse of Eᵣ=TᵀET then puts the model in standard form:
 %        ẋᵣ = fᵣ(xᵣ) + gᵣ(xᵣ) u
 %    The coefficients of fᵣ(xᵣ) and gᵣ(xᵣ) in polynomial form can be
 %    obtained from the coefficients of f(x) and g(x), and we have to
 %    transform q(x) and r(x) similarly. The transformation is mainly
-%    applied by repeated Kronecker multiplication with T: 
-%        Eẋ  = A x + F₂ (x ⊗ x) + ... 
-%       ETẋᵣ = A Txᵣ + F₂ (Txᵣ ⊗ Txᵣ) + ... 
-%     TᵀETẋᵣ = TᵀAT xᵣ + TᵀF₂(T⊗T) (xᵣ ⊗ xᵣ) + ... 
-%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ... 
+%    applied by repeated Kronecker multiplication with T:
+%        Eẋ  = A x + F₂ (x ⊗ x) + ...
+%       ETẋᵣ = A Txᵣ + F₂ (Txᵣ ⊗ Txᵣ) + ...
+%     TᵀETẋᵣ = TᵀAT xᵣ + TᵀF₂(T⊗T) (xᵣ ⊗ xᵣ) + ...
+%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ...
 %
 %   Authors: Nick Corbin, UCSD
 %
@@ -643,27 +665,25 @@ switch options.method
         if ~isempty(options.E)
             options.V2 = options.E.'*options.V2*options.E;
         end
-
+        
         [options.T, Xi] = eigs(options.V2,options.r);
         options.TInv = options.T.';
-
+        
         if options.verbose
             figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
         end
-
-    % Could have other cases like Balanced Truncation, POD, etc.
+        
+        % Could have other cases like Balanced Truncation, POD, etc.
 end
 
 % Transform dynamics using the linear (reduced) transformation T
 [n, r] = size(options.T);
 [~, m] = size(g{1});
 
- 
-
 %% Transform f(x)
 options.fr = cell(size(f));
 for k = 1:length(f)
-    options.fr{k} = options.TInv*kroneckerRight(f{k},options.T); 
+    options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
 end
 
 %% Transform g(x)
@@ -693,7 +713,7 @@ for k = 2:length(options.q)
     if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = kroneckerRight(options.q{k}.',options.T).'; 
+        options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
     end
 end
 
@@ -703,7 +723,7 @@ for k = 2:length(options.R)
     if isscalar(options.R{k})
         options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = kroneckerRight(options.R{k},options.T); 
+        options.Rr{k} = kroneckerRight(options.R{k},options.T);
     end
 end
 
@@ -711,16 +731,16 @@ end
 if ~isempty(options.E)
     %% Transform E
     options.Er = options.TInv*options.E*options.T;
-
+    
     %% Put in standard state-space form
     % Since the reduced system is dense anyways, we can invert Er and put
     % in standard state-space form to use more efficient Lyapunov solvers
-
+    
     % Transform f(x)
     for k = 1:length(f)
         options.fr{k} = options.Er\options.fr{k};
     end
-
+    
     % Transform g(x)
     for k = 1:length(g)
         options.gr{k} = options.Er\options.gr{k};
