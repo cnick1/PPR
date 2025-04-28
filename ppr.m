@@ -477,10 +477,183 @@ end
 
 end
 
-function options = getReducedOrderModel2(f,g,options)
+function options = getReducedOrderModel(f,g,options)
 %getReducedOrderModel Apply linear model reduction to get a ROM
 %
 %   Usage:    options = getReducedOrderModel(f,g,options)
+%
+%   Inputs:
+%       f,g     - cell arrays containing the polynomial coefficients
+%                 for the drift and input.
+%       options - struct containing additional quantities to transform:
+%        • q: cell arrays containing the polynomial coefficients for the
+%                 state penalty in the cost.
+%        • r: cell arrays containing the polynomial coefficients for the
+%                 control penalty in the cost.
+%        • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u.
+%
+%   Output:
+%       options - struct containing transformed (reduced) quantities:
+%        • fr,gr: reduced drift and input.
+%        • qr: reduced state penalty weights.
+%        • Rr: reduced control penalty weights.
+%        • Er: in the reduced form, Er=[] always.
+%
+%   Background: Given a transformation x = Txᵣ, we seek to represent the
+%    dynamics for the control-affine system
+%        Eẋ = f(x) + g(x) u
+%    in the new coordinates as
+%        ẋᵣ = f(xᵣ) + g(xᵣ) u
+%    Applying the transformation yields
+%        ETẋᵣ = f(Txᵣ) + g(Txᵣ) u
+%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce
+%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then
+%    multiply by Eᵣ⁻¹. These are not in general the same, due to the fact
+%    that TᵀT = I but TTᵀ ≠ I. In this function, we do the latter option,
+%    although this seems to cause issues. Mulitplying by Tᵀ, we get
+%        TᵀETẋᵣ = Tᵀf(Txᵣ) + Tᵀg(Txᵣ) u
+%    If E=I, then this is already in standard form. Otherwise, multiplying
+%    by the inverse of Eᵣ=TᵀET then puts the model in standard form:
+%        ẋᵣ = fᵣ(xᵣ) + gᵣ(xᵣ) u
+%    The coefficients of fᵣ(xᵣ) and gᵣ(xᵣ) in polynomial form can be
+%    obtained from the coefficients of f(x) and g(x), and we have to
+%    transform q(x) and r(x) similarly. The transformation is mainly
+%    applied by repeated Kronecker multiplication with T:
+%        Eẋ  = A x + F₂ (x ⊗ x) + ...
+%       ETẋᵣ = A Txᵣ + F₂ (Txᵣ ⊗ Txᵣ) + ...
+%     TᵀETẋᵣ = TᵀAT xᵣ + TᵀF₂(T⊗T) (xᵣ ⊗ xᵣ) + ...
+%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ...
+%
+%   Authors: Nick Corbin, UCSD
+%
+
+if isfield(options,'fr')
+    return; % Already have ROM
+end
+if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
+
+switch options.method
+    case 'eigsOfV2'
+        if ~isempty(options.E)
+            options.V2 = options.E.'*options.V2*options.E;
+        end
+        
+        [options.T, Xi] = eigs(options.V2,options.r);
+        options.TInv = options.T.';
+        
+        if options.verbose
+            figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
+        end
+        
+        % Could have other cases like Balanced Truncation, POD, etc.
+end
+
+% Transform dynamics using the linear (reduced) transformation T
+[n, r] = size(options.T);
+[~, m] = size(g{1});
+
+%% Transform f(x)
+options.fr = cell(size(f));
+if issparse(f{end})
+    % Use sparse indexing to form fr more efficiently
+    options.fr{1} = options.TInv*(f{1}*options.T);
+    for k = 2:length(f)
+        % options.fr{k} = sparseCSR(n,r^k);
+        if nnz(f{k})
+            options.fr{k} = sparse(n,r^k);
+            [Fi, Fj, Fv] = find(f{k});
+            rowinds = cell(1, k); % Preallocate cell array for k row indices
+            [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
+            for q = 1:r^k
+                colinds = cell(1, k); % Preallocate cell array for k column indices
+                [colinds{:}] = ind2sub(repmat(r, 1, k), q);
+
+                % Efficient sparse evaluation qth column of f{k}*(T⊗...⊗T)
+                Tprod = ones(size(Fj));
+                for p = 1:k
+                    Tprod = Tprod .* options.T(rowinds{p},colinds{p});
+                end
+
+                options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [n 1]);
+            end
+            options.fr{k} = options.TInv*options.fr{k};
+        else
+            options.fr{k} = sparse(r,r^k);
+        end
+    end
+
+else
+    for k = 1:length(f)
+        options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
+    end
+end
+%% Transform g(x)
+% Instead of dealing with g(x) matrix directly, deal with g_i(x) vectors so
+% I can use the same code as for f(x). So loop over m input channels, use gttemp,
+% and convert to gr after
+lg = length(g);
+gttemp = cell(lg,m);
+for k = 1:m
+    for i = 1:(lg-1) % this internal code block is identical to above for f(x)
+        gttemp{i+1,k} = kroneckerRight(g{i+1}(:,k:m:end),options.T); % k:m:end needed for converting from g(x)u to sum g_i(x) u_i
+    end
+end
+
+% Now convert from g_i(x) vectors back to g(x) matrix
+options.gr{1} = options.TInv*g{1}; % B is not state dependent
+for i=1:(lg-1)
+    options.gr{i+1} = zeros(n,m*n^i);
+    for kk=1:m
+        options.gr{i+1}(:,kk:m:end) = gttemp{i+1,kk};
+    end
+    options.gr{i+1} = options.TInv*options.gr{i+1};
+end
+
+%% Transform Q(x)
+for k = 2:length(options.q)
+    if isscalar(options.q{k})
+        options.qr{k} = options.q{k};
+    else
+        options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
+    end
+end
+
+%% Transform R(x)
+options.Rr{1} = options.R{1};
+for k = 2:length(options.R)
+    if isscalar(options.R{k})
+        options.Rr{k} = options.R{k};
+    else
+        options.Rr{k} = kroneckerRight(options.R{k},options.T);
+    end
+end
+
+%% Transform E
+if ~isempty(options.E)
+    %% Transform E
+    options.Er = options.TInv*options.E*options.T;
+    
+    %% Put in standard state-space form
+    % Since the reduced system is dense anyways, we can invert Er and put
+    % in standard state-space form to use more efficient Lyapunov solvers
+    
+    % Transform f(x)
+    for k = 1:length(f)
+        options.fr{k} = options.Er\options.fr{k};
+    end
+    
+    % Transform g(x)
+    for k = 1:length(g)
+        options.gr{k} = options.Er\options.gr{k};
+    end
+end
+options.Er = []; % ROM is always in standard form
+end
+
+function options = getReducedOrderModel2(f,g,options)
+%getReducedOrderModel2 Apply linear model reduction to get a ROM
+%
+%   Usage:    options2 = getReducedOrderModel(f,g,options)
 %
 %   Inputs:
 %       f,g     - cell arrays containing the polynomial coefficients
@@ -604,147 +777,3 @@ end
 options.Er = []; % ROM is always in standard form
 end
 
-
-function options = getReducedOrderModel(f,g,options)
-%getReducedOrderModel2 Apply linear model reduction to get a ROM
-%
-%   Usage:    options = getReducedOrderModel2(f,g,options)
-%
-%   Inputs:
-%       f,g     - cell arrays containing the polynomial coefficients
-%                 for the drift and input.
-%       options - struct containing additional quantities to transform:
-%        • q: cell arrays containing the polynomial coefficients for the
-%                 state penalty in the cost.
-%        • r: cell arrays containing the polynomial coefficients for the
-%                 control penalty in the cost.
-%        • E: nonsingular mass matrix, for dynamics Eẋ = f(x) + g(x)u.
-%
-%   Output:
-%       options - struct containing transformed (reduced) quantities:
-%        • fr,gr: reduced drift and input.
-%        • qr: reduced state penalty weights.
-%        • Rr: reduced control penalty weights.
-%        • Er: in the reduced form, Er=[] always.
-%
-%   Background: Given a transformation x = Txᵣ, we seek to represent the
-%    dynamics for the control-affine system
-%        Eẋ = f(x) + g(x) u
-%    in the new coordinates as
-%        ẋᵣ = f(xᵣ) + g(xᵣ) u
-%    Applying the transformation yields
-%        ETẋᵣ = f(Txᵣ) + g(Txᵣ) u
-%    Here we have a choice: do we multiply by E⁻¹ and THEN enforce
-%    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then
-%    multiply by Eᵣ⁻¹. These are not in general the same, due to the fact
-%    that TᵀT = I but TTᵀ ≠ I. In this function, we do the latter option,
-%    although this seems to cause issues. Mulitplying by Tᵀ, we get
-%        TᵀETẋᵣ = Tᵀf(Txᵣ) + Tᵀg(Txᵣ) u
-%    If E=I, then this is already in standard form. Otherwise, multiplying
-%    by the inverse of Eᵣ=TᵀET then puts the model in standard form:
-%        ẋᵣ = fᵣ(xᵣ) + gᵣ(xᵣ) u
-%    The coefficients of fᵣ(xᵣ) and gᵣ(xᵣ) in polynomial form can be
-%    obtained from the coefficients of f(x) and g(x), and we have to
-%    transform q(x) and r(x) similarly. The transformation is mainly
-%    applied by repeated Kronecker multiplication with T:
-%        Eẋ  = A x + F₂ (x ⊗ x) + ...
-%       ETẋᵣ = A Txᵣ + F₂ (Txᵣ ⊗ Txᵣ) + ...
-%     TᵀETẋᵣ = TᵀAT xᵣ + TᵀF₂(T⊗T) (xᵣ ⊗ xᵣ) + ...
-%            = Aᵣ xᵣ + F₂ᵣ (xᵣ ⊗ xᵣ) + ...
-%
-%   Authors: Nick Corbin, UCSD
-%
-
-if isfield(options,'fr')
-    return; % Already have ROM
-end
-if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
-
-switch options.method
-    case 'eigsOfV2'
-        if ~isempty(options.E)
-            options.V2 = options.E.'*options.V2*options.E;
-        end
-        
-        [options.T, Xi] = eigs(options.V2,options.r);
-        options.TInv = options.T.';
-        
-        if options.verbose
-            figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
-        end
-        
-        % Could have other cases like Balanced Truncation, POD, etc.
-end
-
-% Transform dynamics using the linear (reduced) transformation T
-[n, r] = size(options.T);
-[~, m] = size(g{1});
-
-%% Transform f(x)
-options.fr = cell(size(f));
-for k = 1:length(f)
-    options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
-end
-
-%% Transform g(x)
-% Instead of dealing with g(x) matrix directly, deal with g_i(x) vectors so
-% I can use the same code as for f(x). So loop over m input channels, use gttemp,
-% and convert to gr after
-lg = length(g);
-gttemp = cell(lg,m);
-for k = 1:m
-    for i = 1:(lg-1) % this internal code block is identical to above for f(x)
-        gttemp{i+1,k} = kroneckerRight(g{i+1}(:,k:m:end),options.T); % k:m:end needed for converting from g(x)u to sum g_i(x) u_i
-    end
-end
-
-% Now convert from g_i(x) vectors back to g(x) matrix
-options.gr{1} = options.TInv*g{1}; % B is not state dependent
-for i=1:(lg-1)
-    options.gr{i+1} = zeros(n,m*n^i);
-    for kk=1:m
-        options.gr{i+1}(:,kk:m:end) = gttemp{i+1,kk};
-    end
-    options.gr{i+1} = options.TInv*options.gr{i+1};
-end
-
-%% Transform Q(x)
-for k = 2:length(options.q)
-    if isscalar(options.q{k})
-        options.qr{k} = options.q{k};
-    else
-        options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
-    end
-end
-
-%% Transform R(x)
-options.Rr{1} = options.R{1};
-for k = 2:length(options.R)
-    if isscalar(options.R{k})
-        options.Rr{k} = options.R{k};
-    else
-        options.Rr{k} = kroneckerRight(options.R{k},options.T);
-    end
-end
-
-%% Transform E
-if ~isempty(options.E)
-    %% Transform E
-    options.Er = options.TInv*options.E*options.T;
-    
-    %% Put in standard state-space form
-    % Since the reduced system is dense anyways, we can invert Er and put
-    % in standard state-space form to use more efficient Lyapunov solvers
-    
-    % Transform f(x)
-    for k = 1:length(f)
-        options.fr{k} = options.Er\options.fr{k};
-    end
-    
-    % Transform g(x)
-    for k = 1:length(g)
-        options.gr{k} = options.Er\options.gr{k};
-    end
-end
-options.Er = []; % ROM is always in standard form
-end

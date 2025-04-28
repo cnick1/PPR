@@ -41,7 +41,7 @@ if nargin < 2
     if nargin < 1
         numElements = 64;
     end
-    r = 8; %(numElements+1)^2;
+    r = 10; %(numElements+1)^2;
 end
 
 % Get dynamics
