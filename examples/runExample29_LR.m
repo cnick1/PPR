@@ -76,6 +76,7 @@ uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
 
 %% Simulate closed-loop system
+clear F3i F3j F3v I1 I2 I3 T0
 X = reshape(xyg(:,1),nx,ny);
 Y = reshape(xyg(:,2),nx,ny);
 x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1;
