@@ -69,7 +69,7 @@ R = 1; degree = 4;
 options.C = C; options.E = E; 
 options.verbose = false; options.r = r; 
 fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
-[~, K] = ppr_LR(f, g, q, R, degree, options);
+[~, K] = ppr(f, g, q, R, degree, options);
 fprintf(" completed in %2.2f seconds. \n", toc)
 
 uLQR = @(x) kronPolyEval(K, x, 1);
