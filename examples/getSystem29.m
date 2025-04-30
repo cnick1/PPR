@@ -138,8 +138,7 @@ end
 
 A = -K1g;
 % F2 = -Mchol.' \ (Mchol \ K2g);
-% F2 = sparse(nvg, nvg^2);
-F2 = sparseCSR(nvg, nvg^2); % due to how Matlab stores sparse arrays, this is more memory efficient
+F2 = K2g; 
 % F3 = -K3g;
 F3 = K3g; % made negative at element level, saves a lot of time
 
@@ -248,34 +247,56 @@ nvpn=1;             % number of variables per node
 nvpe=nnpe*nvpn;     % number of variables per element
 nvg=nng*nvpn;       % number of variables in global mesh
 
-% Initilize matrices
-Mg=zeros(nvg,nvg); % global mass matrix
-K1g=zeros(nvg,nvg); % global stiffness matrix
-Fg=zeros(nvg,1);   % global force vector
-Rg=zeros(nvg,1);   % global weighted secondary variable vector
+%% Assemble cubic global matrix 
+% Compute element matrices outside of loop = assume same for every element
+nodes = mconn(1,1:nnpe);
+xe = xyg(nodes,1); ye = xyg(nodes,2);
+[Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,fgen(1),xe,ye); 
+Re=zeros(nvpe,1);
 
-for ie=1:nel
+% Updated this with the help of chatgpt to assemble more efficiently
+% Preallocate cell arrays to store triplet data
+Icell  = cell(nel, 1); Jcell  = cell(nel, 1);
+VcellM = cell(nel, 1); VcellK = cell(nel, 1);
+
+% Preallocate global force and reaction vectors
+Fg = zeros(nvg,1); Rg = zeros(nvg,1); 
+
+for ie = 1:nel
     % Extract global node numbers of the nodes of element ie
     % and the global x and y-coordinates of the element nodes
     nodes = mconn(ie,1:nnpe);
-    xe = xyg(nodes,1); ye = xyg(nodes,2);
+    % xe = xyg(nodes,1); ye = xyg(nodes,2);
     
     %% Compute element mass Me, stiffness Ke, forcing Fe, and Re
     % If material property (P and q) and/or force f are element dependent,
     % we need to specify these properties here.
-    [Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,fgen(ie),xe,ye);
-    Re=zeros(nvpe,1);
+    % [Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,fgen(1),xe,ye);
+    % Re=zeros(nvpe,1);
     
-    % Assemble element matrices Ke, fe, Re into global matrix Kg, Fg, Rg
+    % Build triplets from local matrix
+    [row_idx, col_idx] = ndgrid(nodes, nodes);
+    
+    Icell{ie} = row_idx(:); Jcell{ie} = col_idx(:);
+    VcellM{ie} = Me(:); VcellK{ie} = K1e(:); 
+
     Fg(nodes) = Fg(nodes) + Fe;
     Rg(nodes) = Rg(nodes) + Re;
-    K1g(nodes,nodes) = K1g(nodes,nodes) + K1e;
-    Mg(nodes,nodes) = Mg(nodes,nodes) + Me;
 end
+
+% Concatenate all triplet data
+I = vertcat(Icell{:}); J = vertcat(Jcell{:});
+
+% Assemble global sparse matrix
+% Since these are not short/wide, no need for sparseCSR or sparseIJV
+Mg  = sparse(I, J, vertcat(VcellM{:}), nvg, nvg);
+K1g = sparse(I, J, vertcat(VcellK{:}), nvg, nvg);
+
 
 %% Assemble quadratic global matrix
 % Form all zero quadratic global matrix directly
-K2g = sparseCSR(nvg, nvg^2);
+% Since it is empty, sparseIJV is best (it stores basically nothing)
+K2g = sparseIJV(nvg, nvg^2);
 
 %% Assemble cubic global matrix
 % Updated this with the help of chatgpt to assemble more efficiently
@@ -284,9 +305,10 @@ Icell = cell(nel, 1);
 Jcell = cell(nel, 1);
 Vcell = cell(nel, 1);
 
-% vals = K3e(:);  % assuming K3e is constant per element
-vals = -K3e(:);  % saves a lot of time to make it negative here
 for ie = 1:nel
+    % [~,~,K3e,~] = mekefe(gamma,P,q,q3,fgen(ie),xe,ye);  
+    % commented out = assume K3e is constant (it was already computed)
+    
     % Local node indices
     nodes = mconn(ie, 1:nnpe);
     nodesm1 = nodes - 1;
@@ -298,7 +320,7 @@ for ie = 1:nel
     
     Icell{ie} = row_idx(:);
     Jcell{ie} = col_idx(:);
-    Vcell{ie} = vals;
+    Vcell{ie} = -K3e(:);
 end
 
 % Concatenate all triplet data
@@ -307,7 +329,12 @@ J = vertcat(Jcell{:});
 V = vertcat(Vcell{:});
 
 % Assemble global sparse matrix
-K3g = sparseCSR(I, J, V, nvg, nvg^3);
+% Either sparseCSR or sparseIJV can be used (sparseCSR is actually more
+% memory efficient). For large nvg though, Matlab won't permit using
+% sparseCSR (which uses the transpose of sparse), so sparseIJV is necessary
+% even though it is actually slightly worse
+% K3g = sparseCSR(I, J, V, nvg, nvg^3);
+K3g = sparseIJV(I, J, V, nvg, nvg^3);
 
 end
 

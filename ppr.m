@@ -558,13 +558,12 @@ if issparse(f{end})
     % Use sparse indexing to form fr more efficiently
     options.fr{1} = options.TInv*(f{1}*options.T);
     for k = 2:length(f)
-        % options.fr{k} = sparseCSR(n,r^k);
         if nnz(f{k})
-            options.fr{k} = sparse(n,r^k);
+            options.fr{k} = zeros(n,r^k); % result is dense, so better to use zeros
             [Fi, Fj, Fv] = find(f{k});
             rowinds = cell(1, k); % Preallocate cell array for k row indices
             [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
-            for q = 1:r^k
+            for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small
                 colinds = cell(1, k); % Preallocate cell array for k column indices
                 [colinds{:}] = ind2sub(repmat(r, 1, k), q);
 
@@ -578,7 +577,7 @@ if issparse(f{end})
             end
             options.fr{k} = options.TInv*options.fr{k};
         else
-            options.fr{k} = sparse(r,r^k);
+            options.fr{k} = sparseIJV(r,r^k); % sparseIJV is best for empty arrays
         end
     end
 

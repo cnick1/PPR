@@ -39,7 +39,7 @@ function runExample29_LR(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 64;
+        numElements = 128;
     end
     r = 10; %(numElements+1)^2;
 end
