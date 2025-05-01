@@ -113,7 +113,7 @@ uPPR = @(x) kronPolyEval(K, x, degree-1);
 
 %% Simulate closed-loop system
 % Clear variables used in ode solve
-clear F3i F3j F3v I1 I2 I3 T0; global T0;
+clear sparseKronPolyEval T0; global T0;
 
 % Set up ode function, mass matrix, and Jacobian
 % (to maximize efficient sparsity usage)
@@ -190,7 +190,7 @@ for i=1:length(t)
     drawnow
 end
 
-clear n F3i F3j F3v I1 I2 I3 T0
+clear sparseKronPolyEval T0
 % whos f
 end
 
@@ -259,7 +259,7 @@ function [x] = sparseKronPolyEval(f,z)
 % Use persistent variables to only compute sparsity pattern once
 % (major speed-up)
 persistent n F3i F3j F3v I1 I2 I3
-if isempty(n)
+if isempty(n) || n ~= length(z)
     n = length(z);
     [F3i, F3j, F3v] = find(f{3});
     [I1, I2, I3] = ind2sub([n n n], F3j);
