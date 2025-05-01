@@ -39,30 +39,23 @@ function runExample29_LR(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 128;
+        numElements = 64;
     end
-    r = 10; %(numElements+1)^2;
+    r = 10; 
 end
 
-% Get dynamics
+%% Get dynamics
 nx = numElements+1; ny = nx; n = nx*ny; m = 1;
 fprintf(" Forming FEM model, n=%i ... ",n); tic
 [E, f, g, ~, xyg] = getSystem29(numElements,.75,1,-1);
 fprintf("completed in %2.2f seconds. \n", toc)
 g{1} = g{1}(:,3); G = @(x) g{1}; % insulate all sides, use control only on side CD
 
-% Pass sparse operators for ode simulation purposes
-Mchol = chol(E).'; % Use Cholesky factor for inverting
-f{1} = sparse(f{1});
-FofXU = @(x,u) Mchol.'\(Mchol\(sparseKronPolyEval(f,x) + g{1} * u)); % Custom kronPolyEval that uses all available speed-ups
-dFdx = @(t,x,K) Mchol.'\(Mchol\f{1}+g{1}*K);
-f{1} = full(f{1});
-
-%%%%
+%% Compute controllers
+% Setting the cost Q=C.'*C for LR-ADI
 options.lrradi = 1;
 nc = 10; nds = round(linspace(1,n,nc));
 C = sparse(1:nc,nds,sqrt(0.1),nc,n); q = C.'*C;
-%%%%
 
 % Get value function/controller
 R = 1; degree = 4; 
@@ -76,47 +69,27 @@ uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
 
 %% Simulate closed-loop system
-clear F3i F3j F3v I1 I2 I3 T0
-X = reshape(xyg(:,1),nx,ny);
-Y = reshape(xyg(:,2),nx,ny);
-x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1;
-x0 = x0(:);
-tmax = 5; t = 0:0.2:tmax; % specify for plotting
-opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,0));
-% opts=odeset(OutputFcn=@odeprog);
+% Clear variables used in ode solve
+clear F3i F3j F3v I1 I2 I3 T0; global T0;
 
-fprintf(" - Simulating open-loop dynamics ... "); global T0; T0 = tic;
-[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
-opts=odeset(OutputFcn=@odeprog,Jacobian=@(t,x) dFdx(t,x,K{1}));
+% Set up ode function, mass matrix, and Jacobian
+% (to maximize efficient sparsity usage)
+FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval 
+opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog); % option 3
+opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog); % option 3
+
+% Set up grid/initial condition
+X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
+x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
+tmax = 5; t = 0:0.2:tmax; % specify for consistent plotting
+
+% Run and time simulations
+fprintf(" - Simulating open-loop dynamics ... ");       T0 = tic;
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
 fprintf(" - Simulating LQR closed-loop dynamics ... "); T0 = tic;
-[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
+[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts_closloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
 fprintf(" - Simulating PPR closed-loop dynamics ... "); T0 = tic;
-[t, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts); fprintf("completed in %2.2f seconds. \n", toc(T0))
-
-%% Animate solution
-% figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
-% for i=1:length(t)
-% 
-%     Z = reshape(XUNC(i,:),nx,ny);
-% 
-%     subplot(2,2,1); grid on;
-%     [c,h] = contourf(X,Y,Z); clabel(c,h)
-%     xlabel('x, m'); ylabel('y, m'); axis equal
-% 
-%     subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
-%     xlabel('x, m'); ylabel('y, m');
-% 
-%     Z = reshape(XPPR(i,:),nx,ny);
-% 
-%     subplot(2,2,3); grid on;
-%     [c,h] = contourf(X,Y,Z); clabel(c,h)
-%     xlabel('x, m'); ylabel('y, m'); axis equal
-% 
-%     subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
-%     xlabel('x, m'); ylabel('y, m');
-% 
-%     drawnow
-% end
+[~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
 
 %% Plot solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
