@@ -167,26 +167,26 @@ if ~isfield(options,'verbose'); options.verbose = false; end
 if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 if ~isfield(options,'E'); options.E = []; end
 if ~isfield(options,'solver'); options.solver = []; end
-E = full(options.E);
+E = options.E;  % full?
 
 % Create pointer/shortcuts for dynamical system polynomial coefficients
 if iscell(f) % polynomial drift
-    A = full(f{1});
+    A = f{1}; % full?
     lf = length(f);
     
     if (nargin < 5)
         degree = lf+1;
     end
 else
-    A = full(f); lf = 1;
+    A = f; lf = 1; % full?
     f = {A};
 end
 
 if iscell(g) % polynomial input
-    B = full(g{1});
+    B = g{1}; % full?
     lg = length(g) - 1;
 else
-    B = full(g);
+    B = g;  % full?
     lg = 0;
     g = {B};
 end
