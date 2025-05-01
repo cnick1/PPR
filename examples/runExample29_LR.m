@@ -74,7 +74,8 @@ clear F3i F3j F3v I1 I2 I3 T0; global T0;
 
 % Set up ode function, mass matrix, and Jacobian
 % (to maximize efficient sparsity usage)
-FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval 
+% FofXU = @(x,u) kronPolyEval(f,x) + g{1} * u;      % normal kronPolyEval (about 10% slower than custom one)
+FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval with additional slight improvement
 opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog); % option 3
 opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog); % option 3
 

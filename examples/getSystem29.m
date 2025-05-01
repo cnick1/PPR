@@ -334,7 +334,7 @@ V = vertcat(Vcell{:});
 % sparseCSR (which uses the transpose of sparse), so sparseIJV is necessary
 % even though it is actually slightly worse
 % K3g = sparseCSR(I, J, V, nvg, nvg^3);
-K3g = sparseIJV(I, J, V, nvg, nvg^3);
+K3g = sparseIJV(I, J, full(V), nvg, nvg^3);
 
 end
 
