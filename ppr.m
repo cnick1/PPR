@@ -510,7 +510,7 @@ function options = getReducedOrderModel(f,g,options)
 %    orthogonality by Tᵀ, or do we enforce orthogonality by Tᵀ and then
 %    multiply by Eᵣ⁻¹. These are not in general the same, due to the fact
 %    that TᵀT = I but TTᵀ ≠ I. In this function, we do the latter option,
-%    although this seems to cause issues. Mulitplying by Tᵀ, we get
+%    although this seems to cause issues. Multiplying by Tᵀ, we get
 %        TᵀETẋᵣ = Tᵀf(Txᵣ) + Tᵀg(Txᵣ) u
 %    If E=I, then this is already in standard form. Otherwise, multiplying
 %    by the inverse of Eᵣ=TᵀET then puts the model in standard form:
@@ -526,6 +526,7 @@ function options = getReducedOrderModel(f,g,options)
 %
 %   Authors: Nick Corbin, UCSD
 %
+vec = @(X) X(:);
 
 if isfield(options,'fr')
     return; % Already have ROM
@@ -558,11 +559,16 @@ if issparse(f{end})
     % Use sparse indexing to form fr more efficiently
     options.fr{1} = options.TInv*(f{1}*options.T);
     for k = 2:length(f)
-        if nnz(f{k})
-            options.fr{k} = zeros(n,r^k); % result is dense, so better to use zeros
-            [Fi, Fj, Fv] = find(f{k});
+        [Fi, Fj, Fv] = find(f{k});
+        if ~isempty(Fi) % skip all zero coefficients
+            % Option 4: Loop over r^k columns
+            TinvF = options.TInv*f{k};
+            [Fi, Fj, Fv] = find(TinvF);
+            nnzf = length(Fi);
+            options.fr{k} = zeros(r,r^k); % result is dense, so better to use zeros
             rowinds = cell(1, k); % Preallocate cell array for k row indices
             [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
+
             for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small
                 colinds = cell(1, k); % Preallocate cell array for k column indices
                 [colinds{:}] = ind2sub(repmat(r, 1, k), q);
@@ -573,14 +579,32 @@ if issparse(f{end})
                     Tprod = Tprod .* options.T(rowinds{p},colinds{p});
                 end
 
-                options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [n 1]);
+                options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [r 1]);
             end
-            options.fr{k} = options.TInv*options.fr{k};
+
+            % Option 1: Loop over r^k columns
+            % options.fr{k} = zeros(n,r^k); % result is dense, so better to use zeros
+            % rowinds = cell(1, k); % Preallocate cell array for k row indices
+            % [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
+            % 
+            % for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small
+            %     colinds = cell(1, k); % Preallocate cell array for k column indices
+            %     [colinds{:}] = ind2sub(repmat(r, 1, k), q);
+            % 
+            %     % Efficient sparse evaluation qth column of f{k}*(T⊗...⊗T)
+            %     Tprod = ones(size(Fj));
+            %     for p = 1:k
+            %         Tprod = Tprod .* options.T(rowinds{p},colinds{p});
+            %     end
+            % 
+            %     options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [n 1]);
+            % end
+            % options.fr{k} = options.TInv*options.fr{k};
         else
             options.fr{k} = sparseIJV(r,r^k); % sparseIJV is best for empty arrays
         end
     end
-
+    
 else
     for k = 1:length(f)
         options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
