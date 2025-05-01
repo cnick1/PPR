@@ -6,26 +6,69 @@ function runExample29_LR(numElements, r)
 %   Inputs:
 %       numElements - number of finite elements in each direction
 %       r           - reduced-order dimension
-%       descriptor  - boolean, option to leave dynamics in generalized form
-%                     (default=true)
 %
 %   Description: The model, inspired by [1], describes an unstable heat
 %   equation problem modeling heat generated in a resistive electrical
 %   material. The resulting model takes the form
 %
 %     uₜ(x,y,t) = uₓₓ(x,y,t) + uᵧᵧ(x,y,t) + λ u(x,y,t)
-%     uᵧ(x,0,t) = u₁(t)  (Neumann control input on side AB)
-%     uₓ(1,y,t) = u₂(t)  (Neumann control input on side BC)
 %     uᵧ(x,1,t) = u₃(t)  (Neumann control input on side CD)
-%     uₓ(0,y,t) = u₄(t)  (Neumann control input on side DA)
 %
-%   where one end is insulated and one end is subject to Neumann boundary
+%   where all sides are insulated except one subject to Neumann boundary
 %   control. The FEM model can be written as
 %
 %     M ẋ + K₁ x + K₃ (x⊗x⊗x) = B u,
 %     y = C x.
-%
+%   
 %   for which we can compute a controller u(x) = K(x) using PPR.
+%
+%   This example demonstrates the benefits and importance of properly 
+%   exploiting sparsity. Sparsity is used in four key ways in this example:
+%       1) Forming and storing the FEM model in generalized form
+%       2) Computing the Riccati solutions using low-rank methods
+%       3) Forming the projected ROM for the higher-order coefficients
+%       4) Simulating the odes by using the sparse dynamics
+%
+%   This example illustrates how scalable the PPR method is, since it is
+%   essentially a nonlinear update to existing powerful linear methods.
+%   Since the first term is based on a Riccati equation, choosing the cost
+%   function cleverly (to be low-rank) permits using the powerful modern
+%   LR-RADI solvers from the M-M.E.S.S. package. For the remaining
+%   computations in terms of the Kronecker product, this example showcases
+%   a new custom data structure that is necessary for Kronecker
+%   polynomials. The custom class, called sparseIJV, is essentially a sparse 
+%   array, but it stores only the indices, values, and size of the arrays.
+%   For the level of sparsity (and array dimensions) that arise with
+%   Kronecker polynomials, it allows major speedups. Lastly, during the ode 
+%   simulation steps, evaluating the sparse dynamics, the Jacobian, and 
+%   leveraging the mass matrix all lead to major performance gains.
+%
+%   Combining all of these major performance considerations permits running
+%   this model on a laptop in dimensions as high as n=16641 dimensions, and
+%   on a workstation with 512 GB RAM up to n=66049 dimensions. Here is a
+%   summary of the performance on a laptop vs server for different dimensions:
+
+%                            Total Script Time
+%   +--------------+---------+----------------------+---------------------+
+%   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
+%   |              |         | (16 GB RAM)          | (512 GB RAM)        |
+%   +--------------+---------+----------------------+---------------------+
+%   |      64      |  4225   |         1 min        |       xx min        |
+%   |     128      | 16641   |        30 min        |       10 min        |
+%   |     200      | 40401   |          --          |       xx min        |
+%   |     256      | 66049   |          --          |       xx min        |
+%   +--------------+---------+----------------------+---------------------+
+%
+%                        PPR Control Computation Time
+%   +--------------+---------+----------------------+---------------------+
+%   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
+%   |              |         | (16 GB RAM)          | (512 GB RAM)        |
+%   +--------------+---------+----------------------+---------------------+
+%   |      64      |  4225   |        20 sec        |       xx min        |
+%   |     128      | 16641   |        90 sec        |       60 sec        |
+%   |     200      | 40401   |        40 min        |        5 min        |
+%   |     256      | 66049   |          --          |       xx min        |
+%   +--------------+---------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
 %              of an unstable heat equation via measurement of
@@ -39,9 +82,9 @@ function runExample29_LR(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 64;
+        numElements = 50;          
     end
-    r = 10; 
+    r = 10;
 end
 
 %% Get dynamics
@@ -58,9 +101,9 @@ nc = 10; nds = round(linspace(1,n,nc));
 C = sparse(1:nc,nds,sqrt(0.1),nc,n); q = C.'*C;
 
 % Get value function/controller
-R = 1; degree = 4; 
-options.C = C; options.E = E; 
-options.verbose = false; options.r = r; 
+R = 1; degree = 4;
+options.C = C; options.E = E;
+options.verbose = false; options.r = r;
 fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
 [~, K] = ppr(f, g, q, R, degree, options);
 fprintf(" completed in %2.2f seconds. \n", toc)
@@ -79,10 +122,14 @@ FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval with a
 opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog); % option 3
 opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog); % option 3
 
-% Set up grid/initial condition
+% Set up grid and annulus initial condition
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
-x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
-tmax = 5; t = 0:0.2:tmax; % specify for consistent plotting
+% x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
+R = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
+x0 = (R >= 0.36 & R <= 0.375); % annulus with diameter 0.75 and thickness 0.015
+x0 = 0.5*x0(:); % x0 is made as a logical by the last line
+
+tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
 
 % Run and time simulations
 fprintf(" - Simulating open-loop dynamics ... ");       T0 = tic;
@@ -117,6 +164,31 @@ set(h, 'Colormap', turbo, 'CLim', [-1 1])
 cbh = colorbar(h(end));
 cbh.Layout.Tile = 'east';
 drawnow
+
+%% Animate solution
+figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
+for i=1:length(t)
+    
+    Z = reshape(XUNC(i,:),nx,ny);
+    
+    subplot(2,2,1); grid on;
+    [c,h] = contourf(X,Y,Z); clabel(c,h)
+    xlabel('x, m'); ylabel('y, m'); axis equal
+    
+    subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
+    xlabel('x, m'); ylabel('y, m');
+    
+    Z = reshape(XPPR(i,:),nx,ny);
+    
+    subplot(2,2,3); grid on;
+    [c,h] = contourf(X,Y,Z); clabel(c,h)
+    xlabel('x, m'); ylabel('y, m'); axis equal
+    
+    subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
+    xlabel('x, m'); ylabel('y, m');
+    title(sprintf('t=%7.6f',t(i)))
+    drawnow
+end
 
 clear n F3i F3j F3v I1 I2 I3 T0
 % whos f
