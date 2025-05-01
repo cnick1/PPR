@@ -53,10 +53,10 @@ function runExample29_LR(numElements, r)
 %   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
 %   |              |         | (16 GB RAM)          | (512 GB RAM)        |
 %   +--------------+---------+----------------------+---------------------+
-%   |      64      |  4225   |         1 min        |       xx min        |
+%   |      64      |  4225   |        60 sec        |       50 sec        |
 %   |     128      | 16641   |        30 min        |       10 min        |
-%   |     200      | 40401   |          --          |       xx min        |
-%   |     256      | 66049   |          --          |       xx min        |
+%   |     200      | 40401   |          --          |        2  hr        |
+%   |     256      | 66049   |          --          |        6  hr        |
 %   +--------------+---------+----------------------+---------------------+
 %
 %                        PPR Control Computation Time
@@ -64,10 +64,10 @@ function runExample29_LR(numElements, r)
 %   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
 %   |              |         | (16 GB RAM)          | (512 GB RAM)        |
 %   +--------------+---------+----------------------+---------------------+
-%   |      64      |  4225   |        20 sec        |       xx min        |
+%   |      64      |  4225   |        20 sec        |       15 sec        |
 %   |     128      | 16641   |        90 sec        |       60 sec        |
 %   |     200      | 40401   |        40 min        |        5 min        |
-%   |     256      | 66049   |          --          |       xx min        |
+%   |     256      | 66049   |          --          |       10 min        |
 %   +--------------+---------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
@@ -126,7 +126,7 @@ opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog); % o
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
 % x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
 R = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
-x0 = (R >= 0.36 & R <= 0.375); % annulus with diameter 0.75 and thickness 0.015
+x0 = (R >= 0.360 & R <= 0.375); % annulus with diameter 0.75 and thickness 0.015
 x0 = 0.5*x0(:); % x0 is made as a logical by the last line
 
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
