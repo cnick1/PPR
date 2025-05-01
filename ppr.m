@@ -559,47 +559,26 @@ if issparse(f{end})
     % Use sparse indexing to form fr more efficiently
     options.fr{1} = options.TInv*(f{1}*options.T);
     for k = 2:length(f)
-        [Fi, Fj, Fv] = find(f{k});
-        if ~isempty(Fi) % skip all zero coefficients
+        if nnz(f{k}) % skip all zero coefficients
             % Option 4: Loop over r^k columns
-            TinvF = options.TInv*f{k};
+            TinvF = options.TInv*f{k}; % do this first to reduce the row dimension (column sparsity is still preserved)
             [Fi, Fj, Fv] = find(TinvF);
-            nnzf = length(Fi);
             options.fr{k} = zeros(r,r^k); % result is dense, so better to use zeros
             rowinds = cell(1, k); % Preallocate cell array for k row indices
             [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
-
-            for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small
+            
+            for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small (I did try but then memory becomes an issue)
                 colinds = cell(1, k); % Preallocate cell array for k column indices
                 [colinds{:}] = ind2sub(repmat(r, 1, k), q);
-
+                
                 % Efficient sparse evaluation qth column of f{k}*(T⊗...⊗T)
                 Tprod = ones(size(Fj));
                 for p = 1:k
                     Tprod = Tprod .* options.T(rowinds{p},colinds{p});
                 end
-
+                
                 options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [r 1]);
             end
-
-            % Option 1: Loop over r^k columns
-            % options.fr{k} = zeros(n,r^k); % result is dense, so better to use zeros
-            % rowinds = cell(1, k); % Preallocate cell array for k row indices
-            % [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
-            % 
-            % for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small
-            %     colinds = cell(1, k); % Preallocate cell array for k column indices
-            %     [colinds{:}] = ind2sub(repmat(r, 1, k), q);
-            % 
-            %     % Efficient sparse evaluation qth column of f{k}*(T⊗...⊗T)
-            %     Tprod = ones(size(Fj));
-            %     for p = 1:k
-            %         Tprod = Tprod .* options.T(rowinds{p},colinds{p});
-            %     end
-            % 
-            %     options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [n 1]);
-            % end
-            % options.fr{k} = options.TInv*options.fr{k};
         else
             options.fr{k} = sparseIJV(r,r^k); % sparseIJV is best for empty arrays
         end
