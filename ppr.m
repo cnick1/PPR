@@ -380,7 +380,7 @@ if (degree > 2)
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add input components (G(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
-        if R ~= 0
+        if RPosDef ~= 3 % as long as R is not 0
             % Here we add the g(x)u(x) terms. The sum is over indexes satisfying
             % i+p+q=k+1. The range for possible q's is 1:k-2 (technically q could go
             % up to k-1, but that term cancels with some of the R(x) terms), the range
@@ -418,7 +418,7 @@ if (degree > 2)
                 q_idx = k - p_idx - i;
                 if q_idx==k-1; continue; end             % Skip the k-1 term that cancels with the G(x) terms
                 if q_idx<1; break; end                   % Only run while we have K_q's left
-                
+
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
                     bRange = (1:len)+(j-1)*len;
@@ -427,7 +427,7 @@ if (degree > 2)
                 end
             end
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now symmetrize and solve! %%%%%%%%%%%%%%%%%%%%%%
         b = kronMonomialSymmetrize(b, n, k);
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, E, [], options.solver);
