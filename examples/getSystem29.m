@@ -1,64 +1,63 @@
 function [E, f, g, h, xyg] = getSystem29(numElements, eps, lambda, mu)
-%getSystem29  Generates a FEM 2D unsteady heat equation model.
-%   This system is a 2D generalization of getSystem27(). The function
-%   returns a finite element model with bilinear rectangular elements. The
-%   model is subject to Neumann boundary control via the secondary
+%getSystem29  Generates a FEM 2D Allen-Cahn equation model. This model is an
+%   unsteady nonlinear heat equation (reaction-diffusion) on a square 2D domain.
+%   The function returns a finite element model with bilinear rectangular
+%   elements. The model is subject to Neumann boundary control via the secondary
 %   variables, so there are 4 inputs. You can use just one column of the B
-%   matrix to alternatively consider a model with 3 insulated boundaries
-%   and just one controlled boundary. The output is the mean temperature.
-%   Goal is to bring the system to zero from some initial condition. Heat
-%   generation throughout the domain provides an unstabilizing effect.
-%   (Physical interpretation could be heat due to electrical resistance.)
+%   matrix to alternatively consider a model with 3 insulated boundaries and
+%   just one controlled boundary. The output is the mean temperature. Goal is to
+%   bring the system to zero from some initial condition.
 %
 %   Usage:   [f,g,h] = getSystem29()
 %
-%   Inputs:
-%       numElements    - number of elements to discretize each direction with
+%   Inputs: numElements    - number of elements to discretize each direction with
 %                            (default = 8, leading to n=81 dimension model)
-%       eps            - diffusion coefficient; has a stabilizing/smoothing
-%                        effect for eps > 0                   (default = 1)
-%       lambda         - coefficient on the linear reaction term; drives
-%                        instability for lambda > 0           (default = 1)
-%       mu             - coefficient on the cubic reaction term; produces
-%                        stable wells away from 0 for mu < 0  (default =-1)
+%           eps            - diffusion coefficient; has a stabilizing/smoothing
+%                            effect for eps > 0 (default = 1)
+%           lambda         - coefficient on the linear reaction term; drives
+%                            instability for lambda > 0 (default = 1)
+%           mu             - coefficient on the cubic reaction term; produces stable
+%                            wells away from 0 for mu < 0  (default =-1)
 %
-%   Outputs:    f,g,h  - Cell arrays containing the polynomial coefficients
-%                        for the drift, input, and output
-%                  xyg - global node locations
-%               odefun - odefun that for simulating using the sparse
-%                        element matrices in descriptor form; preliminary
-%                        tests suggest this is not actually faster, speed
-%                        it dominated by kronPolyEval(), i.e. kron(x,x,...)
+%   Outputs:    E - mass matrix for dynamics in generalized form
+%          f,g,h  - Cell arrays containing the polynomial coefficients for
+%                   the drift, input, and output in generalized form
+%             xyg - global node locations
 %
-%   Description: The model is a 2D generalization of the 1D model in
-%   getSystem27(), which describes something like a wire that heats up due
-%   to electrical resistance. The governing PDE is
+%   Description: The underlying model is most similar to the PDE for
+%   getSystem9(), but that model uses Chebychev discretization whereas here we
+%   use finite elements. The model in getSystem27() is also similar: it is a 1D
+%   unsteady nonlinear heat equation discretized with finite elements, but the
+%   details of the PDE are slightly different so it is not an Allen-Cahn
+%   equation. The governing PDE is
 %
-%     uₜ(x,y,t) = ε uₓₓ(x,y,t) + ε uᵧᵧ(x,y,t) + λ u(x,y,t) + μ u(x,y,t)³
+%     uₜ(x,y,t) = ε uₓₓ(x,y,t) + u(x,y,t) - u(x,y,t)³
 %
 %   subject to the boundary conditions
-%     uᵧ(x,0,t) = u₁(t)  (Neumann control input on side AB)
-%     uₓ(1,y,t) = u₂(t)  (Neumann control input on side BC)
-%     uᵧ(x,1,t) = u₃(t)  (Neumann control input on side CD)
-%     uₓ(0,y,t) = u₄(t)  (Neumann control input on side DA)
+%       uᵧ(x,0,t) = u₁(t)  (Neumann control input on side AB)
+%       uₓ(1,y,t) = u₂(t)  (Neumann control input on side BC)
+%       uᵧ(x,1,t) = u₃(t)  (Neumann control input on side CD)
+%       uₓ(0,y,t) = u₄(t)  (Neumann control input on side DA)
 %
-%
-%   After finite element discretization, the finite element equations for
-%   the reaction-diffusion problem can be written as
+%   Any of the boundary conditions can be set to zero for an insulated boundary.
+%   After finite element discretization, the finite element equations for the
+%   reaction-diffusion problem can be written as
 %
 %     M ẋ + K₁ x + K₃ (x⊗x⊗x) = B u,
 %     y = C x.
 %
-%   which can of course be put in the standard state-space form by
-%   multiplying by the inverse of the mass matrix.
+%   which can of course be put in the standard state-space form by multiplying
+%   by the inverse of the mass matrix. Here, we leave the mass matrix E=M in
+%   place to preserve the sparsity of the model, which permits scaling the model
+%   to fairly high dimensions.
 %
 %   Reference: [1] J. N. Reddy, An introduction to nonlinear finite element
-%              analysis. Oxford University Press, 2004,
-%              doi: 10.1093/acprof:oso/9780198525295.001.0001
-%              [2] S. A. Ragab and H. E. Fayed, Introduction to finite
-%              element analysis for engineers. Taylor & Francis Group, 2017
+%              analysis. Oxford University Press, 2004, doi:
+%              10.1093/acprof:oso/9780198525295.001.0001
+%              [2] S. A. Ragab and H. E. Fayed, Introduction to finite element
+%              analysis for engineers. Taylor & Francis Group, 2017
 %
-%   Part of the NLbalancing repository.
+%   Part of the PPR repository.
 %%
 if nargin < 4
     mu = -1;
@@ -138,7 +137,7 @@ end
 
 A = -K1g;
 % F2 = -Mchol.' \ (Mchol \ K2g);
-F2 = K2g; 
+F2 = K2g;
 % F3 = -K3g;
 F3 = K3g; % made negative at element level, saves a lot of time
 
@@ -247,11 +246,11 @@ nvpn=1;             % number of variables per node
 nvpe=nnpe*nvpn;     % number of variables per element
 nvg=nng*nvpn;       % number of variables in global mesh
 
-%% Assemble cubic global matrix 
+%% Assemble cubic global matrix
 % Compute element matrices outside of loop = assume same for every element
 nodes = mconn(1,1:nnpe);
 xe = xyg(nodes,1); ye = xyg(nodes,2);
-[Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,fgen(1),xe,ye); 
+[Me,K1e,K3e,Fe] = mekefe(gamma,P,q,q3,fgen(1),xe,ye);
 Re=zeros(nvpe,1);
 
 % Updated this with the help of chatgpt to assemble more efficiently
@@ -260,7 +259,7 @@ Icell  = cell(nel, 1); Jcell  = cell(nel, 1);
 VcellM = cell(nel, 1); VcellK = cell(nel, 1);
 
 % Preallocate global force and reaction vectors
-Fg = zeros(nvg,1); Rg = zeros(nvg,1); 
+Fg = zeros(nvg,1); Rg = zeros(nvg,1);
 
 for ie = 1:nel
     % Extract global node numbers of the nodes of element ie
@@ -278,8 +277,8 @@ for ie = 1:nel
     [row_idx, col_idx] = ndgrid(nodes, nodes);
     
     Icell{ie} = row_idx(:); Jcell{ie} = col_idx(:);
-    VcellM{ie} = Me(:); VcellK{ie} = K1e(:); 
-
+    VcellM{ie} = Me(:); VcellK{ie} = K1e(:);
+    
     Fg(nodes) = Fg(nodes) + Fe;
     Rg(nodes) = Rg(nodes) + Re;
 end
@@ -306,7 +305,7 @@ Jcell = cell(nel, 1);
 Vcell = cell(nel, 1);
 
 for ie = 1:nel
-    % [~,~,K3e,~] = mekefe(gamma,P,q,q3,fgen(ie),xe,ye);  
+    % [~,~,K3e,~] = mekefe(gamma,P,q,q3,fgen(ie),xe,ye);
     % commented out = assume K3e is constant (it was already computed)
     
     % Local node indices
