@@ -1,5 +1,5 @@
 function runExample29_LR(numElements, r)
-%runExample29_LR Runs the 2D unsteady nonlinear heat equation FEM control example.
+%runExample29_LR Runs the 2D Allen-Cahn FEM example with low-rank penalty
 %
 %   Usage:  runExample29_LR(numElements)
 %
@@ -7,51 +7,52 @@ function runExample29_LR(numElements, r)
 %       numElements - number of finite elements in each direction
 %       r           - reduced-order dimension
 %
-%   Description: The model, inspired by [1], describes an unstable heat
-%   equation problem modeling heat generated in a resistive electrical
-%   material. The resulting model takes the form
+%   Description: Here we consider Allen-Cahn with Neumann BCs, insulated on 3
+%   sides and subject to boundary control on the fourth. The PDE is
 %
-%     uₜ(x,y,t) = uₓₓ(x,y,t) + uᵧᵧ(x,y,t) + λ u(x,y,t)
+%     uₜ(x,y,t) = ε uₓₓ(x,y,t) + u(x,y,t) - u(x,y,t)³
 %     uᵧ(x,1,t) = u₃(t)  (Neumann control input on side CD)
 %
 %   where all sides are insulated except one subject to Neumann boundary
-%   control. The FEM model can be written as
+%   control. The PDE model can be discretized with the finite element method
+%   [1,2], and the resulting finite-dimensional ODE model can be written as
 %
 %     M ẋ + K₁ x + K₃ (x⊗x⊗x) = B u,
-%     y = C x.
-%   
-%   for which we can compute a controller u(x) = K(x) using PPR.
 %
-%   This example demonstrates the benefits and importance of properly 
-%   exploiting sparsity. Sparsity is used in four key ways in this example:
+%   for which we can compute a state feedback controller u(x) = K(x) using PPR.
+%
+%   This example demonstrates the benefits and importance of properly
+%   exploiting sparsity for high dimensional nonlinear control problems.
+%   Sparsity is used in four key ways in this example:
 %       1) Forming and storing the FEM model in generalized form
-%       2) Computing the Riccati solutions using low-rank methods
+%       2) Computing the Riccati solutions using modern low-rank methods
 %       3) Forming the projected ROM for the higher-order coefficients
-%       4) Simulating the odes by using the sparse dynamics
+%       4) Simulating the ODEs efficiently by using the sparse dynamics
 %
-%   This example illustrates how scalable the PPR method is, since it is
+%   By properly leveraging sparsity and applying dimensionality reduction,
+%   the PPR method can be scaled to quite large systems, since it is
 %   essentially a nonlinear update to existing powerful linear methods.
 %   Since the first term is based on a Riccati equation, choosing the cost
 %   function cleverly (to be low-rank) permits using the powerful modern
-%   LR-RADI solvers from the M-M.E.S.S. package. For the remaining
+%   LR-ADI solvers from the M-M.E.S.S. package [3]. For the remaining
 %   computations in terms of the Kronecker product, this example showcases
 %   a new custom data structure that is necessary for Kronecker
-%   polynomials. The custom class, called sparseIJV, is essentially a sparse 
+%   polynomials. The custom class, called sparseIJV, is essentially a sparse
 %   array, but it stores only the indices, values, and size of the arrays.
 %   For the level of sparsity (and array dimensions) that arise with
-%   Kronecker polynomials, it allows major speedups. Lastly, during the ode 
-%   simulation steps, evaluating the sparse dynamics, the Jacobian, and 
+%   Kronecker polynomials, it allows major speedups. Lastly, during the ODE
+%   simulation steps, evaluating the sparse dynamics, the Jacobian, and
 %   leveraging the mass matrix all lead to major performance gains.
 %
 %   Combining all of these major performance considerations permits running
 %   this model on a laptop in dimensions as high as n=16641 dimensions, and
 %   on a workstation with 512 GB RAM up to n=66049 dimensions. Here is a
-%   summary of the performance on a laptop vs server for different dimensions:
+%   summary of the performance on a laptop vs. server for different dimensions:
 
 %                            Total Script Time
 %   +--------------+---------+----------------------+---------------------+
-%   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
-%   |              |         | (16 GB RAM)          | (512 GB RAM)        |
+%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Server   |
+%   |              |         |     (16 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+---------------------+
 %   |      64      |  4225   |        60 sec        |       50 sec        |
 %   |     128      | 16641   |        30 min        |       10 min        |
@@ -61,8 +62,8 @@ function runExample29_LR(numElements, r)
 %
 %                        PPR Control Computation Time
 %   +--------------+---------+----------------------+---------------------+
-%   | numElements  |    n    | CPU Time Laptop      | CPU Time Server     |
-%   |              |         | (16 GB RAM)          | (512 GB RAM)        |
+%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Server   |
+%   |              |         |     (16 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+---------------------+
 %   |      64      |  4225   |        20 sec        |       15 sec        |
 %   |     128      | 16641   |        90 sec        |       60 sec        |
@@ -72,17 +73,20 @@ function runExample29_LR(numElements, r)
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
 %              of an unstable heat equation via measurement of
-%              domain-averaged temperature,” IEEE Transactions on Automatic
+%              domain-averaged temperature," IEEE Transactions on Automatic
 %              Control, vol. 46, no. 12, pp. 2022–2028, 2001
 %              [2] S. A. Ragab and H. E. Fayed, Introduction to finite
 %              element analysis for engineers. Taylor & Francis Group, 2017
+%              [3] J. Saak, M. Köhler, and P. Benner, "M-M.E.S.S. - the
+%              matrix equation sparse solver library," 2022, Zenodo.
+%              doi: 10.5281/ZENODO.632897.
 %
 %   Part of the PPR repository.
 %%
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 50;          
+        numElements = 50;
     end
     r = 10;
 end
@@ -119,14 +123,15 @@ clear sparseKronPolyEval T0; global T0;
 % (to maximize efficient sparsity usage)
 % FofXU = @(x,u) kronPolyEval(f,x) + g{1} * u;      % normal kronPolyEval (about 10% slower than custom one)
 FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval with additional slight improvement
-opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog); % option 3
-opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog); % option 3
+opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog);
+opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog);
 
 % Set up grid and annulus initial condition
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
 % x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
 R = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
-x0 = (R >= 0.360 & R <= 0.375); % annulus with diameter 0.75 and thickness 0.015
+D = 0.75; thickness = 0.015; % annulus with outer diameter 0.75 and thickness 0.015
+x0 = (R <= D/2 & R >= D/2-thickness );
 x0 = 0.5*x0(:); % x0 is made as a logical by the last line
 
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
@@ -227,7 +232,7 @@ switch flag
         if needsUpdate || timeSinceLast >= 1
             bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
             fprintf(repmat('\b',1,93));
-            fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)', bar, round(elapsed), round(eta));
+            fprintf(' |%s|  (elapsed: %5i s, remaining: %5i s)', bar, round(elapsed), min(round(eta),99999));
             if needsUpdate
                 lastPct = pct;
             end
