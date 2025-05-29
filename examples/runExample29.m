@@ -1,7 +1,7 @@
-function runExample29_LR(numElements, r)
-%runExample29_LR Runs the 2D Allen-Cahn FEM example with low-rank penalty
+function runExample29(numElements, r)
+%runExample29 Runs the 2D Allen-Cahn FEM example with low-rank penalty
 %
-%   Usage:  runExample29_LR(numElements)
+%   Usage:  runExample29(numElements)
 %
 %   Inputs:
 %       numElements - number of finite elements in each direction
@@ -78,8 +78,8 @@ function runExample29_LR(numElements, r)
 %              [2] S. A. Ragab and H. E. Fayed, Introduction to finite
 %              element analysis for engineers. Taylor & Francis Group, 2017
 %              [3] J. Saak, M. Köhler, and P. Benner, "M-M.E.S.S. - the
-%              matrix equation sparse solver library," 2022, Zenodo.
-%              doi: 10.5281/ZENODO.632897.
+%              matrix equation sparse solver library,"  v3.1, 2025.
+%              doi: 10.5281/ZENODO.632897. https://github.com/mpimd-csc/mmess
 %
 %   Part of the PPR repository.
 %%
