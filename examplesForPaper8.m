@@ -54,6 +54,12 @@ runExample9(n,4,10)
 % Run cases with different initial conditions
 runExample9_differentICs(n,4,10)
 
+%% Example 27: Nonlinear Heat Equation 1D FEM Example (w/ Mass Matrix)
+runExample27()
+
+%% Example 30: Nonlinear Heat Equation 1D FEM Example (w/ Mass Matrix)
+runExample30()
+
 %% Example 29: Nonlinear Heat Equation 2D FEM Example (w/ Mass Matrix)
 runExample29(8)
 runExample29(16,10)

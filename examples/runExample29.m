@@ -79,7 +79,7 @@ function runExample29(numElements, r)
 %              element analysis for engineers. Taylor & Francis Group, 2017
 %              [3] J. Saak, M. Köhler, and P. Benner, "M-M.E.S.S. - the
 %              matrix equation sparse solver library,"  v3.1, 2025.
-%              doi: 10.5281/ZENODO.632897. https://github.com/mpimd-csc/mmess
+%              doi: 10.5281/zenodo.632897. https://github.com/mpimd-csc/mmess
 %
 %   Part of the PPR repository.
 %%
@@ -100,7 +100,7 @@ g{1} = g{1}(:,3); G = @(x) g{1}; % insulate all sides, use control only on side 
 
 %% Compute controllers
 % Setting the cost Q=C.'*C for LR-ADI
-options.lrradi = 1;
+options.lrradi = true;
 nc = 10; nds = round(linspace(1,n,nc));
 C = sparse(1:nc,nds,sqrt(0.1),nc,n); q = C.'*C;
 

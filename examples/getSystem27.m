@@ -22,18 +22,18 @@ function [f, g, h, xg] = getSystem27(numElements, eps, lambda, mu)
 %                  xg  - global node locations
 %
 %   Description: The general form for the PDE considered by this function is
-% 
+%
 %     uₜ(x,t)  = ε uₓₓ(x,t) + λ u(x,t) + μ u(x,t)³
 %     uₓ(0,t) = 0                     (Neumann BC)
 %     uₓ(1,t) = u(t)                  (Neumann boundary control input)
 %
 %   For different values of the parameters, different systems can be
 %   obtained. For example, the original inspiration for this model is from
-%   [1], which corresponds to ε=1, λ=3, and μ=0. This models a wire as heat 
-%   conduction in a thin rod of small constant cross section. All of the 
-%   material properties are taken as constant EXCEPT the electrical resistivity, 
+%   [1], which corresponds to ε=1, λ=3, and μ=0. This models a wire as heat
+%   conduction in a thin rod of small constant cross section. All of the
+%   material properties are taken as constant EXCEPT the electrical resistivity,
 %   which varies linearly with respect to the temperature of the wire.
-% 
+%
 %   Another example that can be obtained is the Allen-Cahn equation can be
 %   obtained (with Neumann rather than the usual Dirichlet boundary
 %   conditions) with ε=1/100, λ=1, and μ=-3. The general form can be
@@ -88,7 +88,7 @@ nvg = nng * nvpn;          % number of variables in global mesh
 % I am using notation for the model problem (5.1) in Ragab [2]
 L = 1;                     % wire length
 gamma = 1;                 % mass property
-p  = eps;                  %  ε, diffusion coefficient 
+p  = eps;                  %  ε, diffusion coefficient
 q  = -lambda;              % -λ, to do with heat generation due to electrical resistance
 q3 = -mu;                  % -μ, cubic source/reaction term
 
@@ -96,7 +96,7 @@ q3 = -mu;                  % -μ, cubic source/reaction term
 xg = linspace(0, L, nng);  % node locations
 he = xg(2) - xg(1);        % element length
 
-%% Generate element matrices Me, Ke, and Re and Assemble global system Mg, Kg, Rg
+%% Generate element matrices Me, K1e, and Re and Assemble global system Mg, Kg, Rg
 % Define element matrix components
 L0 = he/6 * [2, 1;
     1, 2];
@@ -106,7 +106,7 @@ L1 = 1/he * [1, -1;
 
 % Define element mass and stiffness matrices
 Me = gamma*L0;
-Ke = p*L1 + q*L0;
+K1e = p*L1 + q*L0;
 
 % Initialize and stack/assemble global matrix
 Mg = zeros(nvg, nvg);
@@ -116,9 +116,9 @@ Rg = zeros(nvg, 1);
 for ie = 1:nel
     nodes = ie:(ie + nvpe - 1);
     
-    % Assemble element matrices Me, Ke into global matrix Mg, Kg
+    % Assemble element matrices Me, K1e into global matrix Mg, Kg
     Mg(nodes,nodes) = Mg(nodes, nodes) + Me;
-    K1g(nodes,nodes) = K1g(nodes, nodes) + Ke;
+    K1g(nodes,nodes) = K1g(nodes, nodes) + K1e;
 end
 
 %% Assemble quadratic global matrix
@@ -143,22 +143,22 @@ for ie = 1:nel
     % for the element nodes to the cubic variable (u⊗u⊗u). nodes3 is in
     % particular a little tricky, as we need to figure out:
     %   1) the skip due to going from element 1, 2, 3, i.e. the skip
-    %      corresponding to ie increasing in the loop 
-    %       (for the linear variable, we just go up by 1 each time, 
+    %      corresponding to ie increasing in the loop
+    %       (for the linear variable, we just go up by 1 each time,
     %        but for the cubic variable we need to go up by chunks)
-    %   2) the skips due to global nodes that are not in the element 
-    %              (for the linear variable, all the  
+    %   2) the skips due to global nodes that are not in the element
+    %              (for the linear variable, all the
     %              element nodes are grouped together)
     % Both of these skips are somewhat recursive, in that the skips for
     % (u⊗u⊗u) involve the skips needed for (u⊗u), etc. A commonly used
-    % trick for this process is to add a column vector and a row vector to 
+    % trick for this process is to add a column vector and a row vector to
     % get all the combinations.
     nodes = ie:(ie + nvpe - 1); % node numbers in u
-
+    
     nodes3 = (nvg^2 + nvg + 1) * i  ... % shift (1) in starting index for on element iteration
-        + vec(vec([1 2]' + [0 nvg]) ... % shift (2); [0 nvg] part basically does the quadratic  
-        + [0 nvg^2]);                   % shifts, which is then added to [0 nvg^2] for the cubic shifts       
-
+        + vec(vec([1 2]' + [0 nvg]) ... % shift (2); [0 nvg] part basically does the quadratic
+        + [0 nvg^2]);                   % shifts, which is then added to [0 nvg^2] for the cubic shifts
+    
     % "stack" element matrices into global matrix
     K3g(nodes, nodes3) = K3g(nodes, nodes3) + K3e;
 end

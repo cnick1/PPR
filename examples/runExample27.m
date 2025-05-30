@@ -30,14 +30,16 @@ function runExample27()
 fprintf('Running Example 27\n')
 
 % Get dynamics
-n = 20;
+n = 40;
 [f, g, ~, xg] = getSystem27(n-1,.75,1,-1);
 F = @(x) kronPolyEval(f, x); G = @(x) g{1};
 % F = @(x) f{1}*x; G = @(x) g{1};
 
 % Get value function/controller
 q = 0.5; R = 1; degree = 4;
+fprintf(" Computing ppr() solution, n=%i, d=%i ... ",n,4); tic
 [~, K] = ppr(f, g, q, R, degree);
+fprintf(" completed in %2.2f seconds. \n", toc)
 
 uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
@@ -59,13 +61,13 @@ uPPR = @(x) kronPolyEval(K, x, degree-1);
 % x0 = 1 - 11*xg.^2 + 18* xg.^3 - 8*xg.^4;
 % x0 = 1 - 15*xg.^2 + 26* xg.^3 - 12*xg.^4;
 % x0 = 1 - 13.5*xg.^2 + 14* xg.^3 - 1.5*xg.^10;
-% x0 = 1 - 12*xg.^2 + 12* xg.^3 - 1*xg.^12;
-x0 = 1.1 + 0.*xg;
+x0 = 1 - 12*xg.^2 + 12* xg.^3 - 1*xg.^12;
+% x0 = 1.1 + 0.*xg;
 tmax = 2; t = 0:0.02:tmax; % specify for plotting
 
-[~, XUNC] = ode23s(@(t, x) F(x)                 , t, x0);
-[~, XLQR] = ode23s(@(t, x) F(x) + G(x) * uLQR(x), t, x0);
-[t, XPPR] = ode23s(@(t, x) F(x) + G(x) * uPPR(x), t, x0);
+[~, XUNC] = ode15s(@(t, x) F(x)                 , t, x0);
+[~, XLQR] = ode15s(@(t, x) F(x) + G(x) * uLQR(x), t, x0);
+[t, XPPR] = ode15s(@(t, x) F(x) + G(x) * uPPR(x), t, x0);
 
 
 %% Plot solution
