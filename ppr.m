@@ -285,7 +285,7 @@ switch RPosDef
                     % end
                 end
                 [Z,K1] = mess_care_lrradi(A, B, options.C, R, E);
-                V2 = factoredMatrix(Z); 
+                V2 = factoredMatrix(Z);
             catch ME
                 if ~isfield(options,'C')
                     error("M-M.E.S.S. solver requires low-rank Q = C'*C; pass in C using options.C")
@@ -298,15 +298,8 @@ switch RPosDef
         end
     case 2 % Negative definite R
         if isscalar(Q) && Q == 0 && norm(R + eye(length(R))) < 1e-12 % Computing open-loop controllability energy function; use lyap
-            
-            if isa(q{2}, 'factoredMatrix')
-                error('Need to figure out how to invert W2 here')
-                V2 = factoredMatrix(lyapchol(A, B, [], E).'); % need to invert W2 somehow... 
-            else
-                V2 = inv(lyap(A,(B*B.'),[],E)); 
-            end
-
-        else % at least one case is when computing past energy function
+            V2 = factoredMatrixInverse(lyapchol(A, B, [], E).');
+        else % At least one case is when computing past energy function
             V2 = icare(A, B, Q, R, [], E, 'anti'); % alternatively -icare(-A, -B, Q, R);
         end
         if (isempty(V2) && options.verbose)
@@ -429,7 +422,7 @@ if (degree > 2)
                 q_idx = k - p_idx - i;
                 if q_idx==k-1; continue; end             % Skip the k-1 term that cancels with the G(x) terms
                 if q_idx<1; break; end                   % Only run while we have K_q's left
-
+                
                 len = n^(p_idx+q_idx);
                 for j = 1:size(r{i+1},2) % Can speed up with sparse r{i}, only iterate over nonzero columns using [~,cols,~] = find(r{i})
                     bRange = (1:len)+(j-1)*len;
@@ -438,7 +431,7 @@ if (degree > 2)
                 end
             end
         end
-
+        
         %%%%%%%%%%%%%%%%%%%%%% Done with RHS! Now symmetrize and solve! %%%%%%%%%%%%%%%%%%%%%%
         b = kronMonomialSymmetrize(b, n, k);
         [v{k}] = KroneckerSumSolver(Acell(1:k), b, k, E, [], options.solver);
