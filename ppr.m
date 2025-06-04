@@ -195,7 +195,7 @@ end
 
 if iscell(q) % Polynomial state penalty
     if length(q{2}) > 1
-        Q = reshape(q{2}, n, n);
+        Q = reshape(full(q{2}), n, n);
     else
         Q = q{2};
     end
@@ -285,7 +285,7 @@ switch RPosDef
                     % end
                 end
                 [Z,K1] = mess_care_lrradi(A, B, options.C, R, E);
-                V2 = Z*Z.'; % redo this with factored matrix class
+                V2 = factoredMatrix(Z); 
             catch ME
                 if ~isfield(options,'C')
                     error("M-M.E.S.S. solver requires low-rank Q = C'*C; pass in C using options.C")
@@ -298,7 +298,14 @@ switch RPosDef
         end
     case 2 % Negative definite R
         if isscalar(Q) && Q == 0 && norm(R + eye(length(R))) < 1e-12 % Computing open-loop controllability energy function; use lyap
-            V2 = inv(lyap(A,(B*B.'),[],E));
+            
+            if isa(q{2}, 'factoredMatrix')
+                error('Need to figure out how to invert W2 here')
+                V2 = factoredMatrix(lyapchol(A, B, [], E).'); % need to invert W2 somehow... 
+            else
+                V2 = inv(lyap(A,(B*B.'),[],E)); 
+            end
+
         else % at least one case is when computing past energy function
             V2 = icare(A, B, Q, R, [], E, 'anti'); % alternatively -icare(-A, -B, Q, R);
         end
@@ -307,7 +314,11 @@ switch RPosDef
             [~, V2, ~] = hamiltonian(A, B, Q, R, true);
         end
     case 3  % Computing open-loop observability energy function; use lyap
-        V2 = lyap(A', Q, [], E');
+        if isa(q{2}, 'factoredMatrix')
+            V2 = factoredMatrix(lyapchol(A', q{2}.Z, [], E').');
+        else
+            V2 = lyap(A', Q, [], E');
+        end
 end
 
 if isempty(V2)
@@ -317,12 +328,12 @@ end
 %  Check the residual of the Riccati/Lyapunov equation
 if options.verbose
     if isempty(E); RES = A' * V2     +      V2 * A - (    V2 * B) * Rinv * (B' * V2    ) + Q;
-    else;          RES = A' * V2 * E + E' * V2 * A - (E' *V2 * B) * Rinv * (B' * V2 * E) + Q; end
+    else;          RES = A' * (V2 * E) + E' * (V2 * A) - (E' *(V2 * B)) * Rinv * ((B' * V2) * E) + Q; end
     fprintf('  - The residual of the Riccati equation is %g\n', norm(RES, 'inf')); clear RES
 end
 
 %  Reshape the resulting quadratic coefficients
-v{2} = vec(V2);
+v{2} = vec(V2); % possibly factoredMatrix
 if ~exist('K1','var')
     if isempty(E); K1 = -Rinv*B.'*V2;
     else;          K1 = -Rinv*B.'*V2*E; end
@@ -337,8 +348,8 @@ if useReducedOrderModel
     f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.r;
     A = f{1}; B = g{1};
     
-    V2f = options.V2; K1f = K{1};
-    V2 = options.T.'*V2f*options.T;
+    V2f = V2; K1f = K{1};
+    V2 = options.T.'*(V2f*options.T); % no longer factoredMatrix
     v{2} = vec(V2); K{1} = K1f*options.T;
 end
 if ~isfield(options,'r')
