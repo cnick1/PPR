@@ -298,7 +298,7 @@ switch RPosDef
         end
     case 2 % Negative definite R
         if isscalar(Q) && Q == 0 && norm(R + eye(length(R))) < 1e-12 % Computing open-loop controllability energy function; use lyap
-            V2 = factoredMatrixInverse(lyapchol(A, B, [], E).');
+            V2 = factoredMatrixInverse(lyapchol(A, B, [], E));
         else % At least one case is when computing past energy function
             V2 = icare(A, B, Q, R, [], E, 'anti'); % alternatively -icare(-A, -B, Q, R);
         end
