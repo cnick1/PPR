@@ -86,7 +86,7 @@ function runExample29(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 50;
+        numElements = 64;
     end
     r = 10;
 end
@@ -130,7 +130,7 @@ opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog);
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
 % x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
 R = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
-D = 0.75; thickness = 0.015; % annulus with outer diameter 0.75 and thickness 0.015
+D = 0.75; thickness = 0.03; % annulus with outer diameter 0.75 and thickness 0.015
 x0 = (R <= D/2 & R >= D/2-thickness );
 x0 = 0.5*x0(:); % x0 is made as a logical by the last line
 
@@ -172,7 +172,7 @@ drawnow
 
 %% Animate solution
 figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
-for i=1:length(t)
+for i=1:5:length(t)
     
     Z = reshape(XUNC(i,:),nx,ny);
     

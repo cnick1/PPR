@@ -1,4 +1,4 @@
-%  A script to run the examples in SIAM SISC paper
+%  A script to run the examples in JCP paper
 %  The examples are the following:
 %
 %       Example 10: 1D ODE toy example inspired by Jeff's 2018 paper. The code
@@ -61,8 +61,7 @@ runExample27()
 runExample30()
 
 %% Example 29: Nonlinear Heat Equation 2D FEM Example (w/ Mass Matrix)
-runExample29(8)
-runExample29(16,10)
+runExample29(50,10)
 
 %% Example 22: 4D Pendulum Cart Example
 % runExample22();
