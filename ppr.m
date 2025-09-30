@@ -341,7 +341,7 @@ if useReducedOrderModel
     f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.r;
     A = f{1}; B = g{1};
     
-    V2f = V2; K1f = K{1};
+    V2f = options.V2; K1f = K{1};
     V2 = options.T.'*(V2f*options.T); % no longer factoredMatrix
     v{2} = vec(V2); K{1} = K1f*options.T;
 end
