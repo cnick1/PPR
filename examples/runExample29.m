@@ -58,6 +58,7 @@ function runExample29(numElements, r)
 %   |     128      | 16641   |        30 min        |       10 min        |
 %   |     200      | 40401   |          --          |        2  hr        |
 %   |     256      | 66049   |          --          |        6  hr        |
+%   |     317      | 101124  |          --          |       16  hr        |
 %   +--------------+---------+----------------------+---------------------+
 %
 %                        PPR Control Computation Time
@@ -69,6 +70,7 @@ function runExample29(numElements, r)
 %   |     128      | 16641   |        90 sec        |       60 sec        |
 %   |     200      | 40401   |        40 min        |        5 min        |
 %   |     256      | 66049   |          --          |       10 min        |
+%   |     317      | 101124  |          --          |       20 min        |
 %   +--------------+---------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
@@ -86,16 +88,17 @@ function runExample29(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 64;
+        numElements = 32;
     end
     r = 10;
 end
+animate = false;
 
 %% Get dynamics
 nx = numElements+1; ny = nx; n = nx*ny; m = 1;
-fprintf(" Forming FEM model, n=%i ... ",n); tic
-[E, f, g, ~, xyg] = getSystem29(numElements,.75,1,-1);
-fprintf("completed in %2.2f seconds. \n", toc)
+% fprintf(" Forming FEM model, n=%i ... ",n); tic
+[E, f, g, ~, xyg] = getSystem29(numElements,.25,1,-1);
+% fprintf("completed in %2.2f seconds. \n", toc)
 g{1} = g{1}(:,3); G = @(x) g{1}; % insulate all sides, use control only on side CD
 
 %% Compute controllers
@@ -105,12 +108,13 @@ nc = 10; nds = round(linspace(1,n,nc));
 C = sparse(1:nc,nds,sqrt(0.1),nc,n); q = C.'*C;
 
 % Get value function/controller
-R = 1; degree = 4;
+R = 1; 
+degree = 4;
 options.C = C; options.E = E;
 options.verbose = false; options.r = r;
-fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
+% fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
 [~, K] = ppr(f, g, q, R, degree, options);
-fprintf(" completed in %2.2f seconds. \n", toc)
+% fprintf(" completed in %2.2f seconds. \n", toc)
 
 uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
@@ -129,37 +133,52 @@ opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog);
 % Set up grid and annulus initial condition
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
 % x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
-R = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
+Rad = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
 D = 0.75; thickness = 0.03; % annulus with outer diameter 0.75 and thickness 0.015
-x0 = (R <= D/2 & R >= D/2-thickness );
-x0 = 0.5*x0(:); % x0 is made as a logical by the last line
+x0 = (Rad <= D/2 & Rad >= D/2-thickness );
+x0 = 0.5*x0(:)+0.5; % x0 is made as a logical by the last line
 
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
 
 % Run and time simulations
-fprintf(" - Simulating open-loop dynamics ... ");       T0 = tic;
-[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating LQR closed-loop dynamics ... "); T0 = tic;
-[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts_closloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR closed-loop dynamics ... "); T0 = tic;
-[~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating open-loop dynamics ... ");       
+T0 = tic;
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop); 
+% fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating LQR closed-loop dynamics ... "); 
+T0 = tic;
+[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts_closloop); 
+% fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR closed-loop dynamics ... "); 
+T0 = tic;
+[~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop); 
+% fprintf("completed in %2.2f seconds. \n", toc(T0))
+
+%% Compute integrated costs
+costUNC = trapz(t, sum((XUNC.^2).*diag(C.'*C).', 2));
+UxLQR = uLQR(XLQR.').';
+costLQR = trapz(t, sum((XLQR.^2).*diag(C.'*C).', 2) + R*UxLQR.^2);
+for i=1:length(t); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
+costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
+
+fprintf("R=%f: %f\n", R, (1-costPPR/costLQR)*100)
 
 %% Plot solution
-figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
-tlo = tiledlayout(3,4);ii=0;
-for i=round(linspace(1,size(XUNC,1),4))
+figure('Position', [312 240 864 573]);
+tlo = tiledlayout(3,3);ii=0;
+for i=round(linspace(1,size(XUNC,1),3))
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
     xlabel('x, m'); ylabel('y, m');
 end
-for i=round(linspace(1,size(XLQR,1),4))
+for i=round(linspace(1,size(XLQR,1),3))
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XLQR(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
     xlabel('x, m'); ylabel('y, m');
 end
-for i=round(linspace(1,size(XPPR,1),4))
+for i=round(linspace(1,size(XPPR,1),3))
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
@@ -171,28 +190,30 @@ cbh.Layout.Tile = 'east';
 drawnow
 
 %% Animate solution
-figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
-for i=1:5:length(t)
-    
-    Z = reshape(XUNC(i,:),nx,ny);
-    
-    subplot(2,2,1); grid on;
-    [c,h] = contourf(X,Y,Z); clabel(c,h)
-    xlabel('x, m'); ylabel('y, m'); axis equal
-    
-    subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
-    xlabel('x, m'); ylabel('y, m');
-    
-    Z = reshape(XPPR(i,:),nx,ny);
-    
-    subplot(2,2,3); grid on;
-    [c,h] = contourf(X,Y,Z); clabel(c,h)
-    xlabel('x, m'); ylabel('y, m'); axis equal
-    
-    subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
-    xlabel('x, m'); ylabel('y, m');
-    title(sprintf('t=%7.6f',t(i)))
-    drawnow
+if animate
+    figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
+    for i=1:5:length(t)
+
+        Z = reshape(XUNC(i,:),nx,ny);
+
+        subplot(2,2,1); grid on;
+        [c,h] = contourf(X,Y,Z); clabel(c,h)
+        xlabel('x, m'); ylabel('y, m'); axis equal
+
+        subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
+        xlabel('x, m'); ylabel('y, m');
+
+        Z = reshape(XPPR(i,:),nx,ny);
+
+        subplot(2,2,3); grid on;
+        [c,h] = contourf(X,Y,Z); clabel(c,h)
+        xlabel('x, m'); ylabel('y, m'); axis equal
+
+        subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
+        xlabel('x, m'); ylabel('y, m');
+        title(sprintf('t=%7.6f',t(i)))
+        drawnow
+    end
 end
 
 clear sparseKronPolyEval T0
@@ -217,7 +238,7 @@ switch flag
         lastPct = -1;
         lastUpdateTime = 0;
         fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)', repmat(' ',1,nSteps), round(elapsed));
-        
+
     case ''
         % ODE solver step
         if isempty(t), return; end
@@ -228,7 +249,7 @@ switch flag
         eta = (elapsed / max(tNow,eps)) * (T1 - tNow); % avoid divide-by-zero
         needsUpdate = pct - lastPct >= 2 || block == nSteps;
         timeSinceLast = elapsed - lastUpdateTime;
-        
+
         if needsUpdate || timeSinceLast >= 1
             bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
             fprintf(repmat('\b',1,93));
@@ -238,7 +259,7 @@ switch flag
             end
             lastUpdateTime = elapsed;
         end
-        
+
     case 'done'
         % Finalize
         % elapsed = toc(T0);
