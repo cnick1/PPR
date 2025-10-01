@@ -88,7 +88,7 @@ function runExample29(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 32;
+        numElements = 64;
     end
     r = 10;
 end
@@ -96,10 +96,13 @@ animate = false;
 
 %% Get dynamics
 nx = numElements+1; ny = nx; n = nx*ny; m = 1;
-% fprintf(" Forming FEM model, n=%i ... ",n); tic
+fprintf(" Forming FEM model, n=%i ... ",n); tic
 [E, f, g, ~, xyg] = getSystem29(numElements,.25,1,-1);
-% fprintf("completed in %2.2f seconds. \n", toc)
-g{1} = g{1}(:,3); G = @(x) g{1}; % insulate all sides, use control only on side CD
+fprintf("completed in %2.2f seconds. \n", toc)
+g{1} = g{1}(:,3); 
+boundaryLocs = xyg(g{1}>0, 1); 
+g{1}(g{1}>0) = (-(2*boundaryLocs-1).^2+1) * max(g{1}); 
+G = @(x) g{1}; % insulate all sides, use control only on side CD
 
 %% Compute controllers
 % Setting the cost Q=C.'*C for LR-ADI
@@ -112,11 +115,10 @@ R = 1;
 degree = 4;
 options.C = C; options.E = E;
 options.verbose = false; options.r = r;
-% fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
+fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
 [~, K] = ppr(f, g, q, R, degree, options);
-% fprintf(" completed in %2.2f seconds. \n", toc)
+fprintf(" completed in %2.2f seconds. \n", toc)
 
-uLQR = @(x) kronPolyEval(K, x, 1);
 uPPR = @(x) kronPolyEval(K, x, degree-1);
 
 %% Simulate closed-loop system
@@ -132,53 +134,49 @@ opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog);
 
 % Set up grid and annulus initial condition
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
+
+% Initial Condition 1: Sine wave
 % x0 = .25*(sin(4*pi*X) + cos(3*pi*Y)) + .1; x0 = x0(:);
-Rad = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
-D = 0.75; thickness = 0.03; % annulus with outer diameter 0.75 and thickness 0.015
-x0 = (Rad <= D/2 & Rad >= D/2-thickness );
-x0 = 0.5*x0(:)+0.5; % x0 is made as a logical by the last line
+
+% Initial Condition 2: A thin annulus (circle)
+% Rad = sqrt((X - 0.5).^2 + (Y - 0.5).^2); % get radius values for grid points
+% D = 0.75; thickness = 0.03; % annulus with outer diameter 0.75 and thickness 0.015
+% x0 = (Rad <= D/2 & Rad >= D/2-thickness );
+% x0 = 0.5*x0(:)+0.5; % x0 is made as a logical by the last line
+
+% Initial Condition 3: Stanford Bunny
+x0 = getStanfordBunnyIC(X, Y);
+x0 = x0(:)*0.5+0.5;
 
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
 
 % Run and time simulations
-% fprintf(" - Simulating open-loop dynamics ... ");       
+fprintf(" - Simulating open-loop dynamics ... ");       
 T0 = tic;
 [~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop); 
-% fprintf("completed in %2.2f seconds. \n", toc(T0))
-% fprintf(" - Simulating LQR closed-loop dynamics ... "); 
-T0 = tic;
-[~, XLQR] = ode15s(@(t, x) FofXU(x, uLQR(x)), t, x0, opts_closloop); 
-% fprintf("completed in %2.2f seconds. \n", toc(T0))
-% fprintf(" - Simulating PPR closed-loop dynamics ... "); 
+fprintf("completed in %2.2f seconds. \n", toc(T0))
+fprintf(" - Simulating PPR closed-loop dynamics ... "); 
 T0 = tic;
 [~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop); 
-% fprintf("completed in %2.2f seconds. \n", toc(T0))
+fprintf("completed in %2.2f seconds. \n", toc(T0))
 
 %% Compute integrated costs
-costUNC = trapz(t, sum((XUNC.^2).*diag(C.'*C).', 2));
-UxLQR = uLQR(XLQR.').';
-costLQR = trapz(t, sum((XLQR.^2).*diag(C.'*C).', 2) + R*UxLQR.^2);
-for i=1:length(t); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
-costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
-
-fprintf("R=%f: %f\n", R, (1-costPPR/costLQR)*100)
+% costUNC = trapz(t, sum((XUNC.^2).*diag(C.'*C).', 2));
+% for i=1:length(t); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
+% costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
 
 %% Plot solution
 figure('Position', [312 240 864 573]);
-tlo = tiledlayout(3,3);ii=0;
-for i=round(linspace(1,size(XUNC,1),3))
+tlo = tiledlayout(2,4);ii=0;
+[~, idx1] = min(abs(t - .005));
+[~, idx2] = min(abs(t - .25));
+for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
     xlabel('x, m'); ylabel('y, m');
 end
-for i=round(linspace(1,size(XLQR,1),3))
-    ii=ii+1;h(ii) = nexttile;
-    Z = reshape(XLQR(i,:),nx,ny);
-    surfc(X,Y,Z); zlim([-1.5 1.5])
-    xlabel('x, m'); ylabel('y, m');
-end
-for i=round(linspace(1,size(XPPR,1),3))
+for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
     surfc(X,Y,Z); zlim([-1.5 1.5])
@@ -298,6 +296,43 @@ x = f{1}*z;
 % Efficient sparse evaluation of f{3}*(z⊗z⊗z)
 zprod = z(I1) .* z(I2) .* z(I3);
 x = x + accumarray(F3i, F3v .* zprod, size(x));
+
+end
+
+
+function Zq = getStanfordBunnyIC(Xq, Yq)
+%getStanfordBunnyIC Creates a 2D initial condition resembling the Stanford
+%bunny for a square domain
+
+x = [-77; -77; -77; -76; -75; -74; -71; -71; -72; -72; -73; -73; -71; -71; -69; -68; -67; -65; -62; -60; -58; -56; -51; -50; -45; -40; -44; -50; -54; -56; -53; -48; -42; -41; -38; -37; -35; -31; -29; -25; -24; -23; -22; -21; -20; -19; -17; -16; -10; -8; -4; 0; 7; 13; 18; 21; 22; 23; 25; 27; 28; 32; 37; 40; 42; 45; 52; 55; 61; 62; 69; 71; 73; 75; 77; 77; 78; 77; 75; 72; 70; 67; 64; 62; 63; 62; 62; 61; 60; 58; 58; 57; 54; 52; 50; 46; 41; 39; 35; 32; 28; 26; 20; 19; 12; 11; 7; 4; -1; -7; -14; -18; -20; -24; -27; -31; -32; -31; -30; -28; -23; -17; -14; -8; -2; 3; 4; 6; 7; 8; 8; 6; 6; 3; 2; -1; -3; -5; -11; -18; -20; -26; -29; -34; -44; -45; -46; -49; -50; -54; -57; -60; -60; -62; -62; -61; -66; -68; -71; -72; -74; -74; -74; -74; -74; -76; -77];
+y = [16; 11; 9; 7; 5; 4; -1; -2; -7; -12; -16; -20; -25; -26; -30; -33; -34; -37; -40; -42; -44; -46; -48; -49; -51; -58; -63; -66; -70; -74; -76; -77; -77; -77; -77; -77; -77; -77; -77; -76; -76; -76; -76; -76; -76; -76; -76; -76; -76; -75; -75; -77; -77; -76; -75; -76; -76; -76; -76; -76; -76; -76; -76; -75; -75; -75; -73; -71; -70; -69; -65; -63; -62; -57; -51; -50; -44; -43; -39; -38; -37; -36; -34; -29; -26; -19; -17; -12; -11; -8; -4; -3; 2; 4; 8; 12; 15; 16; 18; 20; 21; 21; 21; 21; 21; 21; 19; 19; 18; 17; 16; 17; 17; 18; 20; 24; 27; 34; 36; 38; 39; 43; 43; 46; 49; 52; 52; 56; 58; 62; 64; 69; 70; 73; 76; 76; 76; 76; 72; 67; 66; 61; 57; 55; 60; 64; 66; 69; 70; 70; 70; 67; 66; 60; 55; 52; 44; 44; 42; 41; 36; 33; 32; 29; 25; 20; 16];
+
+lim = 100;
+[X, Y] = meshgrid(-lim:lim, -lim:lim);
+
+Z = X*0;
+
+for i=1:numel(Z)
+    if inpolygon(X(i),Y(i),x, y)
+        Z(i) = 1000;
+        for j=1:length(x)
+            if norm([X(i)-x(j), Y(i)-y(j)]) < Z(i)
+                Z(i) = norm([X(i)-x(j), Y(i)-y(j)]);
+            end
+        end
+        if Z(i) > 10
+            Z(i) = 0;
+        else
+            Z(i) = 1;
+        end
+    else
+        Z(i) = 0;
+    end
+end
+
+% surf(X, Y, Z);
+Zq = interp2(X./lim./2+.5,Y./lim./2+.5,Z,Xq,Yq);
+
 
 end
 
