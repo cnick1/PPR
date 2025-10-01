@@ -172,7 +172,7 @@ set(groot,'defaulttextinterpreter','latex');
 set(groot,'defaultLegendInterpreter','latex');
 [~, idx1] = min(abs(t - .005));
 [~, idx2] = min(abs(t - .25));
-figure('Position', [312 600 864 195]);
+figure('Position', [312 600 864*1.25 195*1.25]);
 tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
@@ -184,7 +184,7 @@ end
 drawnow
 exportgraphics(gcf,'plots/example29_UNC.png', 'ContentType', 'image')
 
-figure('Position', [312 300 864 195]);
+figure('Position', [312 300 864*1.25 195*1.25]);
 tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
