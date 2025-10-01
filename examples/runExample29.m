@@ -99,9 +99,10 @@ nx = numElements+1; ny = nx; n = nx*ny; m = 1;
 fprintf(" Forming FEM model, n=%i ... ",n); tic
 [E, f, g, ~, xyg] = getSystem29(numElements,.25,1,-1);
 fprintf("completed in %2.2f seconds. \n", toc)
-g{1} = g{1}(:,3); 
+g{1} = g{1}(:,1); 
 boundaryLocs = xyg(g{1}>0, 1); 
-g{1}(g{1}>0) = (-(2*boundaryLocs-1).^2+1) * max(g{1}); 
+% g{1}(g{1}>0) = (-(2*boundaryLocs-1).^2+1) * max(g{1}); % Parabola
+g{1}(g{1}>0) = sin(pi*boundaryLocs) * max(g{1}); % Parabola
 G = @(x) g{1}; % insulate all sides, use control only on side CD
 
 %% Compute controllers
@@ -166,25 +167,24 @@ fprintf("completed in %2.2f seconds. \n", toc(T0))
 % costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
 
 %% Plot solution
-figure('Position', [312 240 864 573]);
-tlo = tiledlayout(2,4);ii=0;
 [~, idx1] = min(abs(t - .005));
 [~, idx2] = min(abs(t - .25));
+figure('Position', [312 600 864 195]);
+tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
-    surfc(X,Y,Z); zlim([-1.5 1.5])
-    xlabel('x, m'); ylabel('y, m');
+    surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
+    xlabel('x'); ylabel('y');
 end
+figure('Position', [312 300 864 195]);
+tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
-    surfc(X,Y,Z); zlim([-1.5 1.5])
-    xlabel('x, m'); ylabel('y, m');
+    surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
+    xlabel('x'); ylabel('y');
 end
-set(h, 'Colormap', turbo, 'CLim', [-1 1])
-cbh = colorbar(h(end));
-cbh.Layout.Tile = 'east';
 drawnow
 
 %% Animate solution
