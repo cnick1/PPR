@@ -539,13 +539,21 @@ if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
 
 switch options.method
     case 'eigsOfV2'
-        if ~isempty(options.E)
-            options.V2 = options.E.'*options.V2*options.E;
+        if isa(options.V2,'factoredMatrix')
+            if ~isempty(options.E)
+                options.V2.Z = options.E.'*options.V2.Z;
+            end
+            [~, Xi, options.T] = svd(options.V2.Z.', 'econ');
+            Xi = Xi(1:options.r,1:options.r).^2;
+            options.T = options.T(:,1:options.r);
+        else
+            if ~isempty(options.E)
+                options.V2 = options.E.'*options.V2*options.E;
+            end
+            [options.T, Xi] = eigs(options.V2,options.r);
         end
-        
-        [options.T, Xi] = eigs(options.V2,options.r);
+
         options.TInv = options.T.';
-        
         if options.verbose
             figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
         end
@@ -620,7 +628,8 @@ for k = 2:length(options.q)
     if isscalar(options.q{k})
         options.qr{k} = options.q{k};
     else
-        options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
+        % options.qr{k} = kroneckerRight(options.q{k}.',options.T).';
+        options.qr{k} = kroneckerLeft(options.T.',options.q{k});
     end
 end
 
