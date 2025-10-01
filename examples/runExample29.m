@@ -10,7 +10,7 @@ function runExample29(numElements, r)
 %   Description: Here we consider Allen-Cahn with Neumann BCs, insulated on 3
 %   sides and subject to boundary control on the fourth. The PDE is
 %
-%     uₜ(x,y,t) = ε uₓₓ(x,y,t) + u(x,y,t) - u(x,y,t)³
+%     uₜ(x,y,t) = ε Δu(x,y,t) + u(x,y,t) - u(x,y,t)³
 %     uᵧ(x,1,t) = u₃(t)  (Neumann control input on side CD)
 %
 %   where all sides are insulated except one subject to Neumann boundary
@@ -99,8 +99,8 @@ nx = numElements+1; ny = nx; n = nx*ny; m = 1;
 fprintf(" Forming FEM model, n=%i ... ",n); tic
 [E, f, g, ~, xyg] = getSystem29(numElements,.25,1,-1);
 fprintf("completed in %2.2f seconds. \n", toc)
-g{1} = g{1}(:,1); 
-boundaryLocs = xyg(g{1}>0, 1); 
+g{1} = g{1}(:,1);
+boundaryLocs = xyg(g{1}>0, 1);
 % g{1}(g{1}>0) = (-(2*boundaryLocs-1).^2+1) * max(g{1}); % Parabola
 g{1}(g{1}>0) = sin(pi*boundaryLocs) * max(g{1}); % Parabola
 G = @(x) g{1}; % insulate all sides, use control only on side CD
@@ -109,10 +109,10 @@ G = @(x) g{1}; % insulate all sides, use control only on side CD
 % Setting the cost Q=C.'*C for LR-ADI
 options.lrradi = true;
 nc = 10; nds = round(linspace(1,n,nc));
-C = sparse(1:nc,nds,sqrt(0.1),nc,n); q = C.'*C;
+C = sparse(1:nc,nds,1,nc,n); q = C.'*C;
 
 % Get value function/controller
-R = 1; 
+R = 0.1;
 degree = 4;
 options.C = C; options.E = E;
 options.verbose = false; options.r = r;
@@ -152,13 +152,13 @@ x0 = x0(:)*0.5+0.5;
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
 
 % Run and time simulations
-fprintf(" - Simulating open-loop dynamics ... ");       
+fprintf(" - Simulating open-loop dynamics ... ");
 T0 = tic;
-[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop); 
+[~, XUNC] = ode15s(@(t, x) FofXU(x,   0    ), t, x0, opts_openloop);
 fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR closed-loop dynamics ... "); 
+fprintf(" - Simulating PPR closed-loop dynamics ... ");
 T0 = tic;
-[~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop); 
+[~, XPPR] = ode15s(@(t, x) FofXU(x, uPPR(x)), t, x0, opts_closloop);
 fprintf("completed in %2.2f seconds. \n", toc(T0))
 
 %% Compute integrated costs
@@ -167,7 +167,7 @@ fprintf("completed in %2.2f seconds. \n", toc(T0))
 % costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
 
 %% Plot solution
-set(groot,'defaultAxesTickLabelInterpreter','latex');  
+set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaulttextinterpreter','latex');
 set(groot,'defaultLegendInterpreter','latex');
 [~, idx1] = min(abs(t - .005));
@@ -201,22 +201,22 @@ exportgraphics(gcf,'plots/example29_PPR.png', 'ContentType', 'image')
 if animate
     figure('Position', [311.6667 239.6667 1.0693e+03 573.3333]);
     for i=1:5:length(t)
-
+        
         Z = reshape(XUNC(i,:),nx,ny);
-
+        
         subplot(2,2,1); grid on;
         [c,h] = contourf(X,Y,Z); clabel(c,h)
         xlabel('x, m'); ylabel('y, m'); axis equal
-
+        
         subplot(2,2,2); surfc(X,Y,Z); zlim([-1.5 1.5])
         xlabel('x, m'); ylabel('y, m');
-
+        
         Z = reshape(XPPR(i,:),nx,ny);
-
+        
         subplot(2,2,3); grid on;
         [c,h] = contourf(X,Y,Z); clabel(c,h)
         xlabel('x, m'); ylabel('y, m'); axis equal
-
+        
         subplot(2,2,4); surfc(X,Y,Z); zlim([-1.5 1.5])
         xlabel('x, m'); ylabel('y, m');
         title(sprintf('t=%7.6f',t(i)))
@@ -246,7 +246,7 @@ switch flag
         lastPct = -1;
         lastUpdateTime = 0;
         fprintf(' |%s|  (elapsed: %5i s, remaining: ----- s)', repmat(' ',1,nSteps), round(elapsed));
-
+        
     case ''
         % ODE solver step
         if isempty(t), return; end
@@ -257,7 +257,7 @@ switch flag
         eta = (elapsed / max(tNow,eps)) * (T1 - tNow); % avoid divide-by-zero
         needsUpdate = pct - lastPct >= 2 || block == nSteps;
         timeSinceLast = elapsed - lastUpdateTime;
-
+        
         if needsUpdate || timeSinceLast >= 1
             bar = [repmat('-',1,block), repmat(' ',1,nSteps-block)];
             fprintf(repmat('\b',1,93));
@@ -267,7 +267,7 @@ switch flag
             end
             lastUpdateTime = elapsed;
         end
-
+        
     case 'done'
         % Finalize
         % elapsed = toc(T0);
