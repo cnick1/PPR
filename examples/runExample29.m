@@ -177,6 +177,9 @@ for i=[1, idx1, idx2, length(t)]
     surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
     xlabel('x'); ylabel('y');
 end
+drawnow
+exportgraphics(gcf,'plots/example29_UNC.pdf', 'ContentType', 'vector')
+
 figure('Position', [312 300 864 195]);
 tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
@@ -186,6 +189,8 @@ for i=[1, idx1, idx2, length(t)]
     xlabel('x'); ylabel('y');
 end
 drawnow
+exportgraphics(gcf,'plots/example29_PPR.pdf', 'ContentType', 'vector')
+
 
 %% Animate solution
 if animate
