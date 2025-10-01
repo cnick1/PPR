@@ -167,6 +167,9 @@ fprintf("completed in %2.2f seconds. \n", toc(T0))
 % costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
 
 %% Plot solution
+set(groot,'defaultAxesTickLabelInterpreter','latex');  
+set(groot,'defaulttextinterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');
 [~, idx1] = min(abs(t - .005));
 [~, idx2] = min(abs(t - .25));
 figure('Position', [312 600 864 195]);
@@ -175,10 +178,11 @@ for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
     surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
-    xlabel('x'); ylabel('y');
+    xlabel('x','Interpreter','latex'); ylabel('y','Interpreter','latex');
+    title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
 drawnow
-exportgraphics(gcf,'plots/example29_UNC.pdf', 'ContentType', 'vector')
+exportgraphics(gcf,'plots/example29_UNC.png', 'ContentType', 'image')
 
 figure('Position', [312 300 864 195]);
 tiledlayout(1,4);ii=0;
@@ -186,10 +190,11 @@ for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
     surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
-    xlabel('x'); ylabel('y');
+    xlabel('x','Interpreter','latex'); ylabel('y','Interpreter','latex');
+    title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
 drawnow
-exportgraphics(gcf,'plots/example29_PPR.pdf', 'ContentType', 'vector')
+exportgraphics(gcf,'plots/example29_PPR.png', 'ContentType', 'image')
 
 
 %% Animate solution
