@@ -273,6 +273,7 @@ end
 
 
 %% V2, Degree 2 coefficient (k=2 case)
+if true || options.verbose; T1=tic; end
 switch RPosDef
     case 1 % Positive definite R
         if isfield(options,'lrradi') && options.lrradi
@@ -313,6 +314,7 @@ switch RPosDef
             V2 = lyap(A', Q, [], E');
         end
 end
+if true || options.verbose; fprintf("Riccati solution computed in %2.2f seconds ... ", toc(T1)); end
 
 if isempty(V2)
     error('ppr: Linear system is not stabilizable')
@@ -536,6 +538,7 @@ if isfield(options,'fr')
     return; % Already have ROM
 end
 if ~isfield(options,'method'); options.method = 'eigsOfV2'; end
+if true || options.verbose; T1 = tic; end
 
 switch options.method
     case 'eigsOfV2'
@@ -663,4 +666,5 @@ if ~isempty(options.E)
     end
 end
 options.Er = []; % ROM is always in standard form
+if true || options.verbose; fprintf("ROM computed in %2.2f seconds ... \n", toc(T1)); end
 end
