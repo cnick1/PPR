@@ -178,7 +178,7 @@ for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
     surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
-    xlabel('x','Interpreter','latex'); ylabel('y','Interpreter','latex');
+    xlabel('$z_1$','Interpreter','latex'); ylabel('$z_2$','Interpreter','latex');
     title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
 drawnow
@@ -190,7 +190,7 @@ for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
     surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
-    xlabel('x','Interpreter','latex'); ylabel('y','Interpreter','latex');
+    xlabel('$z_1$','Interpreter','latex'); ylabel('$z_2$','Interpreter','latex');
     title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
 drawnow
