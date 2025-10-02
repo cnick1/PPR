@@ -54,10 +54,11 @@ function runExample29(numElements, r)
 %   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
 %   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+----------------------+---------------------+
-%   |      64      |  4225   |        36 sec        |         25 sec       |       50 sec        |
-%   |     128      | 16641   |         4 min        |          2 min       |       10 min        |
-%   |     256      | 66049   |          --          |         25 min       |        6  hr        |
-%   |     320      | 103041  |          --          |          --          |       16  hr        |
+%   |      64      |   4225  |        36 sec        |         25 sec       |       27 sec        |
+%   |     128      |  16641  |         4 min        |          2 min       |        4 min        |
+%   |     256      |  66049  |        70 min        |         25 min       |       46 min        |
+%   |     320      | 103041  |          OOM         |                      |                     |
+%   |     512      | 263169  |          ---         |                      |                     |
 %   +--------------+---------+----------------------+----------------------+---------------------+
 %
 %                                     PPR Control Computation Time
@@ -65,10 +66,11 @@ function runExample29(numElements, r)
 %   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
 %   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+----------------------+---------------------+
-%   |      64      |  4225   |        22 sec        |         14 sec       |       15 sec        |
-%   |     128      | 16641   |        85 sec        |         48 sec       |       60 sec        |
-%   |     256      | 66049   |         6 min        |          3 min       |       10 min        |
-%   |     320      | 103041  |          --          |          --          |       20 min        |
+%   |      64      |   4225  |        22 sec        |         14 sec       |       14 sec        |
+%   |     128      |  16641  |        85 sec        |         48 sec       |       82 sec        |
+%   |     256      |  66049  |         6 min        |          3 min       |        8 min        |
+%   |     320      | 103041  |        11 min        |          5 min       |                     |
+%   |     512      | 263169  |         ---          |                      |                     |
 %   +--------------+---------+----------------------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
@@ -305,7 +307,7 @@ x = f{1}*z;
 % x = x + f{2}*kron(z,z); % commented out because f{2}=0
 
 % Efficient sparse evaluation of f{3}*(z⊗z⊗z)
-zprod = z(I1) .* z(I2) .* z(I3);
+zprod = z(uint32(I1)) .* z(uint32(I2)) .* z(uint32(I3)); % uint necessary for large models, double has rounding error
 x = x + accumarray(F3i, F3v .* zprod, size(x));
 
 end
