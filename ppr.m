@@ -580,7 +580,7 @@ if issparse(f{end})
             [Fi, Fj, Fv] = find(TinvF);
             options.fr{k} = zeros(r,r^k); % result is dense, so better to use zeros
             rowinds = cell(1, k); % Preallocate cell array for k row indices
-            [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
+            [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj); 
             
             for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small (I did try but then memory becomes an issue)
                 colinds = cell(1, k); % Preallocate cell array for k column indices
@@ -589,7 +589,7 @@ if issparse(f{end})
                 % Efficient sparse evaluation qth column of f{k}*(T⊗...⊗T)
                 Tprod = ones(size(Fj));
                 for p = 1:k
-                    Tprod = Tprod .* options.T(rowinds{p},colinds{p});
+                    Tprod = Tprod .* options.T(uint32(rowinds{p}),uint32(colinds{p})); %uint necessary because doubles are sometimes not exact integers
                 end
                 
                 options.fr{k}(:,q) = accumarray(Fi, Fv .* Tprod, [r 1]);
@@ -601,7 +601,8 @@ if issparse(f{end})
     
 else
     for k = 1:length(f)
-        options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
+        % options.fr{k} = options.TInv*kroneckerRight(f{k},options.T);
+        options.fr{k} = kroneckerRight(options.TInv*f{k},options.T); % More efficient to multiply by Tinv first
     end
 end
 %% Transform g(x)
