@@ -22,7 +22,7 @@ function runExample29(numElements, r)
 %   for which we can compute a state feedback controller u(x) = K(x) using PPR.
 %
 %   This example demonstrates the benefits and importance of properly
-%   exploiting sparsity for high dimensional nonlinear control problems.
+%   exploiting sparsity for high-dimensional nonlinear control problems.
 %   Sparsity is used in four key ways in this example:
 %       1) Forming and storing the FEM model in generalized form
 %       2) Computing the Riccati solutions using modern low-rank methods
@@ -36,7 +36,7 @@ function runExample29(numElements, r)
 %   function cleverly (to be low-rank) permits using the powerful modern
 %   LR-ADI solvers from the M-M.E.S.S. package [3]. For the remaining
 %   computations in terms of the Kronecker product, this example showcases
-%   a new custom data structure that is necessary for Kronecker
+%   a new custom data structure that aids with for Kronecker
 %   polynomials. The custom class, called sparseIJV, is essentially a sparse
 %   array, but it stores only the indices, values, and size of the arrays.
 %   For the level of sparsity (and array dimensions) that arise with
@@ -48,30 +48,28 @@ function runExample29(numElements, r)
 %   this model on a laptop in dimensions as high as n=16641 dimensions, and
 %   on a workstation with 512 GB RAM up to n=66049 dimensions. Here is a
 %   summary of the performance on a laptop vs. server for different dimensions:
-
-%                            Total Script Time
-%   +--------------+---------+----------------------+---------------------+
-%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Server   |
-%   |              |         |     (16 GB RAM)      |     (512 GB RAM)    |
-%   +--------------+---------+----------------------+---------------------+
-%   |      64      |  4225   |        60 sec        |       50 sec        |
-%   |     128      | 16641   |        30 min        |       10 min        |
-%   |     200      | 40401   |          --          |        2  hr        |
-%   |     256      | 66049   |          --          |        6  hr        |
-%   |     317      | 101124  |          --          |       16  hr        |
-%   +--------------+---------+----------------------+---------------------+
 %
-%                        PPR Control Computation Time
-%   +--------------+---------+----------------------+---------------------+
-%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Server   |
-%   |              |         |     (16 GB RAM)      |     (512 GB RAM)    |
-%   +--------------+---------+----------------------+---------------------+
-%   |      64      |  4225   |        20 sec        |       15 sec        |
-%   |     128      | 16641   |        90 sec        |       60 sec        |
-%   |     200      | 40401   |        40 min        |        5 min        |
-%   |     256      | 66049   |          --          |       10 min        |
-%   |     317      | 101124  |          --          |       20 min        |
-%   +--------------+---------+----------------------+---------------------+
+%                                           Total Script Time
+%   +--------------+---------+----------------------+----------------------+---------------------+
+%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
+%   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
+%   +--------------+---------+----------------------+----------------------+---------------------+
+%   |      64      |  4225   |        60 sec        |         45 sec       |       50 sec        |
+%   |     128      | 16641   |        30 min        |        242 min       |       10 min        |
+%   |     256      | 66049   |          --          |          --          |        6  hr        |
+%   |     320      | 103041  |          --          |          --          |       16  hr        |
+%   +--------------+---------+----------------------+----------------------+---------------------+
+%
+%                                     PPR Control Computation Time
+%   +--------------+---------+----------------------+----------------------+---------------------+
+%   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
+%   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
+%   +--------------+---------+----------------------+----------------------+---------------------+
+%   |      64      |  4225   |        20 sec        |         24 sec       |       15 sec        |
+%   |     128      | 16641   |        90 sec        |         48 sec       |       60 sec        |
+%   |     256      | 66049   |          --          |        215 sec       |       10 min        |
+%   |     320      | 103041  |          --          |          --          |       20 min        |
+%   +--------------+---------+----------------------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
 %              of an unstable heat equation via measurement of
@@ -88,7 +86,7 @@ function runExample29(numElements, r)
 fprintf('Running Example 29\n')
 if nargin < 2
     if nargin < 1
-        numElements = 64;
+        numElements = 128;
     end
     r = 10;
 end
@@ -131,7 +129,8 @@ clear sparseKronPolyEval T0; global T0;
 % FofXU = @(x,u) kronPolyEval(f,x) + g{1} * u;      % normal kronPolyEval (about 10% slower than custom one)
 FofXU = @(x,u) sparseKronPolyEval(f,x) + g{1} * u;  % custom kronPolyEval with additional slight improvement
 opts_openloop = odeset(Mass=E, Jacobian=f{1},           OutputFcn=@odeprog);
-opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*K{1}, OutputFcn=@odeprog);
+
+opts_closloop = odeset(Mass=E, Jacobian=f{1}+g{1}*sparse(K{1}), OutputFcn=@odeprog);
 
 % Set up grid and annulus initial condition
 X = reshape(xyg(:,1),nx,ny); Y = reshape(xyg(:,2),nx,ny);
@@ -150,6 +149,8 @@ x0 = getStanfordBunnyIC(X, Y);
 x0 = x0(:)*0.5+0.5;
 
 tmax = 5; t = (0:0.005:1).^3 * tmax; % specify for consistent plotting
+
+t = [0, 0.005, 0.25, tmax];
 
 % Run and time simulations
 fprintf(" - Simulating open-loop dynamics ... ");
