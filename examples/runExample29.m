@@ -54,9 +54,9 @@ function runExample29(numElements, r)
 %   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
 %   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+----------------------+---------------------+
-%   |      64      |  4225   |        60 sec        |         45 sec       |       50 sec        |
-%   |     128      | 16641   |        30 min        |        242 min       |       10 min        |
-%   |     256      | 66049   |          --          |          --          |        6  hr        |
+%   |      64      |  4225   |        36 sec        |         25 sec       |       50 sec        |
+%   |     128      | 16641   |         4 min        |          2 min       |       10 min        |
+%   |     256      | 66049   |          --          |         25 min       |        6  hr        |
 %   |     320      | 103041  |          --          |          --          |       16  hr        |
 %   +--------------+---------+----------------------+----------------------+---------------------+
 %
@@ -65,9 +65,9 @@ function runExample29(numElements, r)
 %   | numElements  |    n    |   CPU Time Laptop    |   CPU Time Laptop    |   CPU Time Server   |
 %   |              |         |     (16 GB RAM)      |     (32 GB RAM)      |     (512 GB RAM)    |
 %   +--------------+---------+----------------------+----------------------+---------------------+
-%   |      64      |  4225   |        20 sec        |         24 sec       |       15 sec        |
-%   |     128      | 16641   |        90 sec        |         48 sec       |       60 sec        |
-%   |     256      | 66049   |          --          |        215 sec       |       10 min        |
+%   |      64      |  4225   |        22 sec        |         14 sec       |       15 sec        |
+%   |     128      | 16641   |        85 sec        |         48 sec       |       60 sec        |
+%   |     256      | 66049   |         6 min        |          3 min       |       10 min        |
 %   |     320      | 103041  |          --          |          --          |       20 min        |
 %   +--------------+---------+----------------------+----------------------+---------------------+
 %
@@ -178,7 +178,7 @@ tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XUNC(i,:),nx,ny);
-    surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
+    surfc(X,Y,Z,'EdgeAlpha',0); zlim([-1.5 1.5])
     xlabel('$z_1$','Interpreter','latex'); ylabel('$z_2$','Interpreter','latex');
     title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
@@ -190,7 +190,7 @@ tiledlayout(1,4);ii=0;
 for i=[1, idx1, idx2, length(t)]
     ii=ii+1;h(ii) = nexttile;
     Z = reshape(XPPR(i,:),nx,ny);
-    surfc(X,Y,Z,'EdgeAlpha',0.2); zlim([-1.5 1.5])
+    surfc(X,Y,Z,'EdgeAlpha',0); zlim([-1.5 1.5])
     xlabel('$z_1$','Interpreter','latex'); ylabel('$z_2$','Interpreter','latex');
     title(sprintf('$t=%4.3f$',t(i)),'Interpreter','latex')
 end
