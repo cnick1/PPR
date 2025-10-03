@@ -106,6 +106,9 @@ switch plots
     case 'animation'
         t = [0,1e7];
     case 'figs'
+        set(groot,'defaultAxesTickLabelInterpreter','latex');
+        set(groot,'defaulttextinterpreter','latex');
+        set(groot,'defaultLegendInterpreter','latex');
         tmax = 5; dt = 0.001; t = 0:dt:tmax; % Specify time vector for plotting
 end
 
@@ -116,32 +119,32 @@ wOffsets = [0.5, 1, 1.5, 2];
 for j=1:length(wOffsets)
     clear UxPPR UxPPR_tuned UxPPR_tuned_reduced UxPPR_reduced UxTTHJB UxSDRE
     w0 = wOffsets(j) + cos(2*pi*y).*cos(pi*y); % Modified initial condition
-    
+
     % Simulate using ode solver (more efficient than forward euler) and
     % compute performance indexes
     [tUnc, Xunc] = ode15s(@(t, v) FofXU(v,uUnc(v)),t, w0, opts);
     costUnc(j) = trapz(tUnc, sum((Xunc.^2).*diag(Q).', 2));
-    
+
     [tLQR, XLQR] = ode15s(@(t, v) FofXU(v,uLQR(v)),t, w0, opts);
     UxLQR = uLQR(XLQR.').';
     costLQR(j) = trapz(tLQR, sum((XLQR.^2).*diag(Q).', 2) + R*UxLQR.^2);
-    
+
     [tPPR, XPPR] = ode15s(@(t, v) FofXU(v,uPPR(v)),t, w0, opts);
     for i=1:length(tPPR); UxPPR(i,1) = uPPR(XPPR(i,:).'); end
     costPPR(j) = trapz(tPPR, sum((XPPR.^2).*diag(Q).', 2) + R*UxPPR.^2);
-    
+
     [tPPR_tuned, XPPR_tuned] = ode15s(@(t, v) FofXU(v,uPPR_tuned(v)),t, w0, opts);
     for i=1:length(tPPR_tuned); UxPPR_tuned(i,1) = uPPR_tuned(XPPR_tuned(i,:).'); end
     costPPR_tuned(j) = trapz(tPPR_tuned, sum((XPPR_tuned.^2).*diag(Q).', 2) + R*UxPPR_tuned.^2);
-    
+
     [tPPR_tuned_reduced, XPPR_tuned_reduced] = ode15s(@(t, v) FofXU(v,uPPR_tuned_reduced(v)),t, w0, opts);
     for i=1:length(tPPR_tuned_reduced); UxPPR_tuned_reduced(i,1) = uPPR_tuned_reduced(XPPR_tuned_reduced(i,:).'); end
     costPPR_tuned_reduced(j) = trapz(tPPR_tuned_reduced, sum((XPPR_tuned_reduced.^2).*diag(Q).', 2) + R*UxPPR_tuned_reduced.^2);
-    
+
     [tPPR_reduced, XPPR_reduced] = ode15s(@(t, v) FofXU(v,uPPR_reduced(v)),t, w0, opts);
     for i=1:length(tPPR_reduced); UxPPR_reduced(i,1) = uPPR_reduced(XPPR_reduced(i,:).'); end
     costPPR_reduced(j) = trapz(tPPR_reduced, sum((XPPR_reduced.^2).*diag(Q).', 2) + R*UxPPR_reduced.^2);
-    
+
     try
         [tSDRE, XSDRE] = ode15s(@(t, v) FofXU(v,uSDRE(v)),t, w0, opts);
         for i=1:length(tSDRE); UxSDRE(i,1) = uSDRE(XSDRE(i,:).'); end
@@ -149,13 +152,28 @@ for j=1:length(wOffsets)
     catch
         costSDRE(j) = inf;
     end
-    
+
     [tTTHJB, XTTHJB] = ode15s(@(t, v) FofXU(v,uTTHJB(v.')),t, w0, opts);
     for i=1:length(tTTHJB); UxTTHJB(i,1) = uTTHJB(XTTHJB(i,:)); end
     costTTHJB(j) = trapz(tTTHJB, sum((XTTHJB.^2).*diag(Q).', 2) + R*UxTTHJB.^2);
-    
+
     switch plots
         case 'animation'
+
+
+            fprintf('\n# Table III Data (Allen-Cahn, Neumann BCs)\n');
+            fprintf('# Control costs for different initial condition offsets\n');
+            fprintf("      Controller    &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f     \n",wOffsets)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'Uncontrolled', costUnc)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     LQR    ', costLQR)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     PPR    ', costPPR)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR reduced', costPPR_reduced)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR tuned  ', costPPR_tuned)
+            fprintf(" %s  &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'PPR tuned reduced', costPPR_tuned_reduced)
+            fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n\n", '     TTHJB  ', costTTHJB)
+
+
             fig2 = figure('Position',[664.3333 1.5323e+03 1.0133e+03 557.3333]);
             plot(tUnc,tUnc*0)
             hold on;
@@ -169,7 +187,7 @@ for j=1:length(wOffsets)
             legend('Uncontrolled','LQR','PPR','PPR tuned','PPR reduced','PPR tuned reduced','SDRE','TTHJB')
             xlim([0 5])
             drawnow
-            
+
             figure
             title('Closed-loop animation')
             for j2 = 1:length(tUnc)
@@ -220,91 +238,78 @@ for j=1:length(wOffsets)
             end
             subplot(2,4,1)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
             title("Open-loop"); drawnow
-            
+
             X = XLQR(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,2)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
             title("LQR"); drawnow
-            
+
             X = XSDRE(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,3)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
             title("SDRE"); drawnow
-            
+
             X = XTTHJB(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,4)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
             title("TT-HJB"); drawnow
-            
-            
+
+
             X = XPPR(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,5)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-            title("PPR"); drawnow
-            
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+            title("Degree 5 PPR"); drawnow
+
             X = XPPR_reduced(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,6)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-            title("PPR reduced"); drawnow
-            
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+            title("Degree 5 PPR, reduced"); drawnow
+
             X = XPPR_tuned(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,7)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-            title("PPR tuned"); drawnow
-            
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+            title("Degree 3 PPR, tuned"); drawnow
+
             X = XPPR_tuned_reduced(plotIndices,:);
             for i=1:length(plotT)
                 plotdata(i,:) = polyval(polyfit(y,X(i,:),8),xx);
             end
             subplot(2,4,8)
             mesh(xx,plotT,plotdata), grid on, axis([-1 1 0 tmax -0.5 3.05]),
-            view(145,35), colormap([0 0 0]); xlabel z, ylabel t, zlabel w
-            title("PPR tuned reduced"); drawnow
-            
+            view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+            title("Degree 3 PPR, tuned \& reduced"); drawnow
+
             exportgraphics(gcf,sprintf('plots/example9_neumann_v0%2.1f.pdf',wOffsets(j)), 'ContentType', 'vector')
-            
+
             %%
     end
 end
-
-
-fprintf('\n# Table III Data (Allen-Cahn, Neumann BCs)\n');
-fprintf('# Control costs for different initial condition offsets\n');
-fprintf("      Controller    &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f      &     v0=%2.2f     \n",wOffsets)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'Uncontrolled', costUnc)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     LQR    ', costLQR)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     SDRE   ', costSDRE)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", '     PPR    ', costPPR)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR reduced', costPPR_reduced)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", ' PPR tuned  ', costPPR_tuned)
-fprintf(" %s  &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n", 'PPR tuned reduced', costPPR_tuned_reduced)
-fprintf("     %s   &  %13.3f   &  %13.3f   &  %13.3f   &  %13.3f       \n\n", '     TTHJB  ', costTTHJB)
 
 
 % fprintf('\n# Table III Data (Allen-Cahn, Neumann BCs)\n');

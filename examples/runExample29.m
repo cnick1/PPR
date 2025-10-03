@@ -69,8 +69,8 @@ function runExample29(numElements, r)
 %   |      64      |   4225  |        22 sec        |         14 sec       |       14 sec        |
 %   |     128      |  16641  |        85 sec        |         48 sec       |       82 sec        |
 %   |     256      |  66049  |         6 min        |          3 min       |        8 min        |
-%   |     320      | 103041  |        11 min        |          5 min       |                     |
-%   |     512      | 263169  |         ---          |                      |                     |
+%   |     320      | 103041  |        11 min        |          5 min       |       11 min        |
+%   |     512      | 263169  |         ---          |         11 min       |                     |
 %   +--------------+---------+----------------------+----------------------+---------------------+
 %
 %   Reference: [1] D. M. Boskovic, M. Krstic, and W. Liu, "Boundary control
@@ -300,6 +300,7 @@ if isempty(n) || n ~= length(z)
     n = length(z);
     [F3i, F3j, F3v] = find(f{3});
     [I1, I2, I3] = ind2sub([n n n], F3j);
+    I1 = uint32(I1); I2 = uint32(I2); I3 = uint32(I3);
 end
 
 % Evaluate linear and quadratic terms normally
@@ -307,8 +308,9 @@ x = f{1}*z;
 % x = x + f{2}*kron(z,z); % commented out because f{2}=0
 
 % Efficient sparse evaluation of f{3}*(z⊗z⊗z)
-zprod = z(uint32(I1)) .* z(uint32(I2)) .* z(uint32(I3)); % uint necessary for large models, double has rounding error
+zprod = z(I1) .* z(I2) .* z(I3); % uint necessary for large models, double has rounding error
 x = x + accumarray(F3i, F3v .* zprod, size(x));
+
 
 end
 
@@ -345,7 +347,5 @@ end
 
 % surf(X, Y, Z);
 Zq = interp2(X./lim./2+.5,Y./lim./2+.5,Z,Xq,Yq);
-
-
 end
 
