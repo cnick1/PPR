@@ -338,7 +338,7 @@ freeDOFsCubed = setdiff(1:TotalDOFs ^ 3, fixedDOFsCubed);
 K3G = K3G(freeDOFs, freeDOFsCubed);
 RB3 = RB3(freeDOFs, [freeDOFsCubed, freeDOFsCubed + TotalDOFs ^ 3]);
 
-D1G = 0.00001 * M1G + 0.00001 * K1G;
+D1G = 0.00005 * M1G + 0.00005 * K1G; % Add some damping for numerical stability
 
 %% Convert to state-space representation
 if false
@@ -393,7 +393,8 @@ else
       G0 = [sparse(n, 2);
             McholL.' \ (McholL \ RB0)];
       
-      C = sparse(1, 2 * n); C(1, n - 1) = 1;
+      C = sparse(2, 2 * n); C(1, n - 1) = 1;
+      % C(2, n - 2) = 1;
       
       % Construct N₂
       p = 2;
@@ -425,15 +426,43 @@ else
             McholL.' \ (McholL \ RB3), sparse(n, 2 * n ^ 3)] * kron(In3, Im); % Can take a while due to linear solves; consider replacing with Minv actually because it is just n linear solves, not n^3
 end
 
+%% Scale input/state/output matrices?
+% warning("Look into rescaling for improved numerical performance")
+timeScaling = 1e-5;  %
+inputScaling = 1;
+outputScaling = 1;
+N1 = N1*timeScaling; N2 = N2*timeScaling; N3 = N3*timeScaling;
+% G0 = G0*inputScaling; G1 = G1*inputScaling; G2 = G2*inputScaling; G3 = G3*inputScaling;
+C = C*outputScaling;
+
 %% Format outputs
 f = {full(N1), N2, N3};
 g = {full(G0), G1, G2, G3};
 h = {full(C)};
 
-A = full(N1);
-B = full(G0);
-C = full(C);
-N = full(N2);
-G = G1;
+%% Form initial condition
+% Full initial condition
+IC = 1 / (numNodes - 1) * ...
+      [[(0:numNodes - 1);                  % linear axial displacement field
+      (0:numNodes - 1);                    % linear transverse displacement field
+      0 * (0:numNodes - 1)].';
+      zeros(numNodes, 3)].';
+IC(:, 1) = []; IC(:, 1 + numNodes) = []; % Remove the first node DOFs
+IC = IC(:);
 
+return
+% currently not running last bit of code
+% Scale input/outputs to match f scaling
+T = diag([ones(n,1);1e-5*ones(n,1)]);
+
+A = f{1};
+At = T * f{1} / T;
+
+B = full(G0);
+Bt = diag([ones(n,1);1e5*ones(n,1)]) * B;
+
+% scaleFactor = 1e-9;
+% f = cellfun(@(x) x*scaleFactor,f,'un',0);
+% g = cellfun(@(x) x*scaleFactor,g,'un',0);
+% h = cellfun(@(x) x*scaleFactor,h,'un',0);
 end
