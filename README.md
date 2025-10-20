@@ -10,6 +10,8 @@ Polynomial-Polynomial Regulator (PPR) design
 `[v,K] = ppr(f, g, q, r, d)` calculates the optimal gain coefficients `K` and the first `d` value function coefficients `v` of the associated Hamilton-Jacobi-Bellman equation using the continuous-time state-space model defined by `f` and `g`. `q` and `r` are the weight coefficients for states and inputs, respectively. 
 All of these quantities are cell arrays containing matrix coefficients defining polynomials (feedback law, value function, dynamics, cost function, etc.).
 
+To reproduce the results from [1], run the script `examplesForCDC.m`. 
+To reproduce the results from [9], run the script `examplesForJCP.m`. 
 <!-- example -->
 
 ## Examples
@@ -476,7 +478,7 @@ Clone these repositories into the same parent folder as PPR, or modify the path 
 Either download the `tensor_recursive` package from https://www.epfl.ch/labs/anchp/index-html/software/misc/ to use the more efficient solver, or change the solver from `solver = 'chen-kressner'` to `solver = 'bartels-stewart'` in `KroneckerSumSolver.m` in the `KroneckerTools` repository. 
 
 ## References 
-[1] N. A. Corbin and B. Kramer, “Computing solutions to the polynomial-polynomial regulator problem,” in 2024 63rd IEEE Conference on Decision and Control, Dec. 2024. doi: 10.48550/arXiv.2410.22291
+[1] N. A. Corbin and B. Kramer, “Computing solutions to the polynomial-polynomial regulator problem,” in 2024 IEEE 63rd Conference on Decision and Control (CDC), IEEE, Dec. 2024, pp. 2689–2696. doi: 10.1109/cdc56724.2024.10885897.
 
 [2] J. Borggaard and L. Zietsman, “The quadratic-quadratic regulator problem: approximating feedback controls for quadratic-in-state nonlinear systems,” in 2020 American Control Conference (ACC), Jul. 2020, pp. 818–823. doi: 10.23919/ACC45564.2020.9147286
 
@@ -492,9 +494,12 @@ Either download the `tensor_recursive` package from https://www.epfl.ch/labs/anc
 
 [8] W. L. Garrard and J. M. Jordan, “Design of nonlinear automatic flight control systems,” Automatica, vol. 13, no. 5, pp. 497–505, Sep. 1977, doi: 10.1016/0005-1098(77)90070-x
 
+[9] N. A. Corbin and B. Kramer, “Nonlinear feedback control in high dimensions using the polynomial-polynomial regulator,” in preparation. 
+
 ## Version History
 - v0.9.1 - Updated release associated with v1.0.0 of cnick1/NLbalancing for IEEE TAC.
-- v0.9.0 - Initial version of examples submitted to CDC2024. 
+- v0.9.0 - Version snapshot associated with CDC 2024 submission.
+- v1.0.0 - Version snapshot associated with JCP submission.
 
 ## Credits
 Developed and maintained by Nicholas Corbin. 
