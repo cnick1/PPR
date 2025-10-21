@@ -45,9 +45,10 @@ function runExample29(numElements, r)
 %   leveraging the mass matrix all lead to major performance gains.
 %
 %   Combining all of these major performance considerations permits running
-%   this model on a laptop in dimensions as high as n=16641 dimensions, and
-%   on a workstation with 512 GB RAM up to n=66049 dimensions. Here is a
-%   summary of the performance on a laptop vs. server for different dimensions:
+%   this model on a laptop in dimensions as high as n=103041 dimensions.
+%   The PPR computation also runs in n=263169 dimension, but the 
+%   closed-loop ode simulation runs out of memory. It can be run on the
+%   workstation with 512GB RAM.
 %
 %                                           Total Script Time
 %   +--------------+---------+----------------------+----------------------+---------------------+

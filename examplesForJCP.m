@@ -32,16 +32,23 @@ end
 % Prints out the table of control costs
 runExample26_controlCosts();
 
-%% Example 9: Allen-Cahn equation, Neumann Boundary Conditions
+%% Example 9: 1D Allen-Cahn equation, Neumann Boundary Conditions
 % Case where we wish to stabilize the origin and compare with other
-% methods, most notably TT-HJB.
+% methods, most notably TT-HJB. 
 runExample9_Neumann(14,6,0.5)
 
+ 
+%% Example 29: 2D Allen-Cahn equation, Neumann Boundary Conditions
+% Case where we wish to stabilize the origin with a very large finite
+% element model. 
+runExample29(64, 10) % Quick version that runs in about a minute (n=4225)
+% runExample29(320, 10) % Paper version (n=103041)
+
+%% Old examples
 %% Example 9: Allen-Cahn equation, Dirichlet Boundary Conditions
 % Case where we wish to move the interface. TT-HJB cannot be applied to
 % this example because i) it only is written for single input systems, and
 % ii) it is too high dimensional
-
 if RAM < 20
     n = 45;          % for running locally     with  16 GB RAM
 else

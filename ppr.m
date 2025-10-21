@@ -546,7 +546,7 @@ switch options.method
             if ~isempty(options.E)
                 options.V2.Z = options.E.'*options.V2.Z;
             end
-            [~, Xi, options.T] = svd(options.V2.Z.', 'econ');
+            [options.T, Xi, ~] = svd(options.V2.Z, 'econ');
             Xi = Xi(1:options.r,1:options.r).^2;
             options.T = options.T(:,1:options.r);
         else
