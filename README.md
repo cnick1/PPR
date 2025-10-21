@@ -10,6 +10,7 @@ Polynomial-Polynomial Regulator (PPR) design
 `[v,K] = ppr(f, g, q, r, d)` calculates the optimal gain coefficients `K` and the first `d` value function coefficients `v` of the associated Hamilton-Jacobi-Bellman equation using the continuous-time state-space model defined by `f` and `g`. `q` and `r` are the weight coefficients for states and inputs, respectively. 
 All of these quantities are cell arrays containing matrix coefficients defining polynomials (feedback law, value function, dynamics, cost function, etc.).
 
+Navigate to the [Dependencies](https://github.com/cnick1/PPR#dependencies) section for installation instructions.
 To reproduce the results from [1], run the script `examplesForCDC.m`. 
 To reproduce the results from [9], run the script `examplesForJCP.m`. 
 <!-- example -->
