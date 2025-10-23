@@ -44,7 +44,7 @@ fprintf('Simulating...')
 %  Compute the polynomial approximations to the past future energy function
 % q = {0,0,sparse(linspace(1,2^3,2),1,0),sparse(linspace(1,2^4,2),1,100)}; r = {1,zeros(1,2)+0.0};
 q = 0; r = 1;
-options.verbose = true; options.r = reducedOrder; tic
+options.verbose = true; options.reducedDimension = reducedOrder; tic
 [v, K, ~] = ppr(f, g, q, r, degree, options);
 fprintf("completed ppr() in %2.2f seconds. \n", toc)
 

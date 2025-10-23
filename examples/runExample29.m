@@ -116,7 +116,7 @@ C = sparse(1:nc,nds,1,nc,n); q = C.'*C;
 R = 0.1;
 degree = 4;
 options.C = C; options.E = E;
-options.verbose = false; options.r = r;
+options.verbose = false; options.reducedDimension = r;
 fprintf(" Computing ppr() solution w/ lrradi, n=%i, r=%i, d=%i ... ",n,r,4); tic
 [~, K] = ppr(f, g, q, R, degree, options);
 fprintf(" completed in %2.2f seconds. \n", toc)

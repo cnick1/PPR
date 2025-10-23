@@ -60,7 +60,7 @@ uPPR_tuned = @(z) (kronPolyEval(GainsPPR_tuned, z));
 
 % Reduced PPR Controller
 fprintf(" Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,6); tic
-options = struct; options.verbose = false; options.r = r; options.h = B.';
+options = struct; options.verbose = false; options.reducedDimension = r; options.h = B.';
 [~, GainsPPR_reduced, options] = ppr(f, B, Q, R, 6, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 
@@ -69,7 +69,7 @@ uPPR_reduced = @(z) (kronPolyEval(GainsPPR_reduced, z));
 
 % Tuned Reduced PPR Controller
 fprintf(" Computing tuned reduced ppr() solution, n=%i, r=%i, d=%i ... ",n,r,4); tic
-options = struct; options.verbose = false; options.r = r; options.h = B.';
+options = struct; options.verbose = false; options.reducedDimension = r; options.h = B.';
 [~, GainsPPR_tuned_reduced, options] = ppr(f, B, {0,vec(Q),0,0.25}, {R,0.009,0}, 4, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 

@@ -45,7 +45,7 @@ fprintf("completed in %2.2f seconds. \n", toc)
 
 % Reduced PPR Solution
 fprintf("Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,degree); tic
-options = struct; options.verbose = false; options.r = r; options.h = B.';
+options = struct; options.verbose = false; options.reducedDimension = r; options.h = B.';
 [~, GainsPPR_reduced, options] = ppr(f, B, q, R, degree, options);
 fprintf("completed in %2.2f seconds. \n", toc)
 

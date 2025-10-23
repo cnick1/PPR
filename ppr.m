@@ -164,7 +164,7 @@ if nargin < 6
 end
 
 if ~isfield(options,'verbose'); options.verbose = false; end
-if isfield(options,'r') && options.r ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
+if isfield(options,'reducedDimension') && options.reducedDimension ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 if ~isfield(options,'E'); options.E = []; end
 if ~isfield(options,'solver'); options.solver = []; end
 E = options.E;  % full?
@@ -336,19 +336,19 @@ end
 K{1} = K1;
 
 if useReducedOrderModel
-    options.V2 = V2; options.q = q; options.R = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
+    options.V2 = V2; options.q = q; options.reducedDimension = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
     options = getReducedOrderModel(f,g,options);
     
     % Now replace f,g,q with fr,gr,qr
-    f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.r;
+    f = options.fr; g = options.gr; q = options.qr; r = options.Rr; E = options.Er; n = options.reducedDimension;
     A = f{1}; B = g{1};
     
     V2f = options.V2; K1f = K{1}; % At this stage, V2 is replaced with V2bar in the E coordinates... this may be an issue down the road elsewhere
     V2 = options.T.'*(V2f*options.T); % no longer factoredMatrix
     v{2} = vec(V2); K{1} = K1f*options.T;
 end
-if ~isfield(options,'r')
-    options.r = size(f{1}, 1);
+if ~isfield(options,'reducedDimension')
+    options.reducedDimension = size(f{1}, 1);
 end
 
 %% v3-vd, Degree 3 and above coefficients (3<=k<=d cases)
@@ -547,18 +547,18 @@ switch options.method
                 options.V2.Z = options.E.'*options.V2.Z;
             end
             [options.T, Xi, ~] = svd(options.V2.Z, 'econ');
-            Xi = Xi(1:options.r,1:options.r).^2;
-            options.T = options.T(:,1:options.r);
+            Xi = Xi(1:options.reducedDimension,1:options.reducedDimension).^2;
+            options.T = options.T(:,1:options.reducedDimension);
         else
             if ~isempty(options.E)
                 options.V2 = options.E.'*options.V2*options.E;
             end
-            [options.T, Xi] = eigs(options.V2,options.r);
+            [options.T, Xi] = eigs(options.V2,options.reducedDimension);
         end
-
+        
         options.TInv = options.T.';
         if options.verbose
-            figure; semilogy(diag(Xi)); hold on; xline(options.r); drawnow
+            figure; semilogy(diag(Xi)); hold on; xline(options.reducedDimension); drawnow
         end
         
         % Could have other cases like Balanced Truncation, POD, etc.
@@ -580,7 +580,7 @@ if issparse(f{end})
             [Fi, Fj, Fv] = find(TinvF);
             options.fr{k} = zeros(r,r^k); % result is dense, so better to use zeros
             rowinds = cell(1, k); % Preallocate cell array for k row indices
-            [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj); 
+            [rowinds{:}] = ind2sub(repmat(n, 1, k), Fj);
             
             for q = 1:r^k % due to inversion, columns are dense; could maybe do this block-wise but this works well enough since r is small (I did try but then memory becomes an issue)
                 colinds = cell(1, k); % Preallocate cell array for k column indices
@@ -638,12 +638,12 @@ for k = 2:length(options.q)
 end
 
 %% Transform R(x)
-options.Rr{1} = options.R{1};
-for k = 2:length(options.R)
-    if isscalar(options.R{k})
-        options.Rr{k} = options.R{k};
+options.Rr{1} = options.reducedDimension{1};
+for k = 2:length(options.reducedDimension)
+    if isscalar(options.reducedDimension{k})
+        options.Rr{k} = options.reducedDimension{k};
     else
-        options.Rr{k} = kroneckerRight(options.R{k},options.T);
+        options.Rr{k} = kroneckerRight(options.reducedDimension{k},options.T);
     end
 end
 

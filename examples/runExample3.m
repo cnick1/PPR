@@ -54,7 +54,7 @@ uPPR1 = @(z) (kronPolyEval(GainsPPR1, z));
 uPPR2 = @(z) (kronPolyEval(GainsPPR1, z));
 
 fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,4); tic
-options = struct; options.verbose = true; options.r = 14;
+options = struct; options.verbose = true; options.reducedDimension = 14;
 [~, GainsPPR3] = ppr(f, g, Q, R, 4, options); fprintf("completed in %2.2f seconds. \n", toc)
 uPPR3 = @(z) (kronPolyEval(GainsPPR3, z));
 
