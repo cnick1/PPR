@@ -336,7 +336,7 @@ end
 K{1} = K1;
 
 if useReducedOrderModel
-    options.V2 = V2; options.q = q; options.reducedDimension = r; % R is sort of dumb because r is both reduced dimension and r(x) array, may want to change/clean up
+    options.V2 = V2; options.q = q; options.R = r;
     options = getReducedOrderModel(f,g,options);
     
     % Now replace f,g,q with fr,gr,qr
@@ -638,12 +638,12 @@ for k = 2:length(options.q)
 end
 
 %% Transform R(x)
-options.Rr{1} = options.reducedDimension{1};
-for k = 2:length(options.reducedDimension)
-    if isscalar(options.reducedDimension{k})
-        options.Rr{k} = options.reducedDimension{k};
+options.Rr{1} = options.R{1};
+for k = 2:length(options.R)
+    if isscalar(options.R{k})
+        options.Rr{k} = options.R{k};
     else
-        options.Rr{k} = kroneckerRight(options.reducedDimension{k},options.T);
+        options.Rr{k} = kroneckerRight(options.R{k},options.T);
     end
 end
 
