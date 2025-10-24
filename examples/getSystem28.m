@@ -1,11 +1,11 @@
 function [f, g, h, xyg] = getSystem28(numElements)
-%getSystem28  Generates a linear 2D cubic finite element heat equation model system.
+%getSystem28  Generates a linear 2D finite element heat equation model system.
 %            The system is a finite element model for a LINEAR heat equation.
 %            The function returns a finite element model with bilinear
 %            rectangular elements. The model is subject to boundary control
 %            via the secondary variables, so there are 4 inputs. The output
 %            is the mean temperature. Goal is to bring the system to zero
-%            from some initial condition. 
+%            from some initial condition.
 %
 %   Usage:   [f,g,h] = getSystem28()
 %
@@ -88,44 +88,44 @@ end
 % just a bit more complicated. So here we will impose Neumann boundary
 % conditions on all of the sides to avoid this. The Neumann boundary
 % conditions simply prescribe the secondary variable on the RHS, so the
-% mass and stiffness are not complicated. 
+% mass and stiffness are not complicated.
 [Mg,Kg,Fg,Rg] = applyBoundaryConditions(Mg,Kg,Fg,Rg,mconn,xyg,nx,ny,a,b,nel);
 
-%% Put into standard control system form 
-% The current ODE we have for the global system is Mg u̇ + Kg u = Fg + Rg. 
+%% Put into standard control system form
+% The current ODE we have for the global system is Mg u̇ + Kg u = Fg + Rg.
 % We wish to put this in the standard state-space form for control systems:
 %       ẋ = A x + F₂ (x ⊗ x) + F₃ (x ⊗ x ⊗ x) + ...
 %               + B u + G₁ (x ⊗ u) + G₂ (x ⊗ x ⊗ u) + ...
 %           y = C x + H₂ (x ⊗ x) + ...
-% Multiplying my M⁻¹ achieves this. The new system will be 
+% Multiplying my M⁻¹ achieves this. The new system will be
 %       ̇u = -Mg⁻¹Kg u + Mg⁻¹Fg + Mg⁻¹Rg
 %        := A u  + F
-% For computational purposes, we will do this inversion by computing the 
-% Cholesky factor of M; if we were to do M\K, M\F, and M\R these would all 
-% solve using the Cholesky factor, so we are recycling it. (We could  
-% simulate faster using sparse matrices and specifying mass matrix as an 
+% For computational purposes, we will do this inversion by computing the
+% Cholesky factor of M; if we were to do M\K, M\F, and M\R these would all
+% solve using the Cholesky factor, so we are recycling it. (We could
+% simulate faster using sparse matrices and specifying mass matrix as an
 % ode option; the inversion destroys the sparsity.)
 
-Mchol = chol(Mg).'; % Use Cholesky factor for inverting 
+Mchol = chol(Mg).'; % Use Cholesky factor for inverting
 A = -Mchol.' \ (Mchol \ Kg);
 % F =  Mchol.' \ (Mchol \ (Fg + Rg));
 
-% Now, changing notation a bit, we want to put the system in the form 
-%       ̇x = f(x) + g(x) u    
+% Now, changing notation a bit, we want to put the system in the form
+%       ̇x = f(x) + g(x) u
 % so the old u becomes x and we introduce this new u for controls. f(x) is
 % easy, it is just f(x) = A x. g(x) is going to be a B matrix; it is going
 % to be computed by taking the F matrix and breaking up into four
 % components, one for each boundary. We can use the boundary() function to
 % get the node numbers for the boundaries. Note, currently Fg is zero; the
 % control input u is really going through the qs variables in Rg, so if you
-% add "forcing" fgen later this would have to change. 
+% add "forcing" fgen later this would have to change.
 [AB,BC,CD,DA] = boundary(nx,ny);
 
 B = zeros(nvg,4); % m=4 control inputs, one per boundary
 B(AB,1) = Rg(AB);
 B(BC,2) = Rg(BC);
 B(CD,3) = Rg(CD);
-B(DA,4) = Rg(DA); 
+B(DA,4) = Rg(DA);
 
 B =  Mchol.' \ (Mchol \ B);
 
@@ -150,13 +150,13 @@ nnpe=4;             % number of nodes per element (bilinear rectangular element)
 nvg = length(Fg);
 
 %% Get boundary node indices
-[AB,BC,CD,DA] = boundary(nx,ny); 
+[AB,BC,CD,DA] = boundary(nx,ny);
 
 %% Prescribe boundary conditions using us and qs variables
 % These will end up forming the Rg vector, which will be broken into B*u
 % for 4 boundary control inputs.
 us=zeros(nvg,1); jD = []; % Dirichlet BCs specify u=us (should remain untouched)
-qs=zeros(nvg,1); jN = []; % Neumann BCs specify secondary variable 
+qs=zeros(nvg,1); jN = []; % Neumann BCs specify secondary variable
 
 % Prescribe boundary condition on side AB (Neumann)
 for i=1:length(AB)
@@ -184,7 +184,7 @@ end
 
 %% Impose BCs by modifying Kg, Fg, and Rg
 % Apply Dirichlet BCs by replacing those equations with u=us
-% ** In this script, there should be none 
+% ** In this script, there should be none
 if(~isempty(jD)) % number of nodes with Essential (Dirichlet) boundary conditions
     for j=1:length(jD) % iterate over rows corresponding to prescribed nodes
         i=jD(j);       % get node index
@@ -196,7 +196,7 @@ end
 
 % Apply Neumann BCs by replacing the secondary variable Re
 if(~isempty(jN))
-    for ie=1:nel % iterate over elements rather than nodes, since it is the edges that matter  
+    for ie=1:nel % iterate over elements rather than nodes, since it is the edges that matter
         nodes = mconn(ie,1:nnpe); % extract global node numbers of the nodes of element ie
         % Check if this element has a side (or more) on the global
         % boundary where Neumann boundary condition is given
@@ -231,13 +231,13 @@ for ie=1:nel
     % and the global x and y-coordinates of the element nodes
     nodes = mconn(ie,1:nnpe);
     xe = xyg(nodes,1); ye = xyg(nodes,2);
-
+    
     %% Compute element mass Me, stiffness Ke, forcing Fe, and Re
     % If material property (P and q) and/or force f are element dependent,
     % we need to specify these properties here.
     [Me,Ke,Fe] = mekefe(gamma,P,q,fgen(ie),xe,ye);
     Re=zeros(nvpe,1);
-
+    
     % Assemble element matrices Ke, fe, Re into global matrix Kg, Fg, Rg
     Fg(nodes) = Fg(nodes) + Fe;
     Rg(nodes) = Rg(nodes) + Re;
@@ -293,10 +293,10 @@ end
 
 if verbose % optionally plot the mesh for visualization
     figure(1); hold on; %axis equal;
-
+    
     % Plot grid lines
     plot(x,y); plot(x',y');
-
+    
     % Label node numbers
     for i=1:nng
         text(xyg(i,1),xyg(i,2),num2str(i));
@@ -337,7 +337,7 @@ function [Me,Ke,Fe] = mekefe(gamma,P,q,f,xe,ye)
 %                 element widths a and b
 %
 % Outputs:   Me - element mass matrix
-%            Ke - element stiffness matrix         
+%            Ke - element stiffness matrix
 %            Fe - element force vector
 %
 
