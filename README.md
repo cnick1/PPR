@@ -12,7 +12,7 @@ All of these quantities are cell arrays containing matrix coefficients defining 
 
 Navigate to the [Dependencies](https://github.com/cnick1/PPR#dependencies) section for installation instructions.
 To reproduce the results from [1], run the script `examplesForCDC.m`. 
-To reproduce the results from [9], run the script `examplesForJCP.m`. 
+To reproduce the results from [2], run the script `examplesForJCP.m`. 
 <!-- example -->
 
 ## Examples
@@ -203,7 +203,7 @@ It is also worth noting that MPC can do swing-up control, whereas PPR and LQR cu
 <details open>
 <summary>PPR Control for Aircraft Stabilization Model</summary>
 <br>
-`getSystem7()` returns the cubic 3D state-space model of an F-8 aircraft cruising at 30,000 ft at Mach = 0.85 developed originally in [5].
+`getSystem7()` returns the cubic 3D state-space model of an F-8 aircraft cruising at 30,000 ft at Mach = 0.85 developed originally in [8].
 The state represents the angle of attack $x_1$, the angle f the plane relative to the trim pitch $x_2$, and the rotation rate of the plane $x_3$.
 The control input $u$ is the angle of the tail elevator.
 The nonlinear equations of motion are
@@ -476,16 +476,18 @@ Clone these repositories into the same parent folder as PPR, or modify the path 
 ```
 
 `ppr` uses a structured linear solver when computing the higher-order coefficients. 
-Either download the `tensor_recursive` package from https://www.epfl.ch/labs/anchp/index-html/software/misc/ to use the more efficient solver, or change the solver from `solver = 'chen-kressner'` to `solver = 'bartels-stewart'` in `KroneckerSumSolver.m` in the `KroneckerTools` repository. 
+Either download the `tensor_recursive` package from https://www.epfl.ch/labs/anchp/index-html/software/misc/ to use the more efficient solver developed in [9], or change the solver from `solver = 'chen-kressner'` to `solver = 'bartels-stewart'` in `KroneckerSumSolver.m` in the `KroneckerTools` repository to use the built-in solver developed in [4]. 
+
+For large-scale models, we recommend to install the M-M.E.S.S. package from https://github.com/mpimd-csc/mmess to be able to call the LR-ADI Riccati solver developed in [10]. 
 
 ## References 
 [1] N. A. Corbin and B. Kramer, “Computing solutions to the polynomial-polynomial regulator problem,” in 2024 IEEE 63rd Conference on Decision and Control (CDC), IEEE, Dec. 2024, pp. 2689–2696. doi: 10.1109/cdc56724.2024.10885897.
 
-[2] J. Borggaard and L. Zietsman, “The quadratic-quadratic regulator problem: approximating feedback controls for quadratic-in-state nonlinear systems,” in 2020 American Control Conference (ACC), Jul. 2020, pp. 818–823. doi: 10.23919/ACC45564.2020.9147286
+[2] N. A. Corbin and B. Kramer, “Nonlinear feedback control in high dimensions using the polynomial-polynomial regulator,” in preparation. 
 
-[3] J. Borggaard and L. Zietsman, “On approximating polynomial-quadratic regulator problems,” IFAC-PapersOnLine, vol. 54, no. 9, pp. 329–334, 2021, doi: 10.1016/j.ifacol.2021.06.090
+[3] J. Borggaard and L. Zietsman, “The quadratic-quadratic regulator problem: approximating feedback controls for quadratic-in-state nonlinear systems,” in 2020 American Control Conference (ACC), Jul. 2020, pp. 818–823. doi: 10.23919/ACC45564.2020.9147286
 
-[4] M. Chen and D. Kressner, “Recursive blocked algorithms for linear systems with Kronecker product structure,” Numerical Algorithms, vol. 84, no. 3, pp. 1199–1216, Sep. 2019, doi: 10.1007/s11075-019-00797-5.
+[4] J. Borggaard and L. Zietsman, “On approximating polynomial-quadratic regulator problems,” IFAC-PapersOnLine, vol. 54, no. 9, pp. 329–334, 2021, doi: 10.1016/j.ifacol.2021.06.090
 
 [5] https://www.mathworks.com/help/control/ref/lti.lqr.html
 
@@ -495,16 +497,19 @@ Either download the `tensor_recursive` package from https://www.epfl.ch/labs/anc
 
 [8] W. L. Garrard and J. M. Jordan, “Design of nonlinear automatic flight control systems,” Automatica, vol. 13, no. 5, pp. 497–505, Sep. 1977, doi: 10.1016/0005-1098(77)90070-x
 
-[9] N. A. Corbin and B. Kramer, “Nonlinear feedback control in high dimensions using the polynomial-polynomial regulator,” in preparation. 
+[9] M. Chen and D. Kressner, “Recursive blocked algorithms for linear systems with Kronecker product structure,” Numerical Algorithms, vol. 84, no. 3, pp. 1199–1216, Sep. 2019, doi: 10.1007/s11075-019-00797-5.
+
+[10] P. Benner, Z. Bujanović, P. Kürschner, and J. Saak, “RADI: a low-rank ADI-type algorithm for large scale algebraic Riccati equations,” Numerische Mathematik, vol. 138, no. 2, pp. 301–330, Jul. 2017, doi: 10.1007/s00211-017-0907-5.
+
 
 ## Version History
+- v1.0.0 - Version snapshot associated with JCP submission.
 - v0.9.1 - Updated release associated with v1.0.0 of cnick1/NLbalancing for IEEE TAC.
 - v0.9.0 - Version snapshot associated with CDC 2024 submission.
-- v1.0.0 - Version snapshot associated with JCP submission.
 
 ## Credits
 Developed and maintained by Nicholas Corbin. 
-- Inspired heavily by Jeff Borggaard's QQR and PQR work and associated repositories, but largely rewritten. 
+- Inspired heavily by Jeff Borggaard & Lizette Zietsmann's QQR [3] and PQR [4] works and associated repositories, but largely rewritten. 
 `cnick1/KroneckerTools` is a fork of Jeff Borggaard's `KroneckerTools` repository.
 - Credit to Minhong Chen and Daniel Kressner for a wonderful Lyapunov structure linear solver.
 - Credit to Brett W. Bader, Tamara G. Kolda, Daniel M. Dunlavy, et al. for the spectacular tensor_toolbox. 

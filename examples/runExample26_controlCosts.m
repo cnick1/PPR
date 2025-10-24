@@ -28,12 +28,12 @@ degree = 10;
 F = @(x) [x(2); sin(x(1))]; G = @(x) g{1};
 
 % Get value function/controller
-q = 0; R = 1; options.E = speye(2);
+q = 0; R = 1;
 [v, K] = ppr(f, g, q, R, degree);
 % [v, K] = ppr(f, g, q, R, degree, options);
 
 %% Simulate and compute control costs
-fprintf('\n# Table 2 Data (Pendulum Control Costs)\n');
+fprintf('\n\n# Table 1 Data (Pendulum Control Costs)\n');
 fprintf('# Control costs for different controllers\n');
 fprintf("    d  &      V(x)    &  Integrated Cost     \n")
 
@@ -51,6 +51,7 @@ for d=2:2:10
 
     fprintf("   %2i  &   %8.5f   &      %8.5f    \n", d, 0.5*kronPolyEval(v, x0, d), integratedCost)
 end
+    fprintf("\n")
 
 
 end

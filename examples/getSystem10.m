@@ -10,7 +10,8 @@ function [f, g, h] = getSystem10()
 %       ẋ = 1/10 x - 2 x² + x³ + u
 %       y = x
 %
-%   The state equation is similar to the model from [1].
+%   The state equation is similar to the model from [1], but not exactly
+%   the same.
 %
 %   References: [1] J. Borggaard and L. Zietsman, “Computation of nonlinear feedback
 %               for flow control problems,” in 2018 American Control Conference

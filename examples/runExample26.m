@@ -40,8 +40,7 @@ F = @(x) [x(2); sin(x(1))];
 G = @(x) g{1};
 
 %% Open-loop phase portrait
-% plotPhasePortrait(1, @(x) 0, true)
-% plotPhasePortrait(1, @(x) 0, false)
+plotPhasePortrait(1, @(x) 0)
 
 %% Value function & HJB Residual plots
 %  Compute the polynomial approximations to the value function

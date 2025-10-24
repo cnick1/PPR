@@ -171,6 +171,7 @@ fprintf("completed in %2.2f seconds. \n", toc(T0))
 % costPPR = trapz(t, sum((XPPR.^2).*diag(C.'*C).', 2) + R*UxPPR.^2);
 
 %% Plot solution
+fprintf('\n\nGenerating the plots for Fig. 9 from the paper... \n\n\n')
 set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaulttextinterpreter','latex');
 set(groot,'defaultLegendInterpreter','latex');
