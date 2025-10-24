@@ -14,6 +14,8 @@ Each example features a function `[f, g, h] = getSystemXX()` to return the polyn
 There is also generally a third output for an output equation, but the PPR problem is a state feedback problem so this is not generally used. 
 Below, we briefly summarize the models contained in each example.
 
+If you have a different example and want a quick starting point, the utility function `utils/approxPolynomialDynamics.m` can be used generate the cell arrays from symbolic expressions for $f(x)$ and $g(x)$.
+
 ## Examples
 - System 1: An academic 1D example for which the nonlinear balanced truncation energy functions are known analytically. 
 - System 2: An academic 2D quadratic bilinear model, also used for computing nonlinear balancing energy functions. 
