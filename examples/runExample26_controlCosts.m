@@ -23,7 +23,7 @@ function runExample26_controlCosts()
 fprintf('Running Example 26\n')
 
 % Get dynamics
-degree = 10;
+degree = 12;
 [f, g, ~] = getSystem26(degree-1,false);
 F = @(x) [x(2); sin(x(1))]; G = @(x) g{1};
 
@@ -38,20 +38,20 @@ fprintf('# Control costs for different controllers\n');
 fprintf("    d  &      V(x)    &  Integrated Cost     \n")
 
 x0 = [-pi;2]; tspan = [0 10];
-for d=2:2:10
+for d=2:2:degree
     [t, X] = ode45(@(t, x) F(x) + G(x) * kronPolyEval(K, x, d-1), tspan, x0);
-
+    
     % Compute performance index (cost)
     runningCost = zeros(size(t));
     for i=1:length(t)
         x = X(i,:).'; Ux = kronPolyEval(K, x, d-1);
-        runningCost(i) = 1/2*(Ux.'*R*Ux); 
+        runningCost(i) = 1/2*(Ux.'*R*Ux);
     end
     integratedCost = trapz(t, runningCost);
-
+    
     fprintf("   %2i  &   %8.5f   &      %8.5f    \n", d, 0.5*kronPolyEval(v, x0, d), integratedCost)
 end
-    fprintf("\n")
+fprintf("\n")
 
 
 end
