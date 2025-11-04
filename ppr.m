@@ -314,7 +314,7 @@ switch RPosDef
             V2 = lyap(A', Q, [], E');
         end
 end
-if true || options.verbose; fprintf("Riccati solution computed in %2.2f seconds ... ", toc(T1)); end
+if options.verbose; fprintf("Riccati solution computed in %2.2f seconds ... ", toc(T1)); end
 
 if isempty(V2)
     error('ppr: Linear system is not stabilizable')
