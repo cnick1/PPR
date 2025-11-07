@@ -9,31 +9,40 @@ function u = sdre(Ax,Bx,Q,R,x)
 %       Q      - the state penalty Q
 %       R      - the control penalty R
 %       x      - the current state value
-% 
+%
 %   Output:
 %       u      - the control u=-Kx, where K is the computed gain matrix
-% 
+%
 %   Background: For control-affine dynamics
-%                   xdot = f(x) + g(x) u 
-%               we wish to compute an approximation to the optimal control.
-%               Using the State-Dependent Riccati Equation (SDRE) approach,
-%               the dynamics are factorized in "semi-linear form" 
-%                   xdot = A(x)x + B(x)u 
-%               and at each state x, the Riccati equation is solved. 
+%           ẋ = f(x) + g(x) u
+%   we wish to compute an approximation to the optimal control. Using the
+%   State-Dependent Riccati Equation (SDRE) approach, the dynamics are
+%   factorized in "semi-linear form"
+%           ẋ = A(x)x + B(x)u
+%   and at each state x, the LQR problem is re-solved to update the gain matrix
+%   K based on the current state. There exist many more advanced implementations
+%   of this, since it is generally quite an expensive compromise to take what
+%   would otherwise be an offline computation to compute K and turn it into an
+%   online computation rather than just a feedback law evaluation. This is just
+%   the simple straightforward implementation.
 %
 %   Author: Nick Corbin, UCSD
 %
 %   License: MIT
 %
-%   Reference: [1] 
+%   Reference: [1] S. C. Beeler, H. T. Tran, and H. T. Banks, “Feedback control
+%               methodologies for nonlinear systems,” Journal of Optimization
+%               Theory and Applications, vol. 107, no. 1, pp. 1–33, Oct. 2000,
+%               doi: 10.1023/a:1004607114958.
+
 %
 %  Part of the PPR repository.
 %%
 
 % State-dependent system matrices A(x) and B(x)
-A = Ax(x); B = Bx(x); 
+A = Ax(x); B = Bx(x);
 
-% Solve the state-dependent Riccati equation: A(x)'P + P*A(x) - P*B(x)*inv(R)*B(x)'P + Q = 0
+% Solve the state-dependent Riccati equation: A(x)ᵀP + P A(x) - P B(x) R⁻¹ B(x)ᵀP + Q = 0
 [P, K, ~, INFO] = icare(A, B, Q, R);
 
 % Check if Riccati equation was solved successfully
