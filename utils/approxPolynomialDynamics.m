@@ -140,6 +140,9 @@ for d=1:degree
     prevTaylorExpansionH = currentTaylorExpansionH;
 end
 
+% Remove the last G entry, which is one degree too high 
+G = G(1:end-1);
+
 end
 
 
