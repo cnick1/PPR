@@ -365,7 +365,7 @@ if (degree > 2)
     for k = 3:degree
         %% Compute the value function coefficient
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Form RHS vector 'b' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        b = 0; % Initialize b
+        b = zeros(n^k,1); % Initialize b
         K{k-1} = zeros(m,n^(k-1)); % Initialize K
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%% Add drift components (F(x)) %%%%%%%%%%%%%%%%%%%%%%%%%%%
