@@ -35,11 +35,11 @@ for n = [8, 16, 32] % number of elements, the actual number of states is 2*n
     fprintf('%d & ', 2 * n)
     [f, g, h, zInit] = getSystem4(n, m, p, 1 / L ^ 2);
     zInit = z_factor * zInit;
-
+    
     tic; for i = 1:nTest, [w] = approxFutureEnergyQB(f, f{2}, g, h, eta, degree); end, tt = toc / nTest;
     fprintf('%10.4e & ', length(w{degree}))
     fprintf('%8.2e & ', tt)
-
+    
     for d = 2:degree, w{d} = w{d}.'; end
     wzInit = 0.5 * kronPolyEval(w, zInit, degree);
     fprintf('%12.6e \\\\ \n', wzInit)
@@ -53,11 +53,11 @@ for n = [64, 128, 256, 512]
     fprintf('%d & ', 2 * n)
     [f, g, h, zInit] = getSystem4(n, m, p, 1 / L ^ 2);
     zInit = z_factor * zInit;
-
-    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta, degree); end, tt = toc / nTest;
+    
+    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g, h, eta=eta, degree=degree); end, tt = toc / nTest;
     fprintf('%10.4e & ', length(w{degree}))
     fprintf('%8.2e & ', tt)
-
+    
     for d = 2:degree, w{d} = w{d}.'; end
     wzInit = 0.5 * kronPolyEval(w, zInit, degree);
     fprintf('%12.6e \\\\ \n', wzInit)
@@ -77,20 +77,20 @@ n = 8; % actual system size is double this
 zInit = z_factor * zInit;
 for degree = [2, 3, 4, 5, 6] % only the last one is needed, but use this for timing
     fprintf('%d & ', degree)
-
+    
     tic;
     for kount = 1:2 ^ (8 - degree)
-        [v] = approxPastEnergy(f, g, h, eta, degree, false);
+        [v] = approxPastEnergy(f, g, h, eta=eta, degree=degree);
     end
     tt = toc / 2 ^ (8 - degree);
     for d = 2:degree, v{d} = v{d}.'; end
     vzInit = 0.5 * kronPolyEval(v, zInit, degree);
     fprintf('%13.7e ', vzInit)
     fprintf('(%8.2e) & ', tt)
-
+    
     tic;
     for kount = 1:2 ^ (8 - degree)
-        [w] = approxFutureEnergy(f, g, h, eta, degree, false);
+        [w] = approxFutureEnergy(f, g, h, eta=eta, degree=degree);;
     end
     tt = toc / 2 ^ (8 - degree);
     for d = 2:degree, w{d} = w{d}.'; end

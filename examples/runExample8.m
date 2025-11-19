@@ -30,7 +30,7 @@ function runExample8(x0)
 %%
 fprintf('Running Example 8\n')
 
-if nargin < 1    
+if nargin < 1
     x0 = 1e-5;
 end
 exportData = false;
@@ -57,22 +57,22 @@ nd = []; times = []; energies = [];
 numEls = [4, 8, 16, 32, 64, 128];
 for numEl = numEls
     fprintf(fileID, '%5d       &', numEl); fprintf(fileID, '%5d & ', numEl - 1);
-
+    
     [f, g, h] = getSystem8(numEl);
-
+    
     tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
-
+    
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
     fprintf(fileID, '%8.2e  & ', tt);
     times = [times, tt];
-
+    
     % Initial condition from Mark Embree's talk
     L = 30; x = linspace(0, L, numEl + 1).';
     initialCondition = x0 * x .* (x - L) .* (x - L / 2);
-
+    
     initialCondition = initialCondition(2:end - 1);
-
+    
     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
@@ -85,22 +85,22 @@ if exportData
     for numEl = [256, 512, 1024]
         numEls = [numEls, numEl];
         fprintf(fileID, '%5d       &', numEl); fprintf(fileID, '%5d & ', numEl - 1);
-
+        
         [f, g, h] = getSystem8(numEl);
-
+        
         tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
-
+        
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
         fprintf(fileID, '%8.2e  & ', tt);
         times = [times, tt];
-
+        
         % Initial condition from Mark Embree's talk
         L = 30; x = linspace(0, L, numEl + 1).';
         initialCondition = x0 * x .* (x - L) .* (x - L / 2);
-
+        
         initialCondition = initialCondition(2:end - 1);
-
+        
         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
@@ -146,22 +146,22 @@ nd = []; times = []; energies = [];
 numEls = [4, 8, 16, 32];
 for numEl = numEls
     fprintf(fileID, '%5d       &', numEl); fprintf(fileID, '%5d & ', numEl - 1);
-
+    
     [f, g, h] = getSystem8(numEl);
-
+    
     tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
-
+    
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
     fprintf(fileID, '%8.2e  & ', tt);
     times = [times, tt];
-
+    
     % Initial condition from Mark Embree's talk
     L = 30; x = linspace(0, L, numEl + 1).';
     initialCondition = x0 * x .* (x - L) .* (x - L / 2);
-
+    
     initialCondition = initialCondition(2:end - 1);
-
+    
     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
@@ -173,24 +173,24 @@ if exportData
     nTest = 1;
     for numEl = [64, 128]
         numEls = [numEls, numEl];
-
+        
         fprintf(fileID, '%5d       &', numEl); fprintf(fileID, '%5d & ', numEl - 1);
-
+        
         [f, g, h] = getSystem8(numEl);
-
+        
         tic; for i = 1:nTest, [w] = ppr(f, g, h2q(h), 1/eta, degree); end, tt = toc / nTest;
-
+        
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
         fprintf(fileID, '%8.2e  & ', tt);
         times = [times, tt];
-
+        
         % Initial condition from Mark Embree's talk
         L = 30; x = linspace(0, L, numEl + 1).';
         initialCondition = x0 * x .* (x - L) .* (x - L / 2);
-
+        
         initialCondition = initialCondition(2:end - 1);
-
+        
         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
@@ -256,7 +256,7 @@ end
 %
 %     %     % Past
 %     %     tic; for i = 1:nTest,
-%     %         [v] = approxPastEnergy(f, g, C, eta, degree);
+%     %         [v] = approxPastEnergy(f, g, C, eta=eta, degree=degree);
 %     %     end, tt = toc / nTest;
 %     %
 %     %     fprintf(fileID, '%8.2e  & ', tt);
@@ -290,7 +290,7 @@ end
 %
 %         %     % Past
 %         %     tic; for i = 1:nTest,
-%         %         [v] = approxPastEnergy(f, g, C, eta, degree);
+%         %         [v] = approxPastEnergy(f, g, C, eta=eta, degree=degree);
 %         %     end, tt = toc / nTest;
 %         %
 %         %     fprintf(fileID, '%8.2e  & ', tt);

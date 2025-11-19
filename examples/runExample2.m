@@ -86,8 +86,8 @@ end
 fprintf('Simulating for eta=%g (gamma=%g)\n', eta, 1 / sqrt(1 - eta))
 
 %  Compute the polynomial approximations to the past future energy function
-[v] = approxPastEnergy(f, g(1:numGTermsApprox), h, eta, degree, true);
-[w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree, true);
+[v] = approxPastEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree, verbose=true);
+[w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree, verbose=true);
 
 %% Plot the past and future energy functions
 if (plotEnergy || plotBalancing)
@@ -97,7 +97,7 @@ if (plotEnergy || plotBalancing)
     ePast = zeros(nY, nX);
     eFuture = zeros(nY, nX);
     [X, Y] = meshgrid(xPlot, yPlot);
-
+    
     for i = 1:nY
         for j = 1:nX
             x = [X(i, j); Y(i, j)];
@@ -108,7 +108,7 @@ if (plotEnergy || plotBalancing)
     set(groot, 'defaultAxesTickLabelInterpreter', 'latex');
     set(groot, 'defaulttextinterpreter', 'latex');
     set(groot, 'defaultLegendInterpreter', 'latex');
-
+    
     fig1 = figure;
     contourf(X, Y, ePast, 16, 'w'); hold on;
     logMaxEPast = log10(max(max(ePast)));
@@ -127,7 +127,7 @@ if (plotEnergy || plotBalancing)
         load(fullfile('utils', 'YlGnBuRescaled.mat'))
         colormap(flip(YlGnBuRescaled))
     end
-
+    
     fig2 = figure
     contourf(X, Y, eFuture, 16, 'w'); hold on;
     logMaxEFuture = log10(max(max(eFuture)));
@@ -145,7 +145,7 @@ if (plotEnergy || plotBalancing)
         load(fullfile('utils', 'YlGnBuRescaled.mat'))
         colormap(flip(YlGnBuRescaled))
     end
-
+    
     % Draw square around middle .2
     %     x1 =- .2;
     %     x2 = .2;
@@ -154,14 +154,14 @@ if (plotEnergy || plotBalancing)
     %     x = [x1, x2, x2, x1, x1];
     %     y = [y1, y1, y2, y2, y1];
     %     plot(x, y, 'w-');
-
+    
     if exportPlotData
         % save('Ex2_RawData.mat', 'v', 'w')
-
+        
         fid = fopen('plots/ex2_past_future.txt', 'w');
         fprintf(fid, '%g %g %g %g\n', [X(:), Y(:), ePast(:), eFuture(:)]);
         fclose(fid);
-
+        
         exportgraphics(fig1, 'plots/PEF_p0_1.pdf', 'ContentType', 'vector');
         exportgraphics(fig2, 'plots/FEF_p0_1.pdf', 'ContentType', 'vector');
     end
@@ -175,12 +175,12 @@ if (plotBalancing)
     nPts = 201;
     s = linspace(-2, 2, nPts);
     lin = T{1}(:, 1) * s;
-
+    
     coord = lin;
     for k = 2:balancingDegree
         coord = coord + T{k}(:, 1) * s .^ k;
     end
-
+    
     idxLin = zeros(1, nPts);
     linCount = 0;
     for i = 1:nPts
@@ -190,7 +190,7 @@ if (plotBalancing)
         end
     end
     idxLin = idxLin(1:linCount);
-
+    
     idxCoord = zeros(1, nPts);
     coordCount = 0;
     for i = 1:nPts
@@ -200,11 +200,11 @@ if (plotBalancing)
         end
     end
     idxCoord = idxCoord(1:coordCount);
-
+    
     figure(1); hold on
     plot(lin(1, idxLin), lin(2, idxLin), 'w+')
     plot(coord(1, idxCoord), coord(2, idxCoord), 'r+')
-
+    
     figure(2); hold on
     plot(lin(1, idxLin), lin(2, idxLin), 'w+')
     plot(coord(1, idxCoord), coord(2, idxCoord), 'r+')

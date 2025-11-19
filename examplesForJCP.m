@@ -1,5 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%% Main script to run the examples for JCP %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%% Author: Nicholas Corbin, UCSD           %%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  Usage: Run the entire script to generate the examples for the JCP paper 
 %         [1]. For the pendulum example (ex. 26), Matlab needs to be able 
@@ -10,33 +11,33 @@
 %         Lyapunov solver, or you can use the built-in Bartels-Stewart
 %         solver. 
 % 
-%  Description: The examples used in the paper [1] are:
+%  Description: The examples used in reference [1] are:
 %
-%       Example 10: 1D ODE toy example with transcritical bifurcation. The
-%       code here prints out the values printed in the paper in Section
-%       5.1, namely the open- and closed-loop dynamics for the LQR and PPR
-%       controllers. The phase portraits in Fig. 2 in the paper are plotted 
-%       using tikz and pgfplots.
+%      Example 10: 1D ODE toy example with transcritical bifurcation. The
+%      code here prints out the values printed in the paper in Section
+%      5.1, namely the open- and closed-loop dynamics for the LQR and PPR
+%      controllers. The phase portraits in Fig. 2 in the paper are plotted 
+%      using tikz and pgfplots.
 %
-%       Example 26: Nondimensionalized 2D inverted pendulum. The code here
-%       plots the phase portraits, value function contour plots, and HJB
-%       residuals for Figs. 3 & 4. A separate function computes the 
-%       integrated costs for Table 1.
+%      Example 26: Nondimensionalized 2D inverted pendulum. The code here
+%      plots the phase portraits, value function contour plots, and HJB
+%      residuals for Figs. 3 & 4. A separate function computes the 
+%      integrated costs for Table 1.
 %
-%       Example 9: Chebychev discretization of Allen-Cahn equation with
-%       Neumann boundary conditions. The code here compares LQR, SDRE, PPR,
-%       and TT-HJB, generating a cost convergence plot Fig. 6 to show if 
-%       the controllers are successfully stabilizing the origin, table of controller costs 
-%       Table 2, and closed-loop simulation surface plots Fig. 7. 
+%      Example 9: Chebychev discretization of Allen-Cahn equation with
+%      Neumann boundary conditions. The code here compares LQR, SDRE, PPR,
+%      and TT-HJB, generating a cost convergence plot Fig. 6 to show if 
+%      the controllers are successfully stabilizing the origin, table of 
+%      controller costs Table 2, and closed-loop simulation plots Fig. 7. 
 %
-%       Example 29: Finite element discretization of Allen-Cahn equation 
-%       with Neumann boundary conditions. The code computes a reduced-PPR
-%       controller and simulates the closed-loop system to demonstrate the
-%       scalability of the approach, generating the plots for Fig. 9.
+%      Example 29: Finite element discretization of Allen-Cahn equation 
+%      with Neumann boundary conditions. The code computes a reduced-PPR
+%      controller and simulates the closed-loop system to demonstrate the
+%      scalability of the approach, generating the plots for Fig. 9.
 %
 %   Reference: [1] N. A. Corbin and B. Kramer, "Nonlinear Feedback Control 
 %              in High Dimensions using the Polynomial-Polynomial 
-%              Regulator,” in preparation.
+%              Regulator,” submitted.
 %
 close all; clear; clc;
 setKroneckerToolsPath

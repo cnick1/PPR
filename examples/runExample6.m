@@ -66,25 +66,25 @@ for numEl = numEls
     f{4} = sparse(length(f{1}), length(f{1}) ^ 4);
     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
     g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-
-    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
-
+    
+    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree); end, tt = toc / nTest;
+    
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
     fprintf(fileID, '%8.2e  & ', tt);
     times = [times, tt];
-
+    
     % Initial condition where the nodes are displaced but have no initial
     % velocity or "rotation"
     numNodes = numEl + 1;
     initialCondition = x0 / (numNodes - 1) * ...
         [[(0:numNodes - 1);
-      (0:numNodes - 1);
-      0 * (0:numNodes - 1)].';
-    zeros(numNodes, 3)].'; % Full initial condition
+        (0:numNodes - 1);
+        0 * (0:numNodes - 1)].';
+        zeros(numNodes, 3)].'; % Full initial condition
     initialCondition(:, 1) = []; initialCondition(:, 1 + numNodes) = []; % Remove the first node DOFs
     initialCondition = initialCondition(:);
-
+    
     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
@@ -102,24 +102,24 @@ if exportData
         %     f{4} = sparse(length(A),length(A)^4);
         %     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
         g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
-
+        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree); end, tt = toc / nTest;
+        
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
         fprintf(fileID, '%8.2e  & ', tt);
         times = [times, tt];
-
+        
         % Initial condition where the nodes are displaced but have no initial
         % velocity or "rotation"
         numNodes = numEl + 1;
         initialCondition = x0 / (numNodes - 1) * ...
             [[(0:numNodes - 1);
-          (0:numNodes - 1);
-          0 * (0:numNodes - 1)].';
-        zeros(numNodes, 3)].'; % Full initial condition
+            (0:numNodes - 1);
+            0 * (0:numNodes - 1)].';
+            zeros(numNodes, 3)].'; % Full initial condition
         initialCondition(:, 1) = []; initialCondition(:, 1 + numNodes) = []; % Remove the first node DOFs
         initialCondition = initialCondition(:);
-
+        
         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
@@ -170,24 +170,24 @@ for numEl = numEls
     %     f{4} = sparse(length(A),length(A)^4);
     %     f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
     g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
-
+    tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree); end, tt = toc / nTest;
+    
     fprintf(fileID, '%10.4e    & ', length(w{degree}));
     nd = [nd, length(w{degree})];
     fprintf(fileID, '%8.2e  & ', tt);
     times = [times, tt];
-
+    
     % Initial condition where the nodes are displaced but have no initial
     % velocity or "rotation"
     numNodes = numEl + 1;
     initialCondition = x0 / (numNodes - 1) * ...
         [[(0:numNodes - 1);
-      (0:numNodes - 1);
-      0 * (0:numNodes - 1)].';
-    zeros(numNodes, 3)].'; % Full initial condition
+        (0:numNodes - 1);
+        0 * (0:numNodes - 1)].';
+        zeros(numNodes, 3)].'; % Full initial condition
     initialCondition(:, 1) = []; initialCondition(:, 1 + numNodes) = []; % Remove the first node DOFs
     initialCondition = initialCondition(:);
-
+    
     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
@@ -205,24 +205,24 @@ if exportData
         f{4} = sparse(length(f{1}), length(f{1}) ^ 4);
         f = f(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
         g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
-        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree); end, tt = toc / nTest;
-
+        tic; for i = 1:nTest, [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree); end, tt = toc / nTest;
+        
         fprintf(fileID, '%10.4e    & ', length(w{degree}));
         nd = [nd, length(w{degree})];
         fprintf(fileID, '%8.2e  & ', tt);
         times = [times, tt];
-
+        
         % Initial condition where the nodes are displaced but have no initial
         % velocity or "rotation"
         numNodes = numEl + 1;
         initialCondition = x0 / (numNodes - 1) * ...
             [[(0:numNodes - 1);
-          (0:numNodes - 1);
-          0 * (0:numNodes - 1)].';
-        zeros(numNodes, 3)].'; % Full initial condition
+            (0:numNodes - 1);
+            0 * (0:numNodes - 1)].';
+            zeros(numNodes, 3)].'; % Full initial condition
         initialCondition(:, 1) = []; initialCondition(:, 1 + numNodes) = []; % Remove the first node DOFs
         initialCondition = initialCondition(:);
-
+        
         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
@@ -279,9 +279,9 @@ g = g(1:numGTermsModel); % Adjust FOM to be Quadratic, QB, etc.
 numNodes = numEl + 1;
 initialCondition = x0 / (numNodes - 1) * ...
     [[(0:numNodes - 1);
-  (0:numNodes - 1);
-  0 * (0:numNodes - 1)].';
-zeros(numNodes, 3)].'; % Full initial condition
+    (0:numNodes - 1);
+    0 * (0:numNodes - 1)].';
+    zeros(numNodes, 3)].'; % Full initial condition
 initialCondition(:, 1) = []; initialCondition(:, 1 + numNodes) = []; % Remove the first node DOFs
 initialCondition = initialCondition(:);
 
@@ -289,28 +289,28 @@ pastTimes = []; futureTimes = []; pastEnergies = []; futureEnergies = [];
 degrees = 2:4;
 for degree = degrees
     fprintf(fileID, '%d      & ', degree);
-
+    
     %     % Past
     %     tic; for i = 1:nTest,
-    %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta, degree);
+    %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta=eta, degree=degree);
     %     end, tt = toc / nTest;
     %
     %     fprintf(fileID, '%8.2e  & ', tt);
     %     pastTimes = [pastTimes, tt];
-
+    
     %
     %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree);
     %     fprintf(fileID, '%12.6e    ', vzInit);
     %     pastEnergies = [pastEnergies, vzInit];
-
+    
     % Future
     tic; for i = 1:nTest,
-    [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree);
+        [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree);
     end, tt = toc / nTest;
-
+    
     fprintf(fileID, '%8.2e  & ', tt);
     futureTimes = [futureTimes, tt];
-
+    
     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     futureEnergies = [futureEnergies, wzInit];
@@ -323,32 +323,32 @@ if exportData
     for degree = 5:6
         degrees = [degrees, degree];
         fprintf(fileID, '%d      & ', degree);
-
+        
         %     % Past
         %     tic; for i = 1:nTest,
-        %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta, degree);
+        %         [v] = approxPastEnergy(f, g(1:numGTermsApprox), C, eta=eta, degree=degree);
         %     end, tt = toc / nTest;
         %
         %     fprintf(fileID, '%8.2e  & ', tt);
         %     pastTimes = [pastTimes, tt];
-
+        
         %
         %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree);
         %     fprintf(fileID, '%12.6e    ', vzInit);
         %     pastEnergies = [pastEnergies, vzInit];
-
+        
         % Future
         tic; for i = 1:nTest,
-        [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta, degree);
+            [w] = approxFutureEnergy(f, g(1:numGTermsApprox), h, eta=eta, degree=degree);
         end, tt = toc / nTest;
-
+        
         fprintf(fileID, '%8.2e  & ', tt);
         futureTimes = [futureTimes, tt];
-
+        
         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         futureEnergies = [futureEnergies, wzInit];
-
+        
     end
 end
 %% Export data
@@ -360,11 +360,11 @@ if exportData
     end
     fprintf("Writing data to " + fileName + '\n')
     fileID = fopen(fileName, 'w');
-
+    
     fprintf(fileID, '# Table III Data\n');
     fprintf(fileID, '# finite element beam model, convergence and scalability results \n');
     fprintf(fileID, '# numEls = %d   -->   n = %d \n', numEl, 6 * numEl);
-
+    
     %print the header
     fprintf(fileID, 'd      ');
     % fprintf(fileID, '& CPU-sec   & E_d^-(x_0)     ');

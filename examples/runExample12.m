@@ -43,7 +43,7 @@ degree = 8;
 
 [f, g, h] = getSystem12(degree)
 
-[v] = approxPastEnergy(f, g, h, eta, degree + 1);
-[w] = approxFutureEnergy(f, g, h, eta, degree + 1);
+[v] = approxPastEnergy(f, g, h, eta=eta, degree=degree+1);
+[w] = approxFutureEnergy(f, g, h, eta=eta, degree=degree+1);
 
 end
