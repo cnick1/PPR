@@ -65,7 +65,11 @@ runExample26_controlCosts();
 runExample9_Neumann_costConvergencePlot();
 runExample9_Neumann();
  
+runExample9_controlEvaluationTiming();
+
 %% Example 29: 2D Allen-Cahn equation, Neumann Boundary Conditions
 % Produces the closed-loop simulation plots in Fig. 9.
 runExample29(64, 10) % Quick version that runs in about a minute (n=4225)
 % runExample29(320, 10) % Paper version (n=103041)
+
+runExample29_memory();
