@@ -39,17 +39,17 @@ fprintf("    d  &      V(x)    &  Integrated Cost     \n")
 
 x0 = [-pi;2]; tspan = [0 10];
 for d=2:2:degree
-    [t, X] = ode45(@(t, x) F(x) + G(x) * kronPolyEval(K, x, d-1), tspan, x0);
+    [t, X] = ode45(@(t, x) F(x) + G(x) * kronPolyEval(K, x, degree=d-1), tspan, x0);
     
     % Compute performance index (cost)
     runningCost = zeros(size(t));
     for i=1:length(t)
-        x = X(i,:).'; Ux = kronPolyEval(K, x, d-1);
+        x = X(i,:).'; Ux = kronPolyEval(K, x, degree=d-1);
         runningCost(i) = 1/2*(Ux.'*R*Ux);
     end
     integratedCost = trapz(t, runningCost);
     
-    fprintf("   %2i  &   %8.5f   &      %8.5f    \n", d, 0.5*kronPolyEval(v, x0, d), integratedCost)
+    fprintf("   %2i  &   %8.5f   &      %8.5f    \n", d, 0.5*kronPolyEval(v, x0, degree=d), integratedCost)
 end
 fprintf("\n")
 

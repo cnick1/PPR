@@ -152,7 +152,7 @@ A feedback law can be defined using the gain coefficient cell array `K` using an
 Here we use the function to define both the LQR and PPR controllers, along with an "open-loop" controller corresponding to the uncontrolled system: 
 ```
 uOpenLoop = @(x) zeros(1,1);
-uLQR = @(x) (kronPolyEval(K, x, 1));
+uLQR = @(x) (kronPolyEval(K, x, degree=1));
 uPPR = @(x) (kronPolyEval(K, x));
 ```
 
@@ -260,17 +260,17 @@ The remaining $K_i$ are the higher order gain matrices corresponding to quadrati
 A feedback law can be defined using the gain coefficient cell array `K` using an anonymous function based on the utility function `kronPolyEval`. 
 Here we use the function to define both the LQR and PPR controllers, along with an "open-loop" controller corresponding to the uncontrolled system: 
 ```
-uLQR = @(x) (kronPolyEval(K, x, 1));
-uPPR3 = @(x) (kronPolyEval(K, x, 3));
-uPPR5 = @(x) (kronPolyEval(K, x, 5));
-uPPR7 = @(x) (kronPolyEval(K, x, 7));
+uLQR = @(x) (kronPolyEval(K, x, degree=1));
+uPPR3 = @(x) (kronPolyEval(K, x, degree=3));
+uPPR5 = @(x) (kronPolyEval(K, x, degree=5));
+uPPR7 = @(x) (kronPolyEval(K, x, degree=7));
 ```
 
 Using this format, we can easily simulate the closed-loop performance of the different controllers. 
 Define the system dynamics $\dot{x} = f(x) + g(x)u$ using anonymous functions:
 ```
 F = @(x) kronPolyEval(f, x);
-G = @(x) (g{1} + kronPolyEval(g(2:end), x));
+G = @(x) kronPolyEval(g, x, scenario='G(x)');
 ```
 
 The closed-loop systems can be simulated with your favorite ode solver; for example, 

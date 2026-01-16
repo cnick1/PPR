@@ -31,13 +31,13 @@ fprintf("completed in %2.2f seconds. \n", toc)
 
 % Construct control laws
 uOpenLoop = @(z) zeros(m,1);
-uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+uLQR = @(z) (kronPolyEval(GainsPPR, z, degree=1));
 uPPR = @(z) (kronPolyEval(GainsPPR, z));
 
 %% Simulate closed-loop systems
 % Construct original system dynamics
 F = @(x) kronPolyEval(f, x);
-G = @(x) (g{1} + kronPolyEval(g(2:end), x));
+G = @(x) kronPolyEval(g, x, scenario='G(x)');
 FofXU = @(x,u) (F(x) + G(x)*u);
 
 syms x

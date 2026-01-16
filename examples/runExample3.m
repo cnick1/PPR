@@ -47,7 +47,7 @@ uUnc = @(z) zeros(m,1);
 fprintf("Computing ppr() solution, n=%i, d=%i ... ",n,4); tic
 options = struct; options.verbose = true; 
 [~, GainsPPR1] = ppr(f, g, Q, R, 4, options); fprintf("completed in %2.2f seconds. \n", toc)
-uLQR = @(z) (kronPolyEval(GainsPPR1, z, 1));
+uLQR = @(z) (kronPolyEval(GainsPPR1, z, degree=1));
 uPPR1 = @(z) (kronPolyEval(GainsPPR1, z));
 
 % [~, GainsPPR2] = ppr(f, g, {0,Q,0,0}, {R,0}, 4, options);

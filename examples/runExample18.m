@@ -27,7 +27,7 @@ q4 = zeros(n^4,1); q4(81) = 2; % x3^4 entry; 2 because of 1/2 factor
 Q2 = {0,zeros(n^2,1),zeros(n^3,1),q4}; 
 
 [ValueFun1, GainsPPR1] = ppr(A, B, Q1, R, 6);
-uLin = @(x) (kronPolyEval(GainsPPR1, x, 1));
+uLin = @(x) (kronPolyEval(GainsPPR1, x, degree=1));
 uCub1 = @(x) (kronPolyEval(GainsPPR1, x));
 
 [ValueFun2, GainsPPR2] = ppr(A, B, Q2, R, 4);

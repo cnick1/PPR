@@ -42,8 +42,8 @@ fprintf(" Computing ppr() solution, n=%i, r=%i, d=%i ... ",n,r,4); tic
 [~, K] = ppr(f, g, q, R, degree, options);
 fprintf(" completed in %2.2f seconds. \n", toc)
 
-uLQR = @(x) kronPolyEval(K, x, 1);
-uPPR = @(x) kronPolyEval(K, x, degree-1);
+uLQR = @(x) kronPolyEval(K, x, degree=1);
+uPPR = @(x) kronPolyEval(K, x, degree=degree-1);
 
 %% Compute controllers
 % Setting the cost Q=C.'*C for LR-ADI
@@ -59,8 +59,8 @@ uPPR = @(x) kronPolyEval(K, x, degree-1);
 % [~, K] = ppr(f, g, q, R, degree, options);
 % fprintf(" completed in %2.2f seconds. \n", toc)
 % 
-% uLQR = @(x) kronPolyEval(K, x, 1);
-% uPPR = @(x) kronPolyEval(K, x, degree-1);
+% uLQR = @(x) kronPolyEval(K, x, degree=1);
+% uPPR = @(x) kronPolyEval(K, x, degree=degree-1);
 
 % To compare with back-stepping controller from [1]
 % a = 0.95*pi/2; alpha = 3;

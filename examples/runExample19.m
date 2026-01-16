@@ -25,7 +25,7 @@ Q1 = {0,[2 0; 0 0],zeros(n^3,1),q4}; R = 2;
 
 
 [ValueFun1, GainsPPR1] = ppr(A, B, Q1, R, 4);
-uLin = @(x) (kronPolyEval(GainsPPR1, x, 1));
+uLin = @(x) (kronPolyEval(GainsPPR1, x, degree=1));
 uCub1 = @(x) (kronPolyEval(GainsPPR1, x));
 
 y = sym('x',[2,1]);

@@ -56,7 +56,7 @@ HJBResidual = zeros(nY, nX); valueFunction = zeros(nY, nX);
 for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
-        valueFunction(i, j) = 0.5 * kronPolyEval(v, x, degree);
+        valueFunction(i, j) = 0.5 * kronPolyEval(v, x, degree=degree);
         HJBResidual(i, j) = computeHJBResidual(gravity, L, g, v, degree, x);
         if valueFunction(i, j) < 0
             valueFunction(i, j) = NaN;

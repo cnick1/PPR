@@ -23,7 +23,7 @@ options = odeset('Events', @myEvent); % Kill sim if the solution blows up
 %% Define original dynamics and controllers
 [f, g, ~] = getSystem7();
 F = @(x) kronPolyEval(f, x);
-G = @(x) (g{1} + kronPolyEval(g(2:end), x));
+G = @(x) kronPolyEval(g, x, scenario='G(x)');
 
 Q = 0.25; R = 1; 
 

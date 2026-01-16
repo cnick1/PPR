@@ -54,7 +54,7 @@ nloptions = nlmpcmoveopt; nloptions.Parameters = {Ts};
 
 % Now define control law function handles
 uOpenLoop = @(z) zeros(1,1);
-uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+uLQR = @(z) (kronPolyEval(GainsPPR, z, degree=1));
 uPPR = @(z) (kronPolyEval(GainsPPR, z));
 uMPC = @(x,uprev,nloptions) nlmpcmove(nlobj,x,uprev,[0 0 0 0],[],nloptions); 
 

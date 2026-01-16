@@ -91,7 +91,7 @@ fprintf("completed in %2.2f seconds. \n", toc)
 uPPR_tuned_reduced = @(z) (kronPolyEval(GainsPPR_tuned_reduced, z));
 
 % LQR Controller (first term in PPR controller)
-uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+uLQR = @(z) (kronPolyEval(GainsPPR, z, degree=1));
 
 % SDRE Controller
 uSDRE = @(z) sdre(@(y)(f{1} - diag(y.^2)),@(y)(B),Q,R,z);

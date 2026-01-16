@@ -24,7 +24,7 @@ F = @(x) f{1}*x; G = @(x) g{1};
 q = 1; R = 1; degree = 2;
 [~, K] = ppr(f, g, q, R, degree);
 
-uPPR = @(x) kronPolyEval(K, x, degree-1);
+uPPR = @(x) kronPolyEval(K, x, degree=degree-1);
 % uPPR = @(x) [0;0;1;0]; 
 
 %% Simulate closed-loop system

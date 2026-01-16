@@ -90,7 +90,7 @@ fprintf("completed in %2.2f seconds. \n", toc)
 uPPR_tuned_reduced = @(z) (kronPolyEval(GainsPPR_tuned_reduced, z));
 
 % LQR Controller (first term in PPR controller)
-uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+uLQR = @(z) (kronPolyEval(GainsPPR, z, degree=1));
 
 % SDRE Controller
 uSDRE = @(z) sdre(@(y)(f{1} - diag(y.^2)),@(y)(B),Q,R,z);
@@ -177,4 +177,21 @@ fprintf("     %s       &  %13.3f   \n", 'PPR reduced ', tPPR_reduced)
 fprintf(" %s  &  %13.3f   \n", ' PPR tuned (degree 4)', tPPR_tuned)
 fprintf(" %s      &  %13.3f   \n", 'PPR tuned reduced', tPPR_tuned_reduced)
 fprintf("     %s       &  %13.3f   \n\n", '     TTHJB  ', tTTHJB)
+
+A = f{1}; K = GainsPPR{1};
+for i=2:2:length(GainsPPR)
+    SparseGainsPPR{i} = sparse(GainsPPR{i});
+end
+mem = whos('K', 'V', 'B','A', 'GainsPPR', 'GainsPPR_tuned', 'GainsPPR_reduced', 'GainsPPR_tuned_reduced');
+fprintf('\n# Table 2 Data (Allen-Cahn, Neumann BCs)\n');
+fprintf('# Time & RAM to evaluate the control law 10,000 times. \n');
+fprintf("      Controller        &         CPU-Time     &     RAM (kB)        \n")
+fprintf("     %s       &  %13.3f   &  %13.3f   \n", 'Uncontrolled', tUnc, 0)
+fprintf("     %s       &  %13.3f   &  %13.3f   \n", '    LQR     ', tLQR, mem(7).bytes/1e3)
+fprintf("     %s       &  %13.3f   &  %13.3f   \n", '   SDRE     ', tSDRE, (mem(1).bytes + mem(2).bytes)/1e3)
+fprintf("    %s   &  %13.3f   &  %13.3f   \n", 'PPR (degree 6)   ', tPPR, mem(3).bytes/1e3)
+fprintf("     %s       &  %13.3f   &  %13.3f   \n", 'PPR reduced ', tPPR_reduced, mem(4).bytes/1e3)
+fprintf(" %s  &  %13.3f   &  %13.3f   \n", ' PPR tuned (degree 4)', tPPR_tuned, mem(5).bytes/1e3)
+fprintf(" %s      &  %13.3f   &  %13.3f   \n", 'PPR tuned reduced', tPPR_tuned_reduced, mem(6).bytes/1e3)
+fprintf("     %s       &  %13.3f   &  %13.3f   \n\n", '     TTHJB  ', tTTHJB, mem(8).bytes/1e3)
 end 

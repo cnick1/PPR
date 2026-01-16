@@ -81,7 +81,7 @@ for i = 1:nY
     for j = 1:nX
         x = [X(i, j); Y(i, j)];
         
-        Vlin(i,j) = kronPolyEval(v,x,2);
+        Vlin(i,j) = kronPolyEval(v,x,degree=2);
         Vdotlin(i,j) = kronPolyDerivEval(v,x,2) * kronPolyEval(f,x);
 
 

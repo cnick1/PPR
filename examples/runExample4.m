@@ -41,7 +41,7 @@ for n = [8, 16, 32] % number of elements, the actual number of states is 2*n
     fprintf('%8.2e & ', tt)
     
     for d = 2:degree, w{d} = w{d}.'; end
-    wzInit = 0.5 * kronPolyEval(w, zInit, degree);
+    wzInit = 0.5 * kronPolyEval(w, zInit, degree=degree);
     fprintf('%12.6e \\\\ \n', wzInit)
 end
 
@@ -59,7 +59,7 @@ for n = [64, 128, 256, 512]
     fprintf('%8.2e & ', tt)
     
     for d = 2:degree, w{d} = w{d}.'; end
-    wzInit = 0.5 * kronPolyEval(w, zInit, degree);
+    wzInit = 0.5 * kronPolyEval(w, zInit, degree=degree);
     fprintf('%12.6e \\\\ \n', wzInit)
 end
 
@@ -84,7 +84,7 @@ for degree = [2, 3, 4, 5, 6] % only the last one is needed, but use this for tim
     end
     tt = toc / 2 ^ (8 - degree);
     for d = 2:degree, v{d} = v{d}.'; end
-    vzInit = 0.5 * kronPolyEval(v, zInit, degree);
+    vzInit = 0.5 * kronPolyEval(v, zInit, degree=degree);
     fprintf('%13.7e ', vzInit)
     fprintf('(%8.2e) & ', tt)
     
@@ -94,7 +94,7 @@ for degree = [2, 3, 4, 5, 6] % only the last one is needed, but use this for tim
     end
     tt = toc / 2 ^ (8 - degree);
     for d = 2:degree, w{d} = w{d}.'; end
-    wzInit = 0.5 * kronPolyEval(w, zInit, degree);
+    wzInit = 0.5 * kronPolyEval(w, zInit, degree=degree);
     fprintf('%13.7e ', wzInit)
     fprintf('(%8.2e) \\\\ \n', tt)
 end

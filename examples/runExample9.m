@@ -57,7 +57,7 @@ for j=1:1
 
     % Construct control laws
     uOpenLoop = @(z) zeros(m,1);
-    uLQR = @(z) (kronPolyEval(GainsPPR, z, 1));
+    uLQR = @(z) (kronPolyEval(GainsPPR, z, degree=1));
     uLPR= @(z) (kronPolyEval(GainsLPR, z));
     % uSDRE = @(z) (kronPolyEval(GainsLPR, z));
     uSDRE = @(z) sdre(@(y)(f{1}-3*diag(vref).*diag(y)-diag(y.^2)),@(y)(B),Q2+diag(z.^2),R,z);

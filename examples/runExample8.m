@@ -73,7 +73,7 @@ for numEl = numEls
     
     initialCondition = initialCondition(2:end - 1);
     
-    wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+    wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
 end
@@ -101,7 +101,7 @@ if exportData
         
         initialCondition = initialCondition(2:end - 1);
         
-        wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+        wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
     end
@@ -162,7 +162,7 @@ for numEl = numEls
     
     initialCondition = initialCondition(2:end - 1);
     
-    wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+    wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
     fprintf(fileID, '%12.6e    \n', wzInit);
     energies = [energies, wzInit];
 end
@@ -191,7 +191,7 @@ if exportData
         
         initialCondition = initialCondition(2:end - 1);
         
-        wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+        wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
         fprintf(fileID, '%12.6e    \n', wzInit);
         energies = [energies, wzInit];
     end
@@ -263,7 +263,7 @@ end
 %     %     pastTimes = [pastTimes, tt];
 %
 %     %
-%     %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree);
+%     %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree=degree);
 %     %     fprintf(fileID, '%12.6e    ', vzInit);
 %     %     pastEnergies = [pastEnergies, vzInit];
 %
@@ -275,7 +275,7 @@ end
 %     fprintf(fileID, '%8.2e  & ', tt);
 %     futureTimes = [futureTimes, tt];
 %
-%     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+%     wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
 %     fprintf(fileID, '%12.6e    \n', wzInit);
 %     futureEnergies = [futureEnergies, wzInit];
 % end
@@ -297,7 +297,7 @@ end
 %         %     pastTimes = [pastTimes, tt];
 %
 %         %
-%         %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree);
+%         %     vzInit = 0.5 * kronPolyEval(v, initialCondition, degree=degree);
 %         %     fprintf(fileID, '%12.6e    ', vzInit);
 %         %     pastEnergies = [pastEnergies, vzInit];
 %
@@ -309,7 +309,7 @@ end
 %         fprintf(fileID, '%8.2e  & ', tt);
 %         futureTimes = [futureTimes, tt];
 %
-%         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree);
+%         wzInit = 0.5 * kronPolyEval(w, initialCondition, degree=degree);
 %         fprintf(fileID, '%12.6e    \n', wzInit);
 %         futureEnergies = [futureEnergies, wzInit];
 %

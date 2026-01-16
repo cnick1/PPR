@@ -41,8 +41,8 @@ fprintf(" Computing ppr() solution, n=%i, d=%i ... ",n,4); tic
 [~, K] = ppr(f, g, q, R, degree);
 fprintf(" completed in %2.2f seconds. \n", toc)
 
-uLQR = @(x) kronPolyEval(K, x, 1);
-uPPR = @(x) kronPolyEval(K, x, degree-1);
+uLQR = @(x) kronPolyEval(K, x, degree=1);
+uPPR = @(x) kronPolyEval(K, x, degree=degree-1);
 
 % To compare with back-stepping controller from [1]
 % a = 0.95*pi/2; alpha = 3;

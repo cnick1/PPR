@@ -10,7 +10,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           function:
 %               uPPR = @(x) kronPolyEval(K, x);
 %               F = @(x) kronPolyEval(f, x);
-%               G = @(x) (g{1} + kronPolyEval(g(2:end), x));
+%               G = @(x) kronPolyEval(g, x, scenario='G(x)');
 %           The system can then be simulated for example using ode45:
 %               [t, X] = ode45(@(t, x) F(x) + G(x) * uPPR(x), tspan, x0);
 %           In some cases, it is more efficient or more accurate to program
@@ -273,7 +273,7 @@ end
 
 
 %% V2, Degree 2 coefficient (k=2 case)
-if true || options.verbose; T1=tic; end
+if options.verbose; T1=tic; end
 switch RPosDef
     case 1 % Positive definite R
         if isfield(options,'lrradi') && options.lrradi
@@ -401,7 +401,8 @@ if (degree > 2)
                     i = k+1 - p_idx - q_idx;
                     if i==k; continue; end                % Skip the LHS term that is already accounted for
                     if i<2; break; end                    % Only run while we have Vᵢ's left
-                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)));
+                    % b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, n^(k-q_idx)));
+                    b = b - i * vec(K{q_idx}.' * reshape(GaVb(p_idx, i, v), m, []));
                 end
             end
         end
