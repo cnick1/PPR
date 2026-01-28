@@ -554,7 +554,7 @@ switch options.method
             if ~isempty(options.E)
                 options.V2 = options.E.'*options.V2*options.E;
             end
-            [options.T, Xi] = eigs(options.V2,options.reducedDimension);
+            [options.T, Xi] = eigs(full(options.V2),options.reducedDimension);
         end
         
         options.TInv = options.T.';
