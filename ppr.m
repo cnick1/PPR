@@ -54,7 +54,7 @@ function [v,K,options] = ppr(f, g, q, r, degree, options)
 %           of dimension r, and then use the reduced dynamics to compute the energy
 %           functions in r dimensions rather than n; this can present a huge
 %           computational speedup.
-%           • r: dimension "r" of reduced order model. (Defaults to n)
+%           • reducedDimension: dimension "r" of reduced order model. (Defaults to n)
 %           • fr,gr,qr: reduced dynamics; if for example the past energy
 %             function has already been computed, instead of recomputing the
 %             reduced dynamics, they can be passed in directly.
@@ -164,6 +164,7 @@ if nargin < 6
 end
 
 if ~isfield(options,'verbose'); options.verbose = false; end
+if isfield(options,'r'); error(sprintf('ppr: The syntax for using reduction is options.reducedDimension, not \noptions.r (to avoid confusion with R(x) coefficient array "r").')); end
 if isfield(options,'reducedDimension') && options.reducedDimension ~= size(f{1}, 1); useReducedOrderModel = true; else; useReducedOrderModel = false; end
 if ~isfield(options,'E'); options.E = []; end
 if ~isfield(options,'solver'); options.solver = []; end
@@ -621,7 +622,7 @@ end
 % Now convert from g_i(x) vectors back to g(x) matrix
 options.gr{1} = options.TInv*g{1}; % B is not state dependent
 for i=1:(lg-1)
-    options.gr{i+1} = zeros(n,m*n^i);
+    options.gr{i+1} = zeros(n,m*r^i);
     for kk=1:m
         options.gr{i+1}(:,kk:m:end) = gttemp{i+1,kk};
     end

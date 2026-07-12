@@ -95,7 +95,7 @@ cmap = [1, 0.6, 0.6;  % Light red (V < 0)
         0.6, 1, 0.6]; % Light green (V > 0)
 
 %% Plot region of attraction using quadratic Lyap estimate 
-figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); title('R_A estimate using quadratic Lyapunov function')
+figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); 
 % Define colors: light green for V > 0, red for V < 0
 colormap(cmap)
 
@@ -113,8 +113,10 @@ contour(X, Y, 1-exp(-Vlin), clin*[1 1],'k'); ax2.Visible = 'off';
 
 plotLimitCycle(@(x) kronPolyEval(f,x), [-.1,.1], [-.1,.1], [0,100], 2)
 
+exportgraphics(gcf,'plots/example25_quadratic.pdf', 'ContentType', 'vector')
+title('R_A estimate using quadratic Lyapunov function')
 %% Plot region of attraction using nonlinear Lyap estimate 
-figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); title('R_A estimate using polynomial Lyapunov function')
+figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); 
 % Define colors: light green for V > 0, red for V < 0
 colormap(cmap)
 
@@ -132,21 +134,20 @@ contour(X, Y, 1-exp(-Vnonlin), cnonlin*[1 1],'k'); ax2.Visible = 'off';
 
 plotLimitCycle(@(x) kronPolyEval(f,x), [-.1,.1], [-.1,.1], [0,100], 2)
 
+exportgraphics(gcf,'plots/example25_polynomial.pdf', 'ContentType', 'vector')
+title('R_A estimate using polynomial Lyapunov function')
 %% Plot Ra approximations
-figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); title('R_A estimates')
+figure; hold on; xlabel('$x_1$', 'interpreter', 'latex'); ylabel('$x_2$', 'interpreter', 'latex'); 
 contour(X, Y, 1-exp(-Vlin), clin*[1 1],'k:'); 
 contour(X, Y, 1-exp(-Vnonlin), cnonlin*[1 1],'k');     
 
 plotLimitCycle(@(x) kronPolyEval(f,x), [-.1,.1], [-.1,.1], [0,100], 2)
 
-if lienard
-    xlim([-2.4 4]); ylim([-2.2 2.5]);
-else
-    axis equal; xlim([-3 3]); ylim([-3 3]);
-    legend('R_A d=2 approximation','R_A d=10 approximation','Limit cycle')
-end
+    xlim([-3 3]); ylim([-3 3]);
+    legend('$R_a$ $d=2$ approximation','$R_a$ $d=10$ approximation','Limit cycle', 'interpreter', 'latex')
 
-
+exportgraphics(gcf,'plots/example25_RoA.pdf', 'ContentType', 'vector')
+title('R_A estimates')
 end
 
 %% Helper functions
