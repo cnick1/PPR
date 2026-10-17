@@ -1,4 +1,4 @@
-function [f, g, h, x0] = getSystem31(reduced, initialCondition)
+function [f, g, h, x0] = getSystem31(reduced, initialCondition, nx)
 %getSystem31 Generates a finite difference model for a 1D Fokker-Planck equation from [1]
 %
 %   Usage:  [f,g,h] = getSystem31()
@@ -27,15 +27,18 @@ function [f, g, h, x0] = getSystem31(reduced, initialCondition)
 %               557–582, 2018, doi: 10.3934/mcrf.2018023.
 %
 %%
-if nargin < 2
-    initialCondition = '2';
-    if nargin < 1
-        reduced = false;
+if nargin < 3
+    nx = 100;
+    if nargin < 2
+        initialCondition = '2';
+        if nargin < 1
+            reduced = false;
+        end
     end
 end
 rng(1)
 
-nx = 100;
+
 xa = -6;
 xb = 6;
 nu = 1;

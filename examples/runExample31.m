@@ -1,7 +1,7 @@
 % function runExample31()
 %runExample31 Runs the 1D Fokker-Planck control example to compare with [1].
 %
-%   Usage:  runExample30()
+%   Usage:  runExample31()
 %
 %   Description: The controlled Fokker-Planck equation, as in [1], is given by
 %
@@ -79,14 +79,15 @@ fprintf('Running Example 31\n')
 [f, g, h, x0] = getSystem31(false, '2');
 q = h{1}.'*h{1}; R = 1e-4;
 n = length(x0);
+x0 = 2.*x0; 
 
-% Set up time vector for simulatons
-tmax = 20; t = linspace(0,tmax,2000);
+% Set up time vector for simulations
+tmax = 20; t = linspace(0,tmax,2001);
 
 %% Optimal control computed as open-loop signal using gradient descent via a
 % two-point boundary value/Pontryagin-like first-order optimality approach
 fprintf(" - Simulating optimal closed-loop dynamics via gradient descent ... "); T0 = tic;
-sigma= 0.05; theta= 0.7; tolerance= 4.5*10^(-10);
+sigma= 0.05; theta= 0.7; tolerance= 1e-9;
 [xOL, uOL] = optimize(zeros(size(t)),f{1},g{2},g{1},h{1},R,x0,t, ...
     odeset('RelTol',1e-13,'MaxOrder',2),sigma,theta,tolerance);
 fprintf(" completed in %2.2f seconds. \n", toc(T0))
@@ -95,7 +96,7 @@ fprintf(" completed in %2.2f seconds. \n", toc(T0))
 %% Use the code from [1] to compute the Breiten et al. polynomial controllers
 % To make things clean, I've cleaned up their control computation code.
 quad_no = 50;
-fprintf(" Computing Bretien et al. controller... "); tic
+fprintf(" Computing Breiten et al. controller... "); tic
 VBreiten = breitenValueFunction(f{1},g{1},g{2},q,R,quad_no,4);
 fprintf(" completed in %2.2f seconds. \n", toc)
 uBreiten2 = @(x) -R\(g{1}+g{2}*x).'*computeGain(VBreiten(1:2),x).';
@@ -111,20 +112,20 @@ uLQR = @(x) kronPolyEval(K, x, degree=1);
 uPPR2 = @(x) kronPolyEval(K, x, degree=2);
 uPPR3 = @(x) kronPolyEval(K, x, degree=3);
 
-%% Compute reduced PPR Controllers (only up to degree 3)
-% Get value function/controller
-fprintf(" Computing reduced ppr() solution, n=%i d=%i ... ",n,4); tic
-options.reducedDimension = 6;
-[vr, Kr] = ppr(f, g, q, R, 10,options);
-fprintf(" completed in %2.2f seconds. \n", toc)
-uPPR2r = @(x) kronPolyEval(Kr, x, degree=2);
-uPPR3r = @(x) kronPolyEval(Kr, x, degree=3);
-uPPR4r = @(x) kronPolyEval(Kr, x, degree=4);
-uPPR5r = @(x) kronPolyEval(Kr, x, degree=5);
-uPPR6r = @(x) kronPolyEval(Kr, x, degree=6);
-uPPR7r = @(x) kronPolyEval(Kr, x, degree=7);
-uPPR8r = @(x) kronPolyEval(Kr, x, degree=8);
-uPPR9r = @(x) kronPolyEval(Kr, x, degree=9);
+% %% Compute reduced PPR Controllers (only up to degree 3)
+% % Get value function/controller
+% fprintf(" Computing reduced ppr() solution, n=%i d=%i ... ",n,4); tic
+% options.reducedDimension = 6;
+% [vr, Kr] = ppr(f, g, q, R, 10,options);
+% fprintf(" completed in %2.2f seconds. \n", toc)
+% uPPR2r = @(x) kronPolyEval(Kr, x, degree=2);
+% uPPR3r = @(x) kronPolyEval(Kr, x, degree=3);
+% uPPR4r = @(x) kronPolyEval(Kr, x, degree=4);
+% uPPR5r = @(x) kronPolyEval(Kr, x, degree=5);
+% uPPR6r = @(x) kronPolyEval(Kr, x, degree=6);
+% uPPR7r = @(x) kronPolyEval(Kr, x, degree=7);
+% uPPR8r = @(x) kronPolyEval(Kr, x, degree=8);
+% uPPR9r = @(x) kronPolyEval(Kr, x, degree=9);
 
 %% Construct Breiten-type PPR Controllers by adding the g(x) terms
 uPPRb2 = @(x) kronPolyEval(K, x, degree=1) - R\(g{2}*x).'* gradTermEval(v,x,2)*2/2;
@@ -146,23 +147,23 @@ fprintf(" - Simulating PPR2 closed-loop dynamics ... "); T0 = tic;
 fprintf(" - Simulating PPR3 closed-loop dynamics ... "); T0 = tic;
 [~, XPPR3] = ode15s(@(t, x) FofXU(x, uPPR3(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
 
-% Reduced PPR sims
-fprintf(" - Simulating PPR2r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR2r] = ode15s(@(t, x) FofXU(x, uPPR2r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR3r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR3r] = ode15s(@(t, x) FofXU(x, uPPR3r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR4r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR4r] = ode15s(@(t, x) FofXU(x, uPPR4r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR5r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR5r] = ode15s(@(t, x) FofXU(x, uPPR5r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR6r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR6r] = ode15s(@(t, x) FofXU(x, uPPR6r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR7r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR7r] = ode15s(@(t, x) FofXU(x, uPPR7r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR8r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR8r] = ode15s(@(t, x) FofXU(x, uPPR8r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
-fprintf(" - Simulating PPR9r closed-loop dynamics ... "); T0 = tic;
-[~, XPPR9r] = ode15s(@(t, x) FofXU(x, uPPR9r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% % Reduced PPR sims
+% fprintf(" - Simulating PPR2r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR2r] = ode15s(@(t, x) FofXU(x, uPPR2r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR3r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR3r] = ode15s(@(t, x) FofXU(x, uPPR3r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR4r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR4r] = ode15s(@(t, x) FofXU(x, uPPR4r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR5r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR5r] = ode15s(@(t, x) FofXU(x, uPPR5r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR6r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR6r] = ode15s(@(t, x) FofXU(x, uPPR6r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR7r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR7r] = ode15s(@(t, x) FofXU(x, uPPR7r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR8r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR8r] = ode15s(@(t, x) FofXU(x, uPPR8r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
+% fprintf(" - Simulating PPR9r closed-loop dynamics ... "); T0 = tic;
+% [~, XPPR9r] = ode15s(@(t, x) FofXU(x, uPPR9r(x)), t, x0, options_ode); fprintf("completed in %2.2f seconds. \n", toc(T0))
 
 % Breiten-like PPR sims
 fprintf(" - Simulating PPRb2 closed-loop dynamics ... "); T0 = tic;
@@ -182,23 +183,34 @@ fprintf(" - Simulating Breiten 4 closed-loop dynamics ... "); T0 = tic;
 
 
 %% Compute control signals and integrated costs
-for i=1:length(t); UxLQR(i,1) = uLQR(XLQR(i,:).'); end
-for i=1:length(t); UxPPR2(i,1) = uPPR2(XPPR2(i,:).'); end
-for i=1:length(t); UxPPR3(i,1) = uPPR3(XPPR3(i,:).'); end
-for i=1:length(t); UxPPR2r(i,1) = uPPR2r(XPPR2r(i,:).'); end
-for i=1:length(t); UxPPR3r(i,1) = uPPR3r(XPPR3r(i,:).'); end
-for i=1:length(t); UxPPR4r(i,1) = uPPR4r(XPPR4r(i,:).'); end
-for i=1:length(t); UxPPR5r(i,1) = uPPR5r(XPPR5r(i,:).'); end
-for i=1:length(t); UxPPR6r(i,1) = uPPR6r(XPPR6r(i,:).'); end
-for i=1:length(t); UxPPR7r(i,1) = uPPR7r(XPPR7r(i,:).'); end
-for i=1:length(t); UxPPR8r(i,1) = uPPR8r(XPPR8r(i,:).'); end
-for i=1:length(t); UxPPR9r(i,1) = uPPR9r(XPPR9r(i,:).'); end
-for i=1:length(t); UxPPRb2(i,1) = uPPRb2(XPPRb2(i,:).'); end
-for i=1:length(t); UxPPRb3(i,1) = uPPRb3(XPPRb3(i,:).'); end
-for i=1:length(t); UxPPRb4(i,1) = uPPRb4(XPPRb4(i,:).'); end
-for i=1:length(t); Uxb2(i,1) = uBreiten2(Xb2(i,:).'); end
-for i=1:length(t); Uxb3(i,1) = uBreiten3(Xb3(i,:).'); end
-for i=1:length(t); Uxb4(i,1) = uBreiten4(Xb4(i,:).'); end
+UxLQR = zeros(length(t),1);
+UxPPR2 = zeros(length(t),1);
+UxPPR3 = zeros(length(t),1);
+UxPPRb2 = zeros(length(t),1);
+UxPPRb3 = zeros(length(t),1);
+UxPPRb4 = zeros(length(t),1);
+Uxb2 = zeros(length(t),1);
+Uxb3 = zeros(length(t),1);
+Uxb4 = zeros(length(t),1);
+for i=1:length(t)
+    UxLQR(i,1) = uLQR(XLQR(i,:).');
+    UxPPR2(i,1) = uPPR2(XPPR2(i,:).');
+    UxPPR3(i,1) = uPPR3(XPPR3(i,:).');
+    % UxPPR2r(i,1) = uPPR2r(XPPR2r(i,:).');
+    % UxPPR3r(i,1) = uPPR3r(XPPR3r(i,:).');
+    % UxPPR4r(i,1) = uPPR4r(XPPR4r(i,:).');
+    % UxPPR5r(i,1) = uPPR5r(XPPR5r(i,:).');
+    % UxPPR6r(i,1) = uPPR6r(XPPR6r(i,:).');
+    % UxPPR7r(i,1) = uPPR7r(XPPR7r(i,:).');
+    % UxPPR8r(i,1) = uPPR8r(XPPR8r(i,:).');
+    % UxPPR9r(i,1) = uPPR9r(XPPR9r(i,:).');
+    UxPPRb2(i,1) = uPPRb2(XPPRb2(i,:).');
+    UxPPRb3(i,1) = uPPRb3(XPPRb3(i,:).');
+    UxPPRb4(i,1) = uPPRb4(XPPRb4(i,:).');
+    Uxb2(i,1) = uBreiten2(Xb2(i,:).');
+    Uxb3(i,1) = uBreiten3(Xb3(i,:).');
+    Uxb4(i,1) = uBreiten4(Xb4(i,:).');
+end
 
 % Compute performance index (cost)
 runningCost = @(x,u) 1/2 * sum((x*q) .* x, 2) + 1/2 * R * u.^2;
@@ -207,14 +219,14 @@ integratedCostOL = trapz(t, runningCost(xOL,uOL));
 integratedCostLQR = trapz(t, runningCost(XLQR,UxLQR));
 integratedCostPPR2 = trapz(t, runningCost(XPPR2,UxPPR2));
 integratedCostPPR3 = trapz(t, runningCost(XPPR3,UxPPR3));
-integratedCostPPR2r = trapz(t, runningCost(XPPR2r,UxPPR2r));
-integratedCostPPR3r = trapz(t, runningCost(XPPR3r,UxPPR3r));
-integratedCostPPR4r = trapz(t, runningCost(XPPR4r,UxPPR4r));
-integratedCostPPR5r = trapz(t, runningCost(XPPR5r,UxPPR5r));
-integratedCostPPR6r = trapz(t, runningCost(XPPR6r,UxPPR6r));
-integratedCostPPR7r = trapz(t, runningCost(XPPR7r,UxPPR7r));
-integratedCostPPR8r = trapz(t, runningCost(XPPR8r,UxPPR8r));
-integratedCostPPR9r = trapz(t, runningCost(XPPR9r,UxPPR9r));
+% integratedCostPPR2r = trapz(t, runningCost(XPPR2r,UxPPR2r));
+% integratedCostPPR3r = trapz(t, runningCost(XPPR3r,UxPPR3r));
+% integratedCostPPR4r = trapz(t, runningCost(XPPR4r,UxPPR4r));
+% integratedCostPPR5r = trapz(t, runningCost(XPPR5r,UxPPR5r));
+% integratedCostPPR6r = trapz(t, runningCost(XPPR6r,UxPPR6r));
+% integratedCostPPR7r = trapz(t, runningCost(XPPR7r,UxPPR7r));
+% integratedCostPPR8r = trapz(t, runningCost(XPPR8r,UxPPR8r));
+% integratedCostPPR9r = trapz(t, runningCost(XPPR9r,UxPPR9r));
 integratedCostPPRb2 = trapz(t, runningCost(XPPRb2,UxPPRb2));
 integratedCostPPRb3 = trapz(t, runningCost(XPPRb3,UxPPRb3));
 integratedCostPPRb4 = trapz(t, runningCost(XPPRb4,UxPPRb4));
@@ -229,7 +241,7 @@ integratedCostb4 = trapz(t, runningCost(Xb4,Uxb4));
 % cubic value function coefficient, the last three use also a quartic value
 % function coefficient). The comparison here is therefore between a) a true
 % Taylor approximant of degree k to the optimal control, and b) a hybrid polynomial
-% controller of degre k+1, using the same information as the degree k
+% controller of degree k+1, using the same information as the degree k
 % controller, but hypothesizing that including the full g(x) nonlinearity
 % will improve things. In other words, instead of having to add all of the
 % degree k+1 terms, is adding just some of them that are cheaper to compute
@@ -242,66 +254,158 @@ integratedCostb4 = trapz(t, runningCost(Xb4,Uxb4));
 % Note: Since the PPR "B" controllers are identical to the Breiten controllers,
 % we could omit them
 fprintf('\n\n# Table Data (Fokker-Planck Control Costs)\n');
-fprintf('# Integrated costs for different controllers; the extra terms \n  in the Breiten controllers consistently hurt performance\n');
+fprintf('# Integrated costs for different controllers; the extra terms \n# in the Breiten controllers consistently hurt performance\n');
 fprintf('    Controller         &  Integrated Cost\n');
 fprintf('    %-18s & %12.6f\n', 'Uncontrolled', integratedCostUNC);
 fprintf('    %-18s & %12.6f\n', 'LQR', integratedCostLQR);
-fprintf('    %-18s & %12.6f\n', 'PPRb2', integratedCostPPRb2);
+% fprintf('    %-18s & %12.6f\n', 'PPRb2', integratedCostPPRb2);
 fprintf('    %-18s & %12.6f\n', 'Breiten 2', integratedCostb2);
 fprintf('    %-18s & %12.6f\n', 'PPR2', integratedCostPPR2);
-fprintf('    %-18s & %12.6f\n', 'PPR2r', integratedCostPPR2r);
-fprintf('    %-18s & %12.6f\n', 'PPRb3', integratedCostPPRb3);
+% fprintf('    %-18s & %12.6f\n', 'PPR2r', integratedCostPPR2r);
+% fprintf('    %-18s & %12.6f\n', 'PPRb3', integratedCostPPRb3);
 fprintf('    %-18s & %12.6f\n', 'Breiten 3', integratedCostb3);
 fprintf('    %-18s & %12.6f\n', 'PPR3', integratedCostPPR3);
-fprintf('    %-18s & %12.6f\n', 'PPR3r', integratedCostPPR3r);
-fprintf('    %-18s & %12.6f\n', 'PPRb4', integratedCostPPRb4);
+% fprintf('    %-18s & %12.6f\n', 'PPR3r', integratedCostPPR3r);
+% fprintf('    %-18s & %12.6f\n', 'PPRb4', integratedCostPPRb4);
 fprintf('    %-18s & %12.6f\n', 'Breiten 4', integratedCostb4);
-fprintf('    %-18s & %12.6f\n', 'PPR4r', integratedCostPPR4r);
-fprintf('    %-18s & %12.6f\n', 'PPR5r', integratedCostPPR5r);
-fprintf('    %-18s & %12.6f\n', 'PPR6r', integratedCostPPR6r);
-fprintf('    %-18s & %12.6f\n', 'PPR7r', integratedCostPPR7r);
-fprintf('    %-18s & %12.6f\n', 'PPR8r', integratedCostPPR8r);
-fprintf('    %-18s & %12.6f\n', 'PPR9r', integratedCostPPR9r);
+% fprintf('    %-18s & %12.6f\n', 'PPR4r', integratedCostPPR4r);
+% fprintf('    %-18s & %12.6f\n', 'PPR5r', integratedCostPPR5r);
+% fprintf('    %-18s & %12.6f\n', 'PPR6r', integratedCostPPR6r);
+% fprintf('    %-18s & %12.6f\n', 'PPR7r', integratedCostPPR7r);
+% fprintf('    %-18s & %12.6f\n', 'PPR8r', integratedCostPPR8r);
+% fprintf('    %-18s & %12.6f\n', 'PPR9r', integratedCostPPR9r);
 fprintf('    %-18s & %12.6f\n', 'Optimal (open-loop)', integratedCostOL);
 fprintf('\n');
 
 % for i=1:length(t)
 %     hold off;
-%     plot(XUNC(i,:)); hold on;
-%     plot(XLQR(i,:))
-%     plot(XPPR2(i,:))
-%     plot(XPPR3(i,:),':')
-%     plot(XPPR4(i,:),'--')
+%     plot(XUNC(i,:),'DisplayName','Uncontrolled'); hold on;
+%     plot(XLQR(i,:),'DisplayName','LQR')
+%     plot(xOL(i,:),'DisplayName','Optimal')
+%     plot(XPPR3(i,:),':','DisplayName','PPR')
+%     plot(XPPRb4(i,:),'r:','DisplayName','Breiten 4')
 %     legend
 %     pause(0.01);
 % end
 
+%%
+fprintf('\n\nPlotting Figure from the paper... \n\n')
+set(groot,'defaultAxesTickLabelInterpreter','latex');
+set(groot,'defaulttextinterpreter','latex');
+set(groot,'defaultLegendInterpreter','latex');
+figure('Position',[293.8000 462.6000 754.2000 295.4000]); tiledlayout(1,2);
+dt = 25; dx = 2; xx = 1:n;%linspace(-6,6,n);
+% Open-loop uncontrolled plot
+nexttile;
+mesh(xx(1:dx:end),t(1:dt:end),XUNC(1:dt:end,1:dx:end))
+grid on, axis([1 n 0 5 -0.5 1.05]),
+view(35,35), colormap([0 0 0]); xlabel $i$, ylabel $t$, zlabel $x_i$
+title("Uncontrolled"); drawnow
+% Open-loop optimal control plot
+nexttile;
+mesh(xx(1:dx:end),t(1:dt:end),xOL(1:dt:end,1:dx:end))
+grid on, axis([1 n 0 5 -0.5 1.05]),
+view(35,35), colormap([0 0 0]); xlabel $i$, ylabel $t$, zlabel $x_i$
+title("Open-loop Optimal Control"); drawnow
+exportgraphics(gcf,'plots/example31_evolution.pdf', 'ContentType', 'vector')
+
+% fprintf('\n\nPlotting Figure from the paper... \n\n')
+% set(groot,'defaultAxesTickLabelInterpreter','latex');
+% set(groot,'defaulttextinterpreter','latex');
+% set(groot,'defaultLegendInterpreter','latex');
+% figure('Position',[293.8000 462.6000 754.2000 295.4000]); tiledlayout(1,4);
+% dt = 25; dx = 2; xx = linspace(-6,6,n);
+% % Open-loop uncontrolled plot
+% nexttile;
+% mesh(xx(1:dx:end),t(1:dt:end),XUNC(1:dt:end,1:dx:end))
+% grid on, axis([-6 6 0 5 -0.5 1.05]),
+% view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+% title("Uncontrolled"); drawnow
+% % Open-loop optimal control plot
+% nexttile;
+% mesh(xx(1:dx:end),t(1:dt:end),xOL(1:dt:end,1:dx:end))
+% grid on, axis([-6 6 0 5 -0.5 1.05]),
+% view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+% title("Open-loop Optimal Control"); drawnow
+% % LQR control plot
+% nexttile;
+% mesh(xx(1:dx:end),t(1:dt:end),XLQR(1:dt:end,1:dx:end))
+% grid on, axis([-6 6 0 5 -0.5 1.05]),
+% view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+% title("LQR Control"); drawnow
+% % Breiten2 control plot
+% nexttile;
+% mesh(xx(1:dx:end),t(1:dt:end),Xb2(1:dt:end,1:dx:end))
+% grid on, axis([-6 6 0 5 -0.5 1.05]),
+% view(145,35), colormap([0 0 0]); xlabel $z$, ylabel $t$, zlabel $w$
+% title("Breiten et al. Quadratic Control"); drawnow
+
 %% Plot control signals
 figure; hold on;
 set(0, 'DefaultLineLineWidth', 1.5);
-plot(t,Uxb2,'r-','DisplayName','u_{b2}(t)')
-plot(t,Uxb3,'g','DisplayName','u_{b3}(t)')
-plot(t,Uxb4,'b','DisplayName','u_{b4}(t)')
-plot(t,UxPPRb2,'y--','DisplayName','u_{bp2}(t)')
-plot(t,UxPPRb3,'m--','DisplayName','u_{bp3}(t)')
-plot(t,UxPPRb4,'c--','DisplayName','u_{bp4}(t)')
-plot(t,UxLQR,'k:','DisplayName','u_1(t)')
-plot(t,UxPPR2,'r:','DisplayName','u_2(t)')
-plot(t,UxPPR3,'g:','DisplayName','u_3(t)')
-plot(t,UxPPR2r,'r:','DisplayName','u_{2r}(t)')
-plot(t,UxPPR3r,'g:','DisplayName','u_{3r}(t)')
-plot(t,UxPPR4r,'b:','DisplayName','u_{4r}(t)')
-plot(t,UxPPR5r,'m:','DisplayName','u_{5r}(t)')
-plot(t,UxPPR6r,'c:','DisplayName','u_{6r}(t)')
-plot(t,UxPPR7r,'y:','DisplayName','u_{7r}(t)')
-plot(t,UxPPR8r,'k:','DisplayName','u_{8r}(t)')
-plot(t,UxPPR9r,'r:','DisplayName','u_{9r}(t)')
-plot(t,uOL,'k','DisplayName','u_{opt}(t)')
+plot(t,Uxb2,'r-','DisplayName','$u_{b2}(t)$') % Breiten quadratic
+plot(t,Uxb3,'g','DisplayName','$u_{b3}(t)$') % Breiten cubic
+plot(t,Uxb4,'b','DisplayName','$u_{b4}(t)$') % Breiten quartic
+plot(t,UxPPRb2,'y--','DisplayName','$u_{bp2}(t)$') % Breiten quadratic computed with PPR package
+plot(t,UxPPRb3,'m--','DisplayName','$u_{bp3}(t)$') % Breiten cubic computed with PPR package
+plot(t,UxPPRb4,'c--','DisplayName','$u_{bp4}(t)$') % Breiten quartic computed with PPR package
+plot(t,UxLQR,'k:','DisplayName','$u_1(t)$') % LQR (linear PPR)
+plot(t,UxPPR2,'r:','DisplayName','$u_2(t)$') % Quadratic PPR
+plot(t,uOL,'k','DisplayName','$u_{opt}(t)$') % True optimal control
+plot(t,UxPPR3,'g:','DisplayName','$u_3(t)$') % Cubic PPR
+% plot(t,UxPPR2r,'r:','DisplayName','u_{2r}(t)')
+% plot(t,UxPPR3r,'g:','DisplayName','u_{3r}(t)')
+% plot(t,UxPPR4r,'b:','DisplayName','u_{4r}(t)')
+% plot(t,UxPPR5r,'m:','DisplayName','u_{5r}(t)')
+% plot(t,UxPPR6r,'c:','DisplayName','u_{6r}(t)')
+% plot(t,UxPPR7r,'y:','DisplayName','u_{7r}(t)')
+% plot(t,UxPPR8r,'k:','DisplayName','u_{8r}(t)')
+% plot(t,UxPPR9r,'r:','DisplayName','u_{9r}(t)')
 legend
 xlim([0 5])
 
 
+figure('Position',[293.8000 462.6000 754.2000 295.4000]); tiledlayout(1,2);
+nexttile;
+hold on;
 
+plot(t,uOL,'Color','k','LineStyle','-','LineWidth',1.8,...
+    'DisplayName','$u_{opt}(t)$');
+plot(t,Uxb2,'b','LineWidth',1.2,'DisplayName','$u_{b2}(t)$');
+plot(t,UxPPRb2,'--', 'Color', [0.75, 0.75, 0.75],'LineWidth',1,...
+    'Marker','o','MarkerIndices',1:40:length(t),'MarkerSize',5,...
+    'DisplayName','$u_{b2}^{\mathrm{PPR}}(t)$');
+plot(t,Uxb3,'r','LineWidth',1.2,'DisplayName','$u_{b3}(t)$');
+plot(t,UxPPRb3,'--', 'Color', [0.75, 0.75, 0.75],'LineWidth',1,...
+    'Marker','s','MarkerIndices',1:40:length(t),'MarkerSize',6,...
+    'DisplayName','$u_{b3}^{\mathrm{PPR}}(t)$');
+plot(t,Uxb4,'g','LineWidth',1.2,'DisplayName','$u_{b4}(t)$');
+plot(t,UxPPRb4,'--', 'Color', [0.75, 0.75, 0.75],'LineWidth',1,...
+    'Marker','^','MarkerIndices',1:40:length(t),'MarkerSize',5,...
+    'DisplayName','$u_{b4}^{\mathrm{PPR}}(t)$');
+% plot(t,UxLQR,'b:','LineWidth',1.4,'DisplayName','$u_1(t)$');
+% plot(t,UxPPR2,'r--','LineWidth',1.4,'DisplayName','$u_2(t)$');
+% plot(t,UxPPR3,'g-.','LineWidth',1.4,'DisplayName','$u_3(t)$');
+legend;
+xlim([0 5]); ylim([-5 35])
+xlabel('$t$'); ylabel('$u(t)$');
+title('Breiten et al. Controllers')
+
+nexttile;
+hold on;
+
+plot(t,uOL,'Color','k','LineStyle','-','LineWidth',1.8,...
+    'DisplayName','$u_{opt}(t)$');
+plot(t,UxLQR,'b:','LineWidth',1.4,'DisplayName','$u_1(t)$');
+plot(t,UxPPR2,'r--','LineWidth',1.4,'DisplayName','$u_2(t)$');
+plot(t,UxPPR3,'g-.','LineWidth',1.4,'DisplayName','$u_3(t)$');
+
+legend;
+xlim([0 5]); ylim([-5 35])
+xlabel('$t$'); ylabel('$u(t)$');
+title('PPR Controllers')
+
+exportgraphics(gcf,'plots/example31_controlSignals.pdf', 'ContentType', 'vector')
 
 % end
 
@@ -321,6 +425,7 @@ for i = k:-1:2
 end
 end
 
+%% The code below was provided by Breiten et al.
 function gain = computeGain(T,x)
 % Note: this is moreso just the gradient of the value function, not really
 % the gain matrix. This is their implementation, which is not as efficient

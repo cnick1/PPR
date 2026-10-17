@@ -59,6 +59,16 @@ end
 % Prints out the table of control costs Table 1
 runExample26_controlCosts();
 
+%% Example 31: 1D Fokker-Plank equation
+% Compare to Breiten et al. 2018
+runExample31()
+
+% Region of accuracy plot
+runExample31_regionOfAccuracy()
+
+% Scalability study
+runExample31_scalability()
+
 %% Example 9: 1D Allen-Cahn equation, Neumann Boundary Conditions
 % Produces the cost convergence plot Fig. 6, table of controller costs 
 % Table 2, and closed-loop simulation surface plots Fig. 7.
