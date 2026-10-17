@@ -79,7 +79,6 @@ fprintf('Running Example 31\n')
 [f, g, h, x0] = getSystem31(false, '2');
 q = h{1}.'*h{1}; R = 1e-4;
 n = length(x0);
-x0 = 2.*x0; 
 
 % Set up time vector for simulations
 tmax = 20; t = linspace(0,tmax,2001);
@@ -96,7 +95,7 @@ fprintf(" completed in %2.2f seconds. \n", toc(T0))
 %% Use the code from [1] to compute the Breiten et al. polynomial controllers
 % To make things clean, I've cleaned up their control computation code.
 quad_no = 50;
-fprintf(" Computing Breiten et al. controller... "); tic
+fprintf(" Computing Bretien et al. controller... "); tic
 VBreiten = breitenValueFunction(f{1},g{1},g{2},q,R,quad_no,4);
 fprintf(" completed in %2.2f seconds. \n", toc)
 uBreiten2 = @(x) -R\(g{1}+g{2}*x).'*computeGain(VBreiten(1:2),x).';
@@ -389,7 +388,7 @@ plot(t,UxPPRb4,'--', 'Color', [0.75, 0.75, 0.75],'LineWidth',1,...
 legend;
 xlim([0 5]); ylim([-5 35])
 xlabel('$t$'); ylabel('$u(t)$');
-title('Breiten et al. Controllers')
+title('Controllers from [19]')
 
 nexttile;
 hold on;

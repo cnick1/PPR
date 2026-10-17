@@ -24,6 +24,11 @@
 %      residuals for Figs. 3 & 4. A separate function computes the 
 %      integrated costs for Table 1.
 %
+%      Example 31: 1D Fokker-Planck equation. The code here
+%      plots the PDE controlled and uncontrolled response, computes
+%      integrated costs of various controllers, and plots the control
+%      signals produced by various controllers.
+%
 %      Example 9: Chebychev discretization of Allen-Cahn equation with
 %      Neumann boundary conditions. The code here compares LQR, SDRE, PPR,
 %      and TT-HJB, generating a cost convergence plot Fig. 6 to show if 
